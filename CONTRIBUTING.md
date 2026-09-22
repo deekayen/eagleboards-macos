@@ -40,7 +40,8 @@ one thread that ever changes the data.
 
 ## Build, run, verify
 
-Needs macOS 14 or later and Xcode (or its command line tools) with Swift 6.
+Needs a Mac with Apple silicon, macOS 14 or later, and Xcode (or its command
+line tools) with Swift 6.
 
 ```bash
 swift build
@@ -54,8 +55,8 @@ swift test
 scripts/build-app.sh
 ```
 
-The last one produces `build/Eagle Boards.app`, universal and signed ad hoc.
-`ARCHS=arm64` builds for Apple silicon only, which is faster while iterating.
+The last one produces `build/Eagle Boards.app`, signed ad hoc. It is built
+for Apple silicon only; Intel Macs are not supported.
 
 To run against synthetic data without touching the folder the app remembers:
 
@@ -64,7 +65,7 @@ EAGLEBOARDS_DATA_FOLDER=/tmp/eb-scratch EAGLEBOARDS_PORT=18123 "build/Eagle Boar
 ```
 
 **Prefer pushing over re-running everything locally.** CI (`build.yml`) runs
-the tests, builds the universal app, checks the bundle, and runs the guards
+the tests, builds the app, checks the bundle, and runs the guards
 below. Run things locally to debug what CI found, or to iterate.
 
 ## The rules this code keeps
@@ -119,7 +120,7 @@ below. Run things locally to debug what CI found, or to iterate.
 ## Releases
 
 Versions are CalVer: the release date, e.g. `2026.09.22`. Pushing a tag
-`v2026.09.22` runs `release.yml`, which builds the universal app, checks it
+`v2026.09.22` runs `release.yml`, which builds the app, checks it
 carries no data or key, and attaches `Eagle-Boards-2026.09.22.zip` to a
 GitHub release.
 

@@ -52,6 +52,9 @@ chair.
   date-and-time string and missed it.
 - The API key is kept in the macOS keychain instead of on a command line.
 
+**Apple silicon only.** Eagle Boards runs on Macs with Apple silicon (M1 or
+later) and macOS 14 or later. Intel Macs are not supported.
+
 **New:**
 - A QR code for the sign-in address.
 - Copy rooms from an earlier night.

@@ -44,7 +44,7 @@ jobs:
           SUG_KEY: ${{ secrets.SUG_KEY }}
         run: swift test
 
-      - name: Build the app (Apple silicon + Intel)
+      - name: Build the app
         run: VERSION="0.0.${{ github.run_number }}" scripts/build-app.sh
 
       - name: Check the bundle
@@ -52,7 +52,8 @@ jobs:
           app="build/Eagle Boards.app"
           archs=$(lipo -archs "$app/Contents/MacOS/Eagle Boards")
           echo "architectures: $archs"
-          case "$archs" in *arm64*x86_64*|*x86_64*arm64*) ;; *) echo "::error::not universal"; exit 1 ;; esac
+          # Apple silicon only; Intel Macs are not supported.
+          [ "$archs" = "arm64" ] || { echo "::error::expected arm64 only"; exit 1; }
           plutil -lint "$app/Contents/Info.plist"
           codesign --verify --strict --verbose=1 "$app"
           for page in index.html youth_register.html adult_register.html checkin.css checkin.js; do

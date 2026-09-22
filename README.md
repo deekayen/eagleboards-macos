@@ -19,7 +19,8 @@ in the app under **Help › Eagle Boards Help**.
 
 You need three things:
 
-1. **A Mac** running macOS 14 Sonoma or later, with Eagle Boards on it.
+1. **A Mac with Apple silicon** (M1 or later) running macOS 14 Sonoma or
+   later, with Eagle Boards on it. Intel Macs are not supported.
 2. **A tablet or laptop for the door**, with a web browser, on the same Wi-Fi.
 3. **Your room list**: which rooms you have, and whether each is used for
    project proposal reviews or for final boards.

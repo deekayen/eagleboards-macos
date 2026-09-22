@@ -1,4 +1,4 @@
-# Push a tag like v2026.09.22 to build the universal app and publish it.
+# Push a tag like v2026.09.22 to build the app and publish it.
 name: Release
 
 on:
@@ -43,4 +43,4 @@ jobs:
           ditto -c -k --keepParent "build/Eagle Boards.app" "$zip"
           gh release create "$GITHUB_REF_NAME" "$zip" \
             --title "Eagle Boards $version" \
-            --notes "Universal (Apple silicon and Intel), macOS 14 or later. Signed ad hoc: the first time, right-click the app and choose Open. See CHANGELOG.md."
+            --notes "For Macs with Apple silicon, macOS 14 or later. Intel Macs are not supported. Signed ad hoc: the first time, right-click the app and choose Open. See CHANGELOG.md."

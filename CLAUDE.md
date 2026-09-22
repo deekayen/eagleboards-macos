@@ -8,9 +8,10 @@ rules. This file adds what an agent in particular needs.
 
 The native Mac version of the Java Eagle Board Scheduler
 (`deekayen/eagleboards`), an Eagle Scout board of review check-in and room
-scheduler. Swift 6, SwiftUI, macOS 14+. The sign-in stations still register
-by web page, served by an embedded Hummingbird server; every operator screen
-is a native window. See `PROVENANCE.md`.
+scheduler. Swift 6, SwiftUI, macOS 14+, Apple silicon only -- there is no
+Intel build, by the owner's decision. The sign-in stations still register by
+web page, served by an embedded Hummingbird server; every operator screen is
+a native window. See `PROVENANCE.md`.
 
 ## Build and verify
 

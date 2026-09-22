@@ -2,12 +2,12 @@
 # ------------------------------------------------------------------------
 # build-app.sh -- build "Eagle Boards.app" from the Swift package.
 #
-#   scripts/build-app.sh                  # universal (Apple silicon + Intel), release
-#   ARCHS=arm64 scripts/build-app.sh      # this Mac's architecture only, faster
+#   scripts/build-app.sh                  # release build
 #   VERSION=2026.09.22 scripts/build-app.sh
 #   SIGNING_IDENTITY="Developer ID Application: ..." scripts/build-app.sh
 #
-# Output: build/Eagle Boards.app
+# Output: build/Eagle Boards.app, for Apple silicon only. Intel Macs are not
+# supported.
 #
 # Without SIGNING_IDENTITY the app is signed ad hoc. That runs on the Mac that
 # built it; on another Mac, Gatekeeper asks for a right-click > Open the first
@@ -19,18 +19,12 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 VERSION="${VERSION:-$(date +%Y.%m.%d)}"
-ARCHS="${ARCHS:-arm64 x86_64}"
 BUNDLE_ID="net.deekayen.EagleBoards"
 APP="build/Eagle Boards.app"
 
-arch_flags=()
-for arch in $ARCHS; do
-    arch_flags+=(--arch "$arch")
-done
-
-echo "== building $VERSION for: $ARCHS"
-swift build -c release "${arch_flags[@]}"
-bin_dir=$(swift build -c release "${arch_flags[@]}" --show-bin-path)
+echo "== building $VERSION for Apple silicon"
+swift build -c release --arch arm64
+bin_dir=$(swift build -c release --arch arm64 --show-bin-path)
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
