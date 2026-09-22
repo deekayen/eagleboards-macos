@@ -1,0 +1,46 @@
+# Push a tag like v2026.09.22 to build the universal app and publish it.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Test
+        run: swift test
+
+      - name: Build
+        run: VERSION="${GITHUB_REF_NAME#v}" scripts/build-app.sh
+
+      - name: Refuse to publish data or a key
+        env:
+          SUG_KEY: ${{ secrets.SUG_KEY }}
+        run: |
+          app="build/Eagle Boards.app"
+          if find "$app" -iname '*.csv' -o -iname '*.properties' -o -iname '*.xls*' | grep .; then
+            echo "::error::the app carries data files"
+            exit 1
+          fi
+          if [ -n "$SUG_KEY" ] && grep -rqF "$SUG_KEY" "$app"; then
+            echo "::error::the app contains the SignUpGenius key"
+            exit 1
+          fi
+
+      - name: Package and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          zip="Eagle-Boards-$version.zip"
+          ditto -c -k --keepParent "build/Eagle Boards.app" "$zip"
+          gh release create "$GITHUB_REF_NAME" "$zip" \
+            --title "Eagle Boards $version" \
+            --notes "Universal (Apple silicon and Intel), macOS 14 or later. Signed ad hoc: the first time, right-click the app and choose Open. See CHANGELOG.md."

@@ -1,0 +1,28 @@
+Eagle Boards
+Copyright 2026 David Norman
+
+This product is a native macOS version of the Eagle Board Scheduler, a
+board of review check-in and room scheduler for a Scouting district.
+
+------------------------------------------------------------------------------
+ORIGINAL WORK
+------------------------------------------------------------------------------
+
+The Eagle Board Scheduler was reconstructed from a pre-existing application
+received only as a compiled JAR. This product carries over that
+application's data-file format, board rules and sign-in pages, and is a
+derivative of the original author's work.
+
+See PROVENANCE.md.
+
+------------------------------------------------------------------------------
+THIRD-PARTY COMPONENTS
+------------------------------------------------------------------------------
+
+This product includes the following third-party software, each under its own
+license:
+
+    Hummingbird (hummingbird-project)     Apache License 2.0
+    SwiftNIO and related Swift server     Apache License 2.0
+      packages (Apple Inc. and the
+      Swift Server Work Group)

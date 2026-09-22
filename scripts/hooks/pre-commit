@@ -1,0 +1,45 @@
+#!/bin/sh
+# Guard hook: refuse to commit participant data (PII) or secrets.
+# Installed via: git config core.hooksPath scripts/hooks
+#
+# The app keeps its data in a folder the operator chooses, outside this
+# repository. This is the last line of defense for the day someone copies a
+# data folder in here to debug something.
+
+fail=0
+
+staged=$(git diff --cached --name-only --diff-filter=ACR)
+
+for f in $staged; do
+    case "$f" in
+        *.csv|*.xls|*.xlsx|*.xlsm|*.ods)
+            echo "BLOCKED: $f -- spreadsheet/CSV files may contain participant data" >&2
+            fail=1 ;;
+    esac
+    case "$f" in
+        20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]/*|*/20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]/*)
+            echo "BLOCKED: $f -- dated night folders contain participant data" >&2
+            fail=1 ;;
+        *Board_Results*|*Master_AdultHistory*|LOGIN_INFO*|.env|config.properties|*/config.properties)
+            echo "BLOCKED: $f -- contains PII, credentials, or a data folder's settings" >&2
+            fail=1 ;;
+        *.jar)
+            echo "BLOCKED: $f -- no jars here; the inherited binary embeds an API key" >&2
+            fail=1 ;;
+    esac
+done
+
+# A SignUpGenius key pasted into source: a user_key query parameter or a
+# SUG_KEY assignment followed by a long literal.
+if git diff --cached -G'(user_key=|SUG_KEY *= *"?)[A-Za-z0-9+/=]{16,}' --name-only | grep -q .; then
+    echo "BLOCKED: staged content contains what looks like a SignUpGenius key" >&2
+    fail=1
+fi
+
+if [ "$fail" -ne 0 ]; then
+    echo "" >&2
+    echo "Commit rejected by scripts/hooks/pre-commit. If this is a false" >&2
+    echo "positive, adjust the hook -- do not bypass with --no-verify." >&2
+    exit 1
+fi
+exit 0

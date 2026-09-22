@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <title>Adult Sign-In</title>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <link rel="stylesheet" type="text/css" href="checkin.css"/>
+      <script src="checkin.js"></script>
+   </head>
+   <body class="eb-public">
+      <div class="reg-head">
+         <span class="page-subheader">Adult Sign-In</span>
+      </div>
+
+      <!-- Same single-column, top-label structure as the youth form; see the
+           note there for the research behind it. -->
+      <div class="reg-wrap">
+         <form id="regForm" autocomplete="off">
+            <fieldset>
+               <legend>Adult registration</legend>
+               <div class="reg-field">
+                  <label for="Email">Email</label>
+                  <!-- type="text", not type="email": NONE is a legal value and
+                       type="email" would reject it. -->
+                  <input type="text" id="Email" name="Email" required
+                         inputmode="email" autocapitalize="off" autocorrect="off" spellcheck="false"
+                         title="Enter Email. If none, enter NONE.">
+               </div>
+               <input type="hidden" name="ID" value="">
+               <div class="reg-pair">
+                  <div class="reg-field">
+                     <label for="First">First name</label>
+                     <input type="text" id="First" name="First" required>
+                  </div>
+                  <div class="reg-field">
+                     <label for="Last">Last name</label>
+                     <input type="text" id="Last" name="Last" required>
+                  </div>
+               </div>
+               <div class="reg-field">
+                  <label for="Phone">Phone</label>
+                  <input type="tel" id="Phone" name="Phone" required inputmode="tel">
+               </div>
+               <div class="reg-pair">
+                  <div class="reg-field reg-grow">
+                     <label for="UnitType">Unit type</label>
+                     <select id="UnitType" name="UnitType" required>
+                        <option value="Troop">Troop</option>
+                        <option value="Post">Post</option>
+                        <option value="Crew">Crew</option>
+                        <option value="Ship">Ship</option>
+                        <option value="Pack">Pack</option>
+                        <!-- Adults can serve from a district, council or
+                             community role rather than a numbered unit. Unit #
+                             is disabled for these three. -->
+                        <option value="District">District</option>
+                        <option value="Council">Council</option>
+                        <option value="Community">Community</option>
+                     </select>
+                  </div>
+                  <div class="reg-field reg-narrow" id="unitField">
+                     <label for="Unit">Unit #</label>
+                     <input type="text" id="Unit" name="Unit" required pattern="[0-9]+"
+                            inputmode="numeric" title="Unit # must be a whole number.">
+                  </div>
+               </div>
+            </fieldset>
+            <fieldset>
+               <legend>I can serve as</legend>
+               <div class="reg-pair">
+                  <div class="reg-field">
+                     <label for="FinalBoard">Final Board</label>
+                     <select id="FinalBoard" name="FinalBoard" required>
+                        <option value="Member">Member</option>
+                        <option value="Chair">Chair</option>
+                     </select>
+                  </div>
+                  <div class="reg-field">
+                     <label for="ProjectReview">Proposal Review</label>
+                     <select id="ProjectReview" name="ProjectReview" required>
+                        <option value="Member">Member</option>
+                        <option value="Chair">Chair</option>
+                     </select>
+                  </div>
+               </div>
+            </fieldset>
+            <div id="statusMsg" role="status"></div>
+            <div class="reg-buttons">
+               <button type="submit" id="registerBtn"><b>Register</b></button>
+               <button type="button" id="cancelBtn"><b>Cancel</b></button>
+            </div>
+         </form>
+      </div>
+
+      <script>
+         var form = document.getElementById("regForm");
+
+         // Someone serving from a district, council or community role has no
+         // unit number, so the box is disabled and cleared rather than left to
+         // be filled with a placeholder like 0 or N/A.
+         var UNITLESS_TYPES = ["District", "Council", "Community"];
+         var unitField = document.getElementById("unitField");
+         function syncUnitField() {
+            var unitless = UNITLESS_TYPES.indexOf(form.elements["UnitType"].value) >= 0;
+            var unit = form.elements["Unit"];
+            if (unitless) {
+               unit.value = "";
+            }
+            // Dropping `required` is what lets the form submit with the box
+            // the person was never allowed to fill in.
+            unit.disabled = unitless;
+            unit.required = !unitless;
+            unitField.className = unitless ? "reg-field reg-narrow is-disabled" : "reg-field reg-narrow";
+         }
+         form.elements["UnitType"].addEventListener("change", syncUnitField);
+         syncUnitField();
+
+         ebWireEmailPrefill(form, "/api/adult-lookup",
+            ["ID", "Last", "First", "Phone", "UnitType", "Unit", "FinalBoard", "ProjectReview"]);
+         ebWireRegistration(form, "/register-adult",
+            ["Email", "ID", "Last", "First", "Phone", "UnitType", "Unit", "FinalBoard", "ProjectReview"]);
+      </script>
+   </body>
+</html>

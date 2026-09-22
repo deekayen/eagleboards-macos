@@ -1,0 +1,44 @@
+# CLAUDE.md -- working notes for this repo
+
+Guidance for anyone (human or AI) making changes here. Read
+[CONTRIBUTING.md](CONTRIBUTING.md) first; it holds the architecture and the
+rules. This file adds what an agent in particular needs.
+
+## What this is
+
+The native Mac version of the Java Eagle Board Scheduler
+(`deekayen/eagleboards`), an Eagle Scout board of review check-in and room
+scheduler. Swift 6, SwiftUI, macOS 14+. The sign-in stations still register
+by web page, served by an embedded Hummingbird server; every operator screen
+is a native window. See `PROVENANCE.md`.
+
+## Build and verify
+
+- Xcode is installed but may not be the selected developer directory. Use it
+  without changing system settings:
+  `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test`
+- `swift test` runs everything headless: the rules, a whole board evening,
+  the data-file dialect, and the check-in server (in memory, plus one test on
+  a real socket).
+- `scripts/build-app.sh` builds `build/Eagle Boards.app`.
+- To look at the app, run it with `EAGLEBOARDS_DATA_FOLDER` pointing at a
+  scratch folder of **synthetic** people and `EAGLEBOARDS_PORT` on a spare
+  port. Never load a real `Master_AdultHistory.csv` into anything you
+  screenshot.
+- Prefer pushing over re-running the suite locally; CI is the gate.
+
+## Standing rules
+
+- **Push to `main`. Never open pull requests** on this repository: GitHub keeps
+  `refs/pull/*` forever, beyond the reach of a history rewrite.
+- **No AI attribution** in commits, PR text, or anywhere in history.
+- **Commits are GPG-signed** (`commit.gpgsign` is on); expect a pinentry prompt.
+- **Never commit participant data or secrets.** Install the hook:
+  `git config core.hooksPath scripts/hooks`.
+- **The data files are the contract** with the Java app. Change their shape
+  only with a test in `FileFormatTests` and a reason that survives the Java
+  app reading the result.
+- **Add a test with every fix**, and a `BoardEveningTests` case when a change
+  touches seating, running or tearing down a board.
+- **No `var##` names**, even to match anything. CI fails on them.
+- **District-neutral branding**, settled: never add a district or council name.

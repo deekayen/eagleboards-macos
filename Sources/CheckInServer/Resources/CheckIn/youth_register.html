@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <title>Youth Sign-In</title>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <link rel="stylesheet" type="text/css" href="checkin.css"/>
+      <script src="checkin.js"></script>
+   </head>
+   <body class="eb-public">
+      <div class="reg-head">
+         <span class="page-subheader">Youth Sign-In</span>
+      </div>
+
+      <!-- Single column with top-aligned labels. Baymard's form research finds
+           multi-column layouts draw attention in several directions at once, so
+           people skip required fields; and Penzo's eye-tracking (replicated by
+           Wroblewski) found top-aligned labels are completed markedly faster.
+           The only pairs kept side by side are the ones that read as a single
+           item -- a name, and a unit. Field widths hint at the expected input
+           length. -->
+      <div class="reg-wrap">
+         <form id="regForm" autocomplete="off">
+            <fieldset>
+               <legend>Youth Registration</legend>
+
+               <div class="reg-field">
+                  <label for="Email">Email</label>
+                  <!-- type="text", not type="email": NONE is a legal value and
+                       type="email" would reject it. inputmode still brings up
+                       the @ keyboard on a tablet. -->
+                  <input type="text" id="Email" name="Email" required
+                         inputmode="email" autocapitalize="off" autocorrect="off" spellcheck="false"
+                         title="Enter Email. If none, enter NONE.">
+               </div>
+               <input type="hidden" name="ID" value="">
+
+               <div class="reg-pair">
+                  <div class="reg-field">
+                     <label for="First">First name</label>
+                     <input type="text" id="First" name="First" required>
+                  </div>
+                  <div class="reg-field">
+                     <label for="Last">Last name</label>
+                     <input type="text" id="Last" name="Last" required>
+                  </div>
+               </div>
+
+               <div class="reg-pair">
+                  <div class="reg-field">
+                     <label for="Phone">Phone</label>
+                     <!-- type=tel raises the phone keypad. It does not constrain
+                          what may be typed: a rejected phone number at a
+                          check-in table costs more than an inconsistent one. -->
+                     <input type="tel" id="Phone" name="Phone" required inputmode="tel">
+                  </div>
+                  <div class="reg-field">
+                     <label for="DOB">Birthdate</label>
+                     <!-- Free text on purpose. DOB is stored and exported as
+                          typed, and a date picker is the wrong control for a
+                          birth year 15+ years back: it opens on this month. -->
+                     <input type="text" id="DOB" name="DOB" required>
+                  </div>
+               </div>
+
+               <div class="reg-pair">
+                  <div class="reg-field reg-grow">
+                     <label for="UnitType">Unit type</label>
+                     <select id="UnitType" name="UnitType" required>
+                        <option value="Troop">Troop</option>
+                        <option value="Post">Post</option>
+                        <option value="Crew">Crew</option>
+                        <option value="Ship">Ship</option>
+                     </select>
+                  </div>
+                  <div class="reg-field reg-narrow">
+                     <label for="Unit">Unit #</label>
+                     <input type="text" id="Unit" name="Unit" required pattern="[0-9]+"
+                            inputmode="numeric" title="Unit # must be a whole number.">
+                  </div>
+               </div>
+            </fieldset>
+
+            <fieldset>
+               <legend>Board information</legend>
+               <div class="reg-field">
+                  <label for="BoardType">Board type</label>
+                  <!-- The submitted values stay "Final" and "Project": they are
+                       what is stored, and they match rooms and timers. -->
+                  <select id="BoardType" name="BoardType">
+                     <option value="Final">Final Board</option>
+                     <option value="Project">Proposal Review</option>
+                  </select>
+               </div>
+               <div class="reg-field">
+                  <label for="Leader">Leader name</label>
+                  <input type="text" id="Leader" name="Leader">
+               </div>
+            </fieldset>
+            <div id="statusMsg" role="status"></div>
+            <div class="reg-buttons">
+               <button type="submit" id="registerBtn"><b>Register</b></button>
+               <button type="button" id="cancelBtn"><b>Cancel</b></button>
+            </div>
+         </form>
+      </div>
+
+      <script>
+         var form = document.getElementById("regForm");
+         ebWireEmailPrefill(form, "/api/youth-lookup",
+            ["ID", "Last", "First", "Phone", "DOB", "UnitType", "Unit", "BoardType", "Leader"]);
+         ebWireRegistration(form, "/register-youth",
+            ["Email", "ID", "Last", "First", "Phone", "DOB", "UnitType", "Unit", "BoardType", "Leader"]);
+      </script>
+   </body>
+</html>

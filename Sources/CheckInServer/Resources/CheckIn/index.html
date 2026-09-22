@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <title>Eagle Board Sign-In</title>
+      <meta charset="UTF-8">
+      <!-- Without this a phone or tablet lays the page out at a notional
+           980px and scales the result down, so nothing responds to the real
+           screen no matter what the CSS says. -->
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <link rel="stylesheet" type="text/css" href="checkin.css"/>
+      <script src="checkin.js"></script>
+   </head>
+   <body class="eb-public">
+
+      <h1>Welcome to Eagle Boards</h1>
+      <h1><u>Please Sign In</u></h1>
+
+      <div class="signin-buttons">
+         <!-- Text labels rather than bitmaps: they scale with the button, stay
+              legible if an image fails to load, and can be read by a screen
+              reader. -->
+         <input type="button" name="Youth" value="I am a Youth"
+                onclick="window.location.href = '/youth_register';">
+         <input type="button" name="Adult" value="I am 21+"
+                onclick="window.location.href = '/adult_register';">
+      </div>
+
+      <div class="reg-panels">
+         <div class="reg-panel">
+            <div class="reg-panel-title">Registered Youth</div>
+            <div class="reg-panel-body" id="youthPanel"><table><tbody id="youthRows"></tbody></table></div>
+         </div>
+         <div class="reg-panel">
+            <div class="reg-panel-title">Registered Adults</div>
+            <div class="reg-panel-body" id="adultPanel"><table><tbody id="adultRows"></tbody></table></div>
+         </div>
+      </div>
+
+      <script>
+         var YOUTH_COLUMNS = ["time", "last", "first", "unitType", "unit"];
+         var ADULT_COLUMNS = ["last", "first", "unitType", "unit"];
+
+         // The app sends its refresh interval with every list, so changing it
+         // in the app's Settings changes it here without a reload.
+         var refreshSeconds = 30;
+         var loadInFlight = false;
+
+         function fillPanel(bodyId, panelId, rows, columns, centeredColumns, forceBottom) {
+            var tbody = document.getElementById(bodyId);
+            var panel = document.getElementById(panelId);
+            var wasAtBottom = panel.scrollTop + panel.clientHeight >= panel.scrollHeight - 4;
+            tbody.textContent = "";
+            rows.forEach(function (record) {
+               var row = document.createElement("tr");
+               columns.forEach(function (column) {
+                  var cell = document.createElement("td");
+                  if (centeredColumns.indexOf(column) >= 0) {
+                     cell.className = "c";
+                  }
+                  cell.textContent = record[column] || "";
+                  row.appendChild(cell);
+               });
+               tbody.appendChild(row);
+            });
+            // Keep the newest arrival in view -- but on a refresh, only if the
+            // list was already at the bottom, so nobody scrolled up reading it
+            // gets yanked away.
+            if (forceBottom || wasAtBottom) {
+               panel.scrollTop = panel.scrollHeight;
+            }
+         }
+
+         function loadPanels(forceBottom) {
+            if (loadInFlight) {
+               return;
+            }
+            loadInFlight = true;
+            ebCheckedIn().then(function (lists) {
+               if (lists.refreshSeconds > 0) {
+                  refreshSeconds = lists.refreshSeconds;
+               }
+               fillPanel("youthRows", "youthPanel", lists.youth, YOUTH_COLUMNS, ["time"], forceBottom);
+               fillPanel("adultRows", "adultPanel", lists.adults, ADULT_COLUMNS, [], forceBottom);
+            }).catch(function () {
+               // This screen faces the people signing in; a failed refresh must
+               // never put an error in front of them. The next one retries.
+            }).then(function () {
+               loadInFlight = false;
+            });
+         }
+
+         function pollPanels() {
+            if (!document.hidden) {
+               loadPanels(false);
+            }
+            setTimeout(pollPanels, Math.max(1, refreshSeconds) * 1000);
+         }
+
+         loadPanels(true);
+         setTimeout(pollPanels, Math.max(1, refreshSeconds) * 1000);
+
+         document.addEventListener("visibilitychange", function () {
+            if (!document.hidden) {
+               loadPanels(false);
+            }
+         });
+      </script>
+   </body>
+</html>

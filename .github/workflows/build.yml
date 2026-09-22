@@ -1,0 +1,90 @@
+# The acceptance gate. Everything here must stay green on main.
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: No decompiled variable names
+        # Names say what a variable is for. var1, var10 and friends came from
+        # a decompiler in the Java project and are not allowed back.
+        run: |
+          if grep -rnE '\bvar[0-9]+\b' Sources Tests scripts; then
+            echo "::error::decompiler-style var## names found"
+            exit 1
+          fi
+
+      - name: No participant data in the tree
+        run: |
+          if git ls-files | grep -Ei '\.(csv|xls|xlsx|xlsm|ods|jar)$|Master_AdultHistory|Board_Results|(^|/)20[0-9]{2}-[0-9]{2}-[0-9]{2}/|(^|/)config\.properties$|(^|/)\.env$'; then
+            echo "::error::data files or secrets are tracked"
+            exit 1
+          fi
+
+      - name: Test
+        env:
+          # Only enables the live SignUpGenius check; absent on forks and
+          # Dependabot runs, where that one test is skipped.
+          SUG_KEY: ${{ secrets.SUG_KEY }}
+        run: swift test
+
+      - name: Build the app (Apple silicon + Intel)
+        run: VERSION="0.0.${{ github.run_number }}" scripts/build-app.sh
+
+      - name: Check the bundle
+        run: |
+          app="build/Eagle Boards.app"
+          archs=$(lipo -archs "$app/Contents/MacOS/Eagle Boards")
+          echo "architectures: $archs"
+          case "$archs" in *arm64*x86_64*|*x86_64*arm64*) ;; *) echo "::error::not universal"; exit 1 ;; esac
+          plutil -lint "$app/Contents/Info.plist"
+          codesign --verify --strict --verbose=1 "$app"
+          for page in index.html youth_register.html adult_register.html checkin.css checkin.js; do
+            find "$app/Contents/Resources/EagleBoards_CheckInServer.bundle" -name "$page" | grep -q . \
+              || { echo "::error::$page missing from the bundle"; exit 1; }
+          done
+          if find "$app" -iname '*.csv' -o -iname '*.properties' | grep .; then
+            echo "::error::the app carries data files"
+            exit 1
+          fi
+
+      - name: Smoke test the built app
+        # Launch the real app on an empty scratch folder, sign someone in the
+        # way a tablet would, and read the result back off disk.
+        run: |
+          app="build/Eagle Boards.app"
+          data=$(mktemp -d)
+          EAGLEBOARDS_DATA_FOLDER="$data" EAGLEBOARDS_PORT=18123 "$app/Contents/MacOS/Eagle Boards" > app.log 2>&1 &
+          pid=$!
+          for attempt in $(seq 1 60); do
+            curl -sf -o /dev/null http://127.0.0.1:18123/ && break
+            sleep 1
+          done
+          status() { curl -s -o /dev/null -w '%{http_code}' "$@"; }
+          fail() { echo "::error::$1"; cat app.log; kill $pid; exit 1; }
+          [ "$(status http://127.0.0.1:18123/)" = 200 ] || fail "sign-in page not served"
+          [ "$(status http://127.0.0.1:18123/admin)" = 404 ] || fail "/admin must not exist"
+          [ "$(status http://127.0.0.1:18123/adult-history-cells)" = 404 ] || fail "record endpoints must not exist"
+          [ "$(status --data 'First=Casey&Last=Smoketest&UnitType=Troop&Unit=1&BoardType=Final&Email=NONE' http://127.0.0.1:18123/register-youth)" = 200 ] \
+            || fail "registration refused"
+          night=$(date +%Y-%m-%d)
+          grep -q 'SCOUT:Smoketest:Casey:1' "$data/$night/scouts.csv" || fail "registration not written to disk"
+          head -1 "$data/$night/scouts.csv" | grep -q '^Type,ID,RegNum,Last,First,' || fail "scouts.csv header changed"
+          kill $pid
+          echo "smoke test passed"
