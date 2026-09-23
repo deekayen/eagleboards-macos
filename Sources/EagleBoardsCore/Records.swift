@@ -119,8 +119,12 @@ extension PersonRecord {
         }
     }
 
+    /// No commas in an ID. The data files turn ',' into '~', so "Whitmore, Jr."
+    /// came back from disk under a different ID than they signed in with, and
+    /// signing in again after a restart made them a second person. '~' is what
+    /// the files already hold, and what the Java app now uses too.
     public static func personID(last: String, first: String, unit: String) -> String {
-        "\(recordType):\(last):\(first):\(unit)"
+        "\(recordType):\(last):\(first):\(unit)".replacingOccurrences(of: ",", with: "~")
     }
 
     public mutating func refreshDerivedFields() {

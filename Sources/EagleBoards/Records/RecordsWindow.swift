@@ -163,7 +163,9 @@ private struct YouthRecords: View {
         .init("Status", "Status", .choice(BoardStatus.allCases.map { ($0.rawValue, $0.label) })),
         .init("Room", "Room", .readOnly),
         .init("Result", "Result", .choice([("", "None")] + BoardResult.allCases.map { ($0.rawValue, $0.label) })),
-        .init("BoardChair", "Chair", .readOnly), .init("BoardMembers", "Members", .readOnly),
+        // Editable so a result recorded against the wrong youth can be moved to
+        // the one the board actually reviewed, with the board that did it.
+        .init("BoardChair", "Chair"), .init("BoardMembers", "Members"),
         .init("Notes", "Notes", .multiline),
     ]
 

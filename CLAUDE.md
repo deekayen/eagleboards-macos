@@ -40,6 +40,8 @@ a native window. See `PROVENANCE.md`.
   only with a test in `FileFormatTests` and a reason that survives the Java
   app reading the result.
 - **Add a test with every fix**, and a `BoardEveningTests` case when a change
-  touches seating, running or tearing down a board.
+  touches seating, running or tearing down a board. Scenarios added to the Java
+  project's `test-board-evening.sh` are mirrored there too (and in the Windows
+  version); where one cannot arise here, the stand-in test says why.
 - **No `var##` names**, even to match anything. CI fails on them.
 - **District-neutral branding**, settled: never add a district or council name.

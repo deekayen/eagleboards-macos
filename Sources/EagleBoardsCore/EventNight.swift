@@ -259,7 +259,11 @@ public final class EventNight {
         guard scout.status?.isWaitingForBoard == true else {
             throw EventError("\(scout.fullName) cannot be seated from status '\(scout.statusText)'.")
         }
-        guard scout.room.isEmpty || scout.room == room.name else {
+        // disabledForTonightMarker ("N/A") is what Complete leaves in a youth's
+        // room. A Registered youth holding it had a result recorded against them
+        // by mistake and was set back in the Records window: they have no room
+        // and must be seatable for their real board.
+        guard scout.room.isEmpty || scout.room == disabledForTonightMarker || scout.room == room.name else {
             throw EventError("\(scout.fullName) is already assigned to room \(scout.room).")
         }
         guard let boardType = scout.boardType else {

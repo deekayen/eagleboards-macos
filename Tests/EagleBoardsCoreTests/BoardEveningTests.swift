@@ -289,6 +289,276 @@ struct BoardEveningTests {
         #expect(reopened.rooms.allSatisfy { $0.isFree })
     }
 
+    // MARK: - What goes wrong on the night
+    //
+    // Carried over from sections 9-18 of the Java project's
+    // test-board-evening.sh. Where a Java case cannot arise here, the test
+    // that stands in for it says why.
+
+    @discardableResult
+    private func lateYouth(_ last: String, _ first: String, unit: Int, _ boardType: String = "Final") throws -> String {
+        try night.registerYouth([
+            "Last": last, "First": first, "Email": "x\(unit)@example.org",
+            "UnitType": "Troop", "Unit": "\(unit)", "BoardType": boardType,
+        ])
+        return "SCOUT:\(last):\(first):\(unit)"
+    }
+
+    private func result(_ scoutID: String) -> String? { night.scout(id: scoutID)?.result }
+
+    /// What the Records window does: edit fields of a youth and save it.
+    private func editYouth(_ scoutID: String, _ change: (inout Scout) -> Void) throws {
+        var record = try #require(night.scout(id: scoutID))
+        change(&record)
+        try night.updateYouth(record)
+    }
+
+    // Java section 9. Unknown ids and occupied rooms. (Missing parameters and
+    // duplicated ids are the Java HTTP API's problem: here members are an
+    // array, de-duplicated before they are counted -- see
+    // compositionRulesHoldWithoutTheSeatBoardSheet.)
+    @Test func requestsTheSeatBoardSheetWouldNeverMake() throws {
+        refused("an unknown room") { try seat("999", finalYouth(1), chair: chairOfEither, member(1), member(2)) }
+        refused("an unknown youth") { try seat("101", "SCOUT:Nobody:Here:0", chair: chairOfEither, member(1), member(2)) }
+        refused("an unknown member") { try seat("101", finalYouth(1), chair: chairOfEither, member(1), "ADULT:Nobody:Here:0") }
+        refused("an unknown youth cannot be started") { try night.startReview(scoutID: "SCOUT:Nobody:Here:0") }
+        refused("an unknown youth cannot be completed") {
+            try night.completeBoard(scoutID: "SCOUT:Nobody:Here:0", result: .approved, notes: "")
+        }
+        #expect(busyAdults == 0)
+
+        try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
+        refused("nobody else can be seated in an occupied room") { try seat("101", finalYouth(2), chair: finalChair2, member(3), member(4)) }
+        refused("the same youth cannot be seated twice") { try seat("102", finalYouth(1), chair: finalChair2, member(3), member(4)) }
+        #expect(status(finalYouth(2)) == .registered)
+    }
+
+    // Java section 10. Each step only from the status before it. (A made-up
+    // result cannot reach completeBoard here: BoardResult is an enum.)
+    @Test func eachStepOnlyFromTheStatusBeforeIt() throws {
+        try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
+        try runBoard(finalYouth(1))
+        try night.postponeBoard(scoutID: finalYouth(9))
+
+        refused("a Completed youth cannot be seated again") { try seat("102", finalYouth(1), chair: finalChair2, member(3), member(4)) }
+        refused("a Postponed youth cannot be seated") { try seat("102", finalYouth(9), chair: finalChair2, member(3), member(4)) }
+        refused("a waiting youth cannot be started") { try night.startReview(scoutID: finalYouth(2)) }
+        refused("a Completed youth cannot be started") { try night.startReview(scoutID: finalYouth(1)) }
+        refused("a waiting youth cannot be completed") { try night.completeBoard(scoutID: finalYouth(2), result: .approved, notes: "") }
+        refused("a Completed youth cannot be completed again") {
+            try night.completeBoard(scoutID: finalYouth(1), result: .notApproved, notes: "")
+        }
+        refused("a Completed youth cannot be reset") { try night.resetBoard(scoutID: finalYouth(1)) }
+        refused("a Postponed youth cannot be reset") { try night.resetBoard(scoutID: finalYouth(9)) }
+        refused("a Completed youth cannot be postponed") { try night.postponeBoard(scoutID: finalYouth(1)) }
+        #expect(result(finalYouth(1)) == "Approved", "the result survived all of that")
+
+        try seat("102", finalYouth(2), chair: finalChair2, member(3), member(4))
+        try night.startReview(scoutID: finalYouth(2))
+        refused("a review under way cannot be postponed") { try night.postponeBoard(scoutID: finalYouth(2)) }
+        try night.completeBoard(scoutID: finalYouth(2), result: .adjourned, notes: "")
+        #expect(result(finalYouth(2)) == "Adjourned")
+        try seat("200A", projectYouth(1), chair: projectChair1, member(7))
+        try night.startReview(scoutID: projectYouth(1))
+        try night.completeBoard(scoutID: projectYouth(1), result: .notApproved, notes: "")
+        #expect(result(projectYouth(1)) == "NotApproved")
+        #expect(busyAdults == 0)
+    }
+
+    // Java section 11.
+    @Test func signingInAgainMidBoardChangesNothing() throws {
+        try seat("102", finalYouth(2), chair: finalChair2, member(3), member(4))
+        try night.startReview(scoutID: finalYouth(2))
+        try registerAdult(8, unit: 2008, project: "Member", final: "Member")  // member(3)
+        try registerAdult(2, unit: 2002, project: "Member", final: "Chair")   // finalChair2
+        #expect(adultRoom(member(3)) == "102", "a member who signs in again stays in their room")
+        #expect(adultRoom(finalChair2) == "102", "so does the chair")
+        #expect(night.adult(id: finalChair2)?.canChair(.finalBoard) == true)
+
+        try night.registerYouth([
+            "Last": "Bram", "First": "Beauregard", "Email": "again@example.org",
+            "UnitType": "Troop", "Unit": "1002", "BoardType": "Final",
+        ])
+        #expect(status(finalYouth(2)) == .inProgress, "a youth who signs in again is still under review")
+        #expect(roomOf(finalYouth(2)) == "102")
+        #expect(night.scouts.filter { $0.id == finalYouth(2) }.count == 1, "and is still one youth, not two")
+        try night.completeBoard(scoutID: finalYouth(2), result: .approved, notes: "")
+        #expect(adultRoom(member(3)) == "")
+    }
+
+    // Java section 12.
+    @Test func aBoardMovesToAnotherRoom() throws {
+        try seat("103", finalYouth(4), chair: finalChair3, member(5), member(6))
+        try night.swapRooms("ROOM:103", "ROOM:106")
+        #expect(roomOf(finalYouth(4)) == "106")
+        #expect([finalChair3, member(5), member(6)].map(adultRoom) == ["106", "106", "106"])
+        #expect(night.room(named: "103")?.isFree == true)
+
+        try seat("103", finalYouth(5), chair: chairOfEither, member(1), member(2))
+        try night.swapRooms("ROOM:103", "ROOM:106")
+        #expect(roomOf(finalYouth(4)) == "103" && roomOf(finalYouth(5)) == "106", "each youth took the other's room")
+        #expect(adultRoom(finalChair3) == "103" && adultRoom(chairOfEither) == "106", "each chair went with their own board")
+        refused("swapping with a room that does not exist") { try night.swapRooms("ROOM:103", "ROOM:nope") }
+        refused("swapping a room with itself") { try night.swapRooms("ROOM:103", "ROOM:103") }
+
+        try runBoard(finalYouth(4))
+        #expect(adultRoom(finalChair3) == "" && adultRoom(chairOfEither) == "106", "releasing only its own adults")
+        try runBoard(finalYouth(5))
+        #expect(busyAdults == 0)
+    }
+
+    // Java section 13. The Java Admin page can rename or delete a room under
+    // a board, so its server must cope. Here there is no rename, and removal
+    // is refused while a board is in the room -- which is what this pins down.
+    @Test func aRoomInUseCannotBeRemoved() throws {
+        try seat("104", finalYouth(6), chair: chairOfEither, member(1), member(2))
+        refused("a room with a board in it cannot be removed") { try night.removeRoom(id: "ROOM:104") }
+        try runBoard(finalYouth(6))
+        try night.removeRoom(id: "ROOM:104")
+        #expect(night.room(named: "104") == nil)
+    }
+
+    // Java section 14. Here the ids are an array, so the comma never split
+    // one; what went wrong was the restart. The files store ',' as '~', so
+    // the adult came back under a different id and signing in again made a
+    // second person.
+    @Test func aNameWithACommaInIt() throws {
+        let form = [
+            "Last": "Whitmore, Jr.", "First": "Lysander", "Email": "a31@example.org",
+            "UnitType": "Troop", "Unit": "2031", "ProjectReview": "Member", "FinalBoard": "Member",
+        ]
+        try night.registerAdult(form)
+        let junior = "ADULT:Whitmore~ Jr.:Lysander:2031"
+        #expect(night.adult(id: junior) != nil, "their id carries no comma")
+        try seat("101", finalYouth(7), chair: chairOfEither, member(1), junior)
+        #expect(adultRoom(junior) == "101")
+
+        let reopened = try EventNight(folder: scratch.dataFolder, night: "2026-09-22")
+        #expect(reopened.adult(id: junior)?.room == "101", "and are the same person after a restart")
+        try reopened.registerAdult(form)
+        #expect(reopened.adults.filter { $0.first == "Lysander" }.count == 1, "signing in again does not make a second one")
+        try reopened.startReview(scoutID: finalYouth(7))
+        try reopened.completeBoard(scoutID: finalYouth(7), result: .approved, notes: "")
+        #expect(reopened.adult(id: junior)?.room == "")
+    }
+
+    // Java section 15 (two operators seating the same chair at once) has no
+    // counterpart: EventNight is @MainActor, so every change runs one at a time.
+
+    // Java section 16.
+    @Test func theAppRestartsInTheMiddleOfTheEvening() throws {
+        try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
+        try night.startReview(scoutID: finalYouth(1))
+        try seat("102", finalYouth(2), chair: finalChair2, member(3), member(4))
+
+        let reopened = try EventNight(folder: scratch.dataFolder, night: "2026-09-22")
+        #expect(reopened.scouts.count == night.scouts.count, "no youth lost or duplicated")
+        #expect(reopened.adults.count == night.adults.count, "no adult lost or duplicated")
+        #expect(reopened.scout(id: finalYouth(1))?.status == .inProgress)
+        #expect(reopened.scout(id: finalYouth(2))?.status == .seated)
+        #expect(reopened.adults.filter(\.isOnBoard).count == 6)
+        #expect(throws: EventError.self, "a committed chair still cannot be double-booked") {
+            try reopened.seatBoard(roomID: "ROOM:103", scoutID: finalYouth(3), chairID: chairOfEither,
+                                   memberIDs: [chairOfEither, member(5), member(6)])
+        }
+        try reopened.completeBoard(scoutID: finalYouth(1), result: .approved, notes: "")
+        try reopened.startReview(scoutID: finalYouth(2))
+        try reopened.completeBoard(scoutID: finalYouth(2), result: .approved, notes: "")
+        #expect(reopened.adults.filter(\.isOnBoard).isEmpty)
+    }
+
+    // Java section 17. A room's type steers the Seat Board sheet only; the
+    // size and chair rules and the timers follow the youth's board type.
+    @Test func aRoomSwitchedBetweenProjectAndFinal() throws {
+        try night.setBoardType(.finalBoard, forRoom: "ROOM:201A")
+        refused("a Final board of 2 is still refused in a room switched to Final") {
+            try seat("201A", finalYouth(1), chair: chairOfEither, member(1))
+        }
+        try seat("201A", finalYouth(1), chair: chairOfEither, member(1), member(2))
+
+        try night.setBoardType(.projectReview, forRoom: "ROOM:106")
+        refused("a Member still cannot chair a project review in a room switched to Project") {
+            try seat("106", projectYouth(1), chair: member(3), member(4))
+        }
+        refused("nor can a Final-only chair") { try seat("106", projectYouth(1), chair: finalChair2, member(3)) }
+        try seat("106", projectYouth(1), chair: projectChair1, member(3))
+
+        try night.setBoardType(.projectReview, forRoom: "ROOM:102")
+        try seat("102", finalYouth(2), chair: finalChair2, member(5), member(6))  // on purpose, as the sheet allows
+
+        try night.startReview(scoutID: finalYouth(1))
+        try night.setBoardType(.projectReview, forRoom: "ROOM:201A")
+        try night.setBoardType(.finalBoard, forRoom: "ROOM:106")
+        #expect(night.room(named: "201A")?.scoutName == "Alexander Aldridge", "switching a room keeps the board in it")
+        #expect(adultRoom(chairOfEither) == "201A")
+        #expect(status(finalYouth(1)) == .inProgress)
+        #expect(night.scout(id: finalYouth(1))?.boardType == .finalBoard)
+
+        try night.completeBoard(scoutID: finalYouth(1), result: .approved, notes: "")
+        try runBoard(projectYouth(1))
+        try runBoard(finalYouth(2))
+        #expect([finalYouth(1), projectYouth(1), finalYouth(2)].map { night.scout(id: $0)?.boardChairID }
+            == [chairOfEither, projectChair1, finalChair2], "every board kept the chair it was seated with")
+        #expect(busyAdults == 0)
+    }
+
+    // Java section 18. Corrections made in the Records window, whose Status
+    // and Result choices are BoardStatus.allCases and BoardResult.allCases.
+    @Test func aResultCorrectedInTheRecordsWindow() throws {
+        #expect(BoardStatus.allCases.contains(.registered), "Registered is offered, to undo a result on the wrong youth")
+        #expect(BoardResult.allCases.map(\.rawValue) == ["Approved", "Adjourned", "NotApproved"],
+                "results are exactly the board's three decisions; Postponed is a status, not a result")
+
+        // The wrong result clicked.
+        try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
+        try runBoard(finalYouth(1))
+        try editYouth(finalYouth(1)) { $0.result = "NotApproved" }
+        #expect(result(finalYouth(1)) == "NotApproved")
+        #expect(status(finalYouth(1)) == .completed)
+        #expect(night.scout(id: finalYouth(1))?.boardChairID == chairOfEither)
+        #expect(busyAdults == 0)
+
+        // The right result on the wrong youth.
+        let right = try lateYouth("Esterhazy", "Quentin", unit: 3302)
+        let wrong = try lateYouth("Esterbrook", "Quentin", unit: 3303)
+        try seat("102", wrong, chair: finalChair2, member(3), member(4))
+        try runBoard(wrong)
+        let board = try #require(night.scout(id: wrong))
+        try editYouth(right) {
+            $0.status = .completed
+            $0.result = "Approved"
+            $0.boardChair = board.boardChair
+            $0.boardMembers = board.boardMembers
+        }
+        try editYouth(wrong) {
+            $0.status = .registered
+            $0.result = ""
+            $0.boardChair = ""
+            $0.boardMembers = ""
+        }
+        #expect(status(right) == .completed && result(right) == "Approved")
+        #expect(night.scout(id: right)?.boardChair == board.boardChair)
+        #expect(status(wrong) == .registered && result(wrong) == "")
+        refused("the reviewed youth cannot be seated again") { try seat("103", right, chair: finalChair3, member(5), member(6)) }
+        try seat("103", wrong, chair: finalChair3, member(5), member(6))
+        try night.startReview(scoutID: wrong)
+        try night.completeBoard(scoutID: wrong, result: .notApproved, notes: "")
+        #expect(result(wrong) == "NotApproved" && night.scout(id: wrong)?.boardChairID == finalChair3)
+        #expect(result(right) == "Approved")
+
+        // Completed by mistake, when the youth was really sent away unprepared.
+        let sent = try lateYouth("Fairweather", "Rupert", unit: 3304)
+        try seat("104", sent, chair: chairOfEither, member(1), member(2))
+        try runBoard(sent)
+        try editYouth(sent) {
+            $0.status = .postponed
+            $0.result = ""
+        }
+        #expect(status(sent) == .postponed && result(sent) == "")
+        refused("a youth sent away cannot be seated again that night") { try seat("104", sent, chair: chairOfEither, member(1), member(2)) }
+        #expect(busyAdults == 0)
+    }
+
     private func seatFiveBoards() throws {
         try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
         try seat("102", finalYouth(2), chair: finalChair2, member(3), member(4))
