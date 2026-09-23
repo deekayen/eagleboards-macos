@@ -12,6 +12,7 @@ struct HelpView: View {
                     step("Click the sign-in status at the top left of the window. Scan the QR code with the tablet at the door, or type the address into its browser. The tablet must be on the same Wi-Fi as the Mac.")
                     step("Add tonight's rooms in the Rooms panel, marking each Final or Project by what it is used for tonight. After the first night you can copy last month's rooms instead.")
                     step("To hold two proposal reviews in one room, add it twice, e.g. 200A and 200B.")
+                    step("To rename a room, select it and click Rename…, or right-click its card. A board already in it moves with it; nobody is reseated.")
                     step("If macOS asks whether Eagle Boards may accept incoming network connections, click Allow. Otherwise the tablet cannot reach it.")
                 }
 

@@ -253,6 +253,53 @@ struct AddRoomSheet: View {
     }
 }
 
+/// Rename a room. A board in it moves with it: its youth and adults follow
+/// the new name, and its timer keeps running.
+struct RenameRoomSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let night: EventNight
+    let roomID: String
+    /// Called with the room's new ID, which changes with its name.
+    var onRenamed: (String) -> Void = { _ in }
+
+    @State private var name = ""
+    @State private var problem: String?
+
+    var body: some View {
+        let room = night.room(id: roomID)
+        Form {
+            TextField("New name", text: $name, prompt: Text("e.g. 101 or 200A"))
+            if let room, !room.isFree {
+                Text("\(room.scoutName)'s board is in this room. It moves with the new name; nobody has to be reseated.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if let problem {
+                Text(problem).foregroundStyle(.red)
+            }
+            HStack {
+                Spacer()
+                Button("Cancel", role: .cancel) { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+                Button("Rename") {
+                    do {
+                        onRenamed(try night.renameRoom(id: roomID, to: name))
+                        dismiss()
+                    } catch {
+                        problem = error.localizedDescription
+                    }
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(20)
+        .frame(width: 420)
+        .navigationTitle("Rename Room \(room?.name ?? "")")
+        .onAppear { name = room?.name ?? "" }
+    }
+}
+
 struct SwapRoomsSheet: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss

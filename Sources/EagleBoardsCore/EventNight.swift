@@ -418,7 +418,8 @@ public final class EventNight {
 
     // MARK: - Rooms
 
-    public func addRoom(named rawName: String, boardType: BoardType) throws {
+    /// A room name as typed, trimmed, or the reason it cannot be used.
+    private func checkedRoomName(_ rawName: String) throws -> String {
         let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else {
             throw EventError("Enter a room name.")
@@ -426,9 +427,19 @@ public final class EventNight {
         guard !name.contains(",") else {
             throw EventError("A room name cannot contain a comma.")
         }
+        // An adult's room holds this marker when they have gone home, so a
+        // room by that name would look like it held every one of them.
+        guard name != disabledForTonightMarker else {
+            throw EventError("\(disabledForTonightMarker) cannot be a room name.")
+        }
         guard room(id: Room.roomID(for: name)) == nil else {
             throw EventError("Room \(name) already exists.")
         }
+        return name
+    }
+
+    public func addRoom(named rawName: String, boardType: BoardType) throws {
+        let name = try checkedRoomName(rawName)
         var newRoom = Room.blank(at: now)
         newRoom["ID"] = Room.roomID(for: name)
         newRoom.name = name
@@ -446,6 +457,36 @@ public final class EventNight {
         }
         rooms.remove(at: index)
         try save(.rooms)
+    }
+
+    /// Rename a room, e.g. when the building signs it differently than the
+    /// list says. A board sitting in it goes along: the youth and the adults
+    /// hold the room by name, and a rename that left them on the old one
+    /// would strand the members on a room that no longer exists -- the Java
+    /// app's failure when its Admin page renamed a room under a board. The
+    /// board's timer is not restarted; renaming is not a step in its review.
+    ///
+    /// Returns the room's new ID, which is derived from the name.
+    @discardableResult
+    public func renameRoom(id: String, to rawName: String) throws -> String {
+        guard let index = rooms.firstIndex(where: { $0.id == id }) else {
+            throw EventError("There is no room '\(id)'.")
+        }
+        let oldName = rooms[index].name
+        guard rawName.trimmingCharacters(in: .whitespacesAndNewlines) != oldName else {
+            return id
+        }
+        let newName = try checkedRoomName(rawName)
+        rooms[index]["ID"] = Room.roomID(for: newName)
+        rooms[index].name = newName
+        for scoutIndex in scouts.indices where scouts[scoutIndex].room == oldName {
+            scouts[scoutIndex].room = newName
+        }
+        for adultIndex in adults.indices where adults[adultIndex].room == oldName {
+            adults[adultIndex].room = newName
+        }
+        try save(.rooms, .youth, .adults)
+        return rooms[index].id
     }
 
     public func setBoardType(_ boardType: BoardType, forRoom id: String) throws {

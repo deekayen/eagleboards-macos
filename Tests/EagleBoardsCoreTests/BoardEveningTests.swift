@@ -408,14 +408,58 @@ struct BoardEveningTests {
     }
 
     // Java section 13. The Java Admin page can rename or delete a room under
-    // a board, so its server must cope. Here there is no rename, and removal
-    // is refused while a board is in the room -- which is what this pins down.
+    // a board, so its server must cope. Here removal is refused while a board
+    // is in the room, and a rename carries the board with it (below).
     @Test func aRoomInUseCannotBeRemoved() throws {
         try seat("104", finalYouth(6), chair: chairOfEither, member(1), member(2))
         refused("a room with a board in it cannot be removed") { try night.removeRoom(id: "ROOM:104") }
         try runBoard(finalYouth(6))
         try night.removeRoom(id: "ROOM:104")
         #expect(night.room(named: "104") == nil)
+    }
+
+    @Test func anEmptyRoomIsRenamed() throws {
+        let newID = try night.renameRoom(id: "ROOM:104", to: "  104 Annex ")
+        #expect(newID == "ROOM:104 Annex", "the ID follows the name, trimmed")
+        #expect(night.room(named: "104") == nil)
+        #expect(night.room(id: newID)?.boardType == .finalBoard, "and keeps what it is used for")
+        try seat("104 Annex", finalYouth(1), chair: chairOfEither, member(1), member(2))
+        #expect(adultRoom(chairOfEither) == "104 Annex")
+        try night.addRoom(named: "104", boardType: .finalBoard)  // the old name is free again
+
+        let reopened = try EventNight(folder: scratch.dataFolder, night: "2026-09-22")
+        #expect(reopened.room(id: newID)?.scoutName == "Alexander Aldridge", "the rename is on disk")
+    }
+
+    @Test func aBoardMovesWithItsRoomWhenTheRoomIsRenamed() throws {
+        try seat("104", finalYouth(6), chair: chairOfEither, member(1), member(2))
+        try night.startReview(scoutID: finalYouth(6))
+        let clockBefore = night.scout(id: finalYouth(6))?["LastUpdateTime"]
+
+        let newID = try night.renameRoom(id: "ROOM:104", to: "Library")
+        #expect(roomOf(finalYouth(6)) == "Library", "the youth moves with the room")
+        #expect([chairOfEither, member(1), member(2)].map(adultRoom) == ["Library", "Library", "Library"],
+                "and so does every member")
+        #expect(night.room(id: newID)?.scoutName == "Finnegan Fenwick", "the card still names the youth")
+        #expect(status(finalYouth(6)) == .inProgress, "the review carries on")
+        #expect(night.scout(id: finalYouth(6))?["LastUpdateTime"] == clockBefore, "and its timer was not restarted")
+        refused("the renamed room is still occupied") { try seat("Library", finalYouth(7), chair: finalChair2, member(3), member(4)) }
+        refused("its adults are still committed") { try seat("105", finalYouth(7), chair: chairOfEither, member(3), member(4)) }
+
+        try night.completeBoard(scoutID: finalYouth(6), result: .approved, notes: "")
+        #expect(busyAdults == 0, "completing releases every member, none stranded on the old name")
+        #expect(night.room(id: newID)?.isFree == true)
+    }
+
+    @Test func aRoomCannotBeRenamedToSomethingItCannotBe() throws {
+        refused("an empty name") { try night.renameRoom(id: "ROOM:104", to: "  ") }
+        refused("a name with a comma") { try night.renameRoom(id: "ROOM:104", to: "104, east") }
+        refused("a name another room has") { try night.renameRoom(id: "ROOM:104", to: "105") }
+        refused("N/A, which marks adults who have gone home") { try night.renameRoom(id: "ROOM:104", to: disabledForTonightMarker) }
+        refused("a room that does not exist") { try night.renameRoom(id: "ROOM:nope", to: "999") }
+        refused("nor can a room be added as N/A") { try night.addRoom(named: disabledForTonightMarker, boardType: .finalBoard) }
+        #expect(try night.renameRoom(id: "ROOM:104", to: "104") == "ROOM:104", "renaming to its own name changes nothing")
+        #expect(night.rooms.count == 12)
     }
 
     // Java section 14. Here the ids are an array, so the comma never split

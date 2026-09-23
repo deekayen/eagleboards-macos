@@ -164,6 +164,7 @@ final class AppModel {
         case completeBoard(scoutID: String)
         case addRoom
         case swapRooms(roomID: String)
+        case renameRoom(roomID: String)
         case openNight
 
         var id: String {
@@ -172,6 +173,7 @@ final class AppModel {
             case .completeBoard(let scoutID): "complete \(scoutID)"
             case .addRoom: "add room"
             case .swapRooms(let roomID): "swap \(roomID)"
+            case .renameRoom(let roomID): "rename \(roomID)"
             case .openNight: "open night"
             }
         }

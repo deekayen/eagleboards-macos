@@ -39,6 +39,10 @@ struct SchedulerView: View {
             case .completeBoard(let scoutID): CompleteBoardSheet(night: night, scoutID: scoutID)
             case .addRoom: AddRoomSheet(night: night)
             case .swapRooms(let roomID): SwapRoomsSheet(night: night, firstRoomID: roomID)
+            case .renameRoom(let roomID):
+                RenameRoomSheet(night: night, roomID: roomID) { newID in
+                    if model.selectedRoomID == roomID { model.selectedRoomID = newID }
+                }
             case .openNight: OpenNightSheet()
             }
         }

@@ -27,6 +27,11 @@ struct RoomsPanel: View {
                 }
                 .disabled(model.selectedRoom == nil)
                 .help("Remove the selected room")
+                Button("Rename…") {
+                    if let id = model.selectedRoomID { model.sheet = .renameRoom(roomID: id) }
+                }
+                .disabled(model.selectedRoom == nil)
+                .help("Rename the selected room; a board in it moves with it")
                 Button("Swap…") {
                     if let id = model.selectedRoomID { model.sheet = .swapRooms(roomID: id) }
                 }
@@ -45,6 +50,9 @@ struct RoomsPanel: View {
                             ForEach(visibleRooms) { room in
                                 RoomCard(room: room, night: night, now: timeline.date, isSelected: room.id == model.selectedRoomID)
                                     .onTapGesture { model.selectRoom(room.id) }
+                                    .contextMenu {
+                                        Button("Rename…") { model.sheet = .renameRoom(roomID: room.id) }
+                                    }
                             }
                         }
                         .padding(8)

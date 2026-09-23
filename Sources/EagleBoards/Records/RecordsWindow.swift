@@ -258,6 +258,12 @@ private struct RoomRecords: View {
     let night: EventNight
     let search: String
     @State private var selection: Room.ID?
+    /// The room whose Rename sheet is open, wrapped so .sheet(item:) can present it.
+    @State private var renaming: RenamingRoom?
+
+    private struct RenamingRoom: Identifiable {
+        let id: String
+    }
 
     var body: some View {
         let rows = night.rooms.filter { matches(search, $0.name, $0.scoutName, $0.leaderNames) }
@@ -277,9 +283,15 @@ private struct RoomRecords: View {
         }
         .contextMenu(forSelectionType: Room.ID.self) { ids in
             if let id = ids.first {
+                Button("Rename Room…") { renaming = RenamingRoom(id: id) }
                 Button("Remove Room", role: .destructive) {
                     model.attempt { try night.removeRoom(id: id) }
                 }
+            }
+        }
+        .sheet(item: $renaming) { room in
+            RenameRoomSheet(night: night, roomID: room.id) { newID in
+                if selection == room.id { selection = newID }
             }
         }
     }
