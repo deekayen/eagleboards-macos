@@ -56,6 +56,10 @@ jobs:
           [ "$archs" = "arm64" ] || { echo "::error::expected arm64 only"; exit 1; }
           plutil -lint "$app/Contents/Info.plist"
           codesign --verify --strict --verbose=1 "$app"
+          # The icon unpacks, with every size macOS asks for.
+          iconutil -c iconset "$app/Contents/Resources/AppIcon.icns" -o "$RUNNER_TEMP/AppIcon.iconset"
+          [ "$(ls "$RUNNER_TEMP/AppIcon.iconset" | grep -c '\.png$')" = 10 ] \
+            || { echo "::error::AppIcon.icns is missing sizes"; exit 1; }
           for page in index.html youth_register.html adult_register.html checkin.css checkin.js; do
             find "$app/Contents/Resources/EagleBoards_CheckInServer.bundle" -name "$page" | grep -q . \
               || { echo "::error::$page missing from the bundle"; exit 1; }

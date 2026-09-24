@@ -58,6 +58,11 @@ scripts/build-app.sh
 The last one produces `build/Eagle Boards.app`, signed ad hoc. It is built
 for Apple silicon only; Intel Macs are not supported.
 
+The icon is `Artwork/AppIcon.icns`, committed so the build needs no drawing
+tools. After changing `Artwork/EagleBoards.svg` (the same drawing as the
+Windows version's icon), rebuild it with `scripts/make-icon.sh`, which needs
+`brew install librsvg`.
+
 To run against synthetic data without touching the folder the app remembers:
 
 ```bash

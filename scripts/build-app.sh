@@ -32,11 +32,8 @@ cp "$bin_dir/EagleBoards" "$APP/Contents/MacOS/Eagle Boards"
 # The sign-in pages. CheckInAssets looks here before anywhere else.
 cp -R "$bin_dir/EagleBoards_CheckInServer.bundle" "$APP/Contents/Resources/"
 
-echo "== drawing the icon"
-iconset="build/AppIcon.iconset"
-rm -rf "$iconset"
-swift scripts/make-icon.swift "$iconset"
-iconutil -c icns "$iconset" -o "$APP/Contents/Resources/AppIcon.icns"
+# Drawn from Artwork/EagleBoards.svg by scripts/make-icon.sh.
+cp Artwork/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>

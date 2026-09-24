@@ -61,6 +61,8 @@ later) and macOS 14 or later. Intel Macs are not supported.
 - The Mac is kept awake while serving, and Eagle Boards asks before quitting.
 - Deleting a youth or adult whose board is active is refused.
 - Data files are written atomically, so a crash mid-save cannot truncate one.
+- The app icon is the cast eagle from the Eagle Scout medal, as on the
+  Windows version.
 
 **Not carried over:**
 - The `-prereg` import of the district website's CSV, which SignUpGenius
