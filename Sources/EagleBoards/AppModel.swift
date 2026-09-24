@@ -245,7 +245,9 @@ final class AppModel {
             let waiting = night.scouts
                 .filter { $0.id != youth.id && $0.status?.isWaitingForBoard == true }
                 .sorted { $0.queueOrder < $1.queueOrder }
-            let suggestion = BoardSuggestion(for: youth, adults: night.adults, rooms: night.rooms, waiting: waiting)
+            let freeSince = BoardSuggestion.freeSinceTimes(adults: night.adults, scouts: night.scouts)
+            let suggestion = BoardSuggestion(
+                for: youth, adults: night.adults, rooms: night.rooms, waiting: waiting, freeSince: freeSince)
             checkedAdultIDs = suggestion.memberIDs
             selectedRoomID = suggestion.roomID
             if suggestion.problems.isEmpty {

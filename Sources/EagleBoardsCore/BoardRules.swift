@@ -214,7 +214,8 @@ public struct SeatingReview: Sendable {
 ///     adults fill member seats and a single-type chair is used before one
 ///     who can chair either;
 ///  3. then the one whose adults could serve the fewest other waiting youth;
-///  4. then sign-in order.
+///  4. then the adults who have waited longest to volunteer since they were
+///     last free (`freeSinceTimes`), and sign-in order within a minute.
 ///
 /// With no full board to be had it proposes what it can, in the same
 /// preference order, and says what is short. The same algorithm, with the
@@ -231,6 +232,7 @@ public struct BoardSuggestion: Sendable, Equatable {
         let adult: Adult
         let chairs: Int
         let useful: Int
+        let since: String
         let order: Int
         var profile: String {
             "\(adult.unitName)|\(adult.role(for: .finalBoard)?.rawValue ?? "")|\(adult.role(for: .projectReview)?.rawValue ?? "")"
@@ -277,9 +279,38 @@ public struct BoardSuggestion: Sendable, Equatable {
         return seated
     }
 
+    /// When each adult last became free to volunteer, for the waited-longest
+    /// tie-break: when they signed in, or when the last board they sat on was
+    /// completed, whichever is later. Nothing stores the second, so it is read
+    /// from the Completed youth, whose last-update time is when the result was
+    /// recorded and whose member list names who sat. A reset board never
+    /// happened and keeps no member list, so the adult's earlier wait stands.
+    ///
+    /// Times are the records' `yyyy-MM-dd_HH:mm±hhmm` stamps, which sort as
+    /// text within one event night. The member list is comma-joined and read
+    /// back from the files with '~'; an ID whose name had a comma also holds a
+    /// '~', so each whole ID is looked for between separators rather than
+    /// splitting the list. The same helper is freeSinceTimes in the Java
+    /// version and SchedulerLogic.FreeSinceTimes in the Windows version.
+    public static func freeSinceTimes(adults: [Adult], scouts: [Scout]) -> [String: String] {
+        let boards = scouts
+            .filter { $0.status == .completed && !$0.boardMemberIDs.isEmpty && !$0.lastUpdateTime.isEmpty }
+            .map { (list: "~" + $0.boardMemberIDs.replacingOccurrences(of: ",", with: "~") + "~", finished: $0.lastUpdateTime) }
+        var since: [String: String] = [:]
+        for adult in adults {
+            let needle = "~" + adult.id + "~"
+            since[adult.id] = boards
+                .filter { $0.list.contains(needle) }
+                .map(\.finished)
+                .reduce(adult.regTime) { max($0, $1) }
+        }
+        return since
+    }
+
     /// Choose from `adults` (in sign-in order), skipping anyone on a board,
     /// disabled for tonight, Unavailable, or from the youth's own unit.
-    public init(for scout: Scout, adults: [Adult], rooms: [Room], waiting: [Scout] = []) {
+    /// `freeSince` is from `freeSinceTimes`; an adult missing from it sorts first.
+    public init(for scout: Scout, adults: [Adult], rooms: [Room], waiting: [Scout] = [], freeSince: [String: String] = [:]) {
         guard let boardType = scout.boardType else {
             problems.append("\(scout.fullName) has no board type.")
             return
@@ -294,9 +325,10 @@ public struct BoardSuggestion: Sendable, Equatable {
                     adult: adult,
                     chairs: BoardType.allCases.filter { adult.role(for: $0) == .chair }.count,
                     useful: waiting.filter { Self.canSit(adult, for: $0) }.count,
+                    since: freeSince[adult.id] ?? "",
                     order: order)
             }
-            .sorted { ($0.chairs, $0.useful, $0.order) < ($1.chairs, $1.useful, $1.order) }
+            .sorted { ($0.chairs, $0.useful, $0.since, $0.order) < ($1.chairs, $1.useful, $1.since, $1.order) }
         let chairs = pool.filter { Self.canChair($0.adult, for: scout) }
         let sitters = pool.filter { Self.canSit($0.adult, for: scout) }
 

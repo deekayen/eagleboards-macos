@@ -46,5 +46,7 @@ a native window. See `PROVENANCE.md`.
 - **Board suggestions** (`BoardSuggestion`) weigh the whole waiting line;
   the same algorithm and test cases are in the Java (`proposeBoard`) and
   Windows (`SchedulerLogic.AutoSelect`) versions. Change all three together.
+  The last tie-break is who has waited longest to volunteer since last free
+  (`BoardSuggestion.freeSinceTimes`), after saving chairs and flexible adults.
 - **No `var##` names**, even to match anything. CI fails on them.
 - **District-neutral branding**, settled: never add a district or council name.

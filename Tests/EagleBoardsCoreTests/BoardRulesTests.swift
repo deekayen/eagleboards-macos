@@ -456,6 +456,62 @@ struct WaitingLineSuggestionTests {
         }
         #expect(boards[.finalBoard] == 3 && boards[.projectReview] == 2, "three Final and two Project at once")
     }
+
+    // MARK: The adults who have waited longest to volunteer go first.
+
+    private func signedIn(_ id: String, at time: String) -> Adult {
+        Adult(fields: ["Type": "ADULT", "ID": id, "RegTime": time])
+    }
+
+    private func board(_ status: BoardStatus, _ memberIDs: String, finished: String) -> Scout {
+        Scout(fields: ["Type": "SCOUT", "ID": "SCOUT:\(finished)", "Status": status.rawValue,
+                       "BoardMembersIDs": memberIDs, "LastUpdateTime": finished])
+    }
+
+    @Test func freeSinceIsSignInOrWhenTheirLastBoardCompleted() {
+        let since = BoardSuggestion.freeSinceTimes(adults: [
+            signedIn("ADULT:Able:Ann:1", at: "2026-09-24_19:00-0400"),
+            signedIn("ADULT:Baker:Bo:2", at: "2026-09-24_19:10-0400"),
+            signedIn("ADULT:Cole:Cy:3", at: "2026-09-24_19:05-0400"),
+            signedIn("ADULT:Whitmore~ Jr.:Lysander:4", at: "2026-09-24_19:00-0400"),
+            signedIn("ADULT:Lee:Al:1", at: "2026-09-24_19:00-0400"),
+        ], scouts: [
+            board(.completed, "ADULT:Able:Ann:1,ADULT:Other:Oz:9", finished: "2026-09-24_19:40-0400"),
+            // As it reads back after a restart: the files store the commas as '~'.
+            board(.completed, "ADULT:X:X:9~ADULT:Whitmore~ Jr.:Lysander:4~ADULT:Lee:Al:12", finished: "2026-09-24_19:50-0400"),
+            board(.registered, "", finished: "2026-09-24_20:00-0400"),  // a reset board
+            board(.seated, "ADULT:Cole:Cy:3", finished: "2026-09-24_20:05-0400"),
+        ])
+        #expect(since["ADULT:Able:Ann:1"] == "2026-09-24_19:40-0400", "came off a completed board")
+        #expect(since["ADULT:Baker:Bo:2"] == "2026-09-24_19:10-0400", "has not sat")
+        #expect(since["ADULT:Cole:Cy:3"] == "2026-09-24_19:05-0400", "a running board does not count")
+        #expect(since["ADULT:Whitmore~ Jr.:Lysander:4"] == "2026-09-24_19:50-0400", "a comma name after a restart")
+        #expect(since["ADULT:Lee:Al:1"] == "2026-09-24_19:00-0400", "not mistaken for ADULT:Lee:Al:12")
+    }
+
+    @Test func amongEqualsThoseWhoHaveWaitedLongestAreProposed() {
+        let youth = queue("S", "Troop1001", .finalBoard)
+        let adults = [
+            pool("FC", "Troop9001", "Chair", "Member"), pool("M1", "Troop9002", "Member", "Member"),
+            pool("M2", "Troop9003", "Member", "Member"), pool("M3", "Troop9004", "Member", "Member"),
+        ]
+        let since = ["FC": "2026-09-24_19:00-0400", "M1": "2026-09-24_19:40-0400",
+                     "M2": "2026-09-24_19:10-0400", "M3": "2026-09-24_19:20-0400"]
+        let pick = BoardSuggestion(for: youth, adults: adults, rooms: [room("1", .finalBoard)], freeSince: since)
+        #expect(pick.memberIDs == ["FC", "M2", "M3"])
+    }
+
+    @Test func waitingLongestDoesNotOutrankKeepingAChairFree() {
+        let youth = queue("S", "Troop1001", .finalBoard)
+        let adults = [
+            pool("FC", "Troop9001", "Chair", "Member"), pool("PC", "Troop9002", "Member", "Chair"),
+            pool("M1", "Troop9003", "Member", "Member"), pool("M2", "Troop9004", "Member", "Member"),
+        ]
+        let since = ["FC": "2026-09-24_19:00-0400", "PC": "2026-09-24_18:30-0400",
+                     "M1": "2026-09-24_19:30-0400", "M2": "2026-09-24_19:35-0400"]
+        let pick = BoardSuggestion(for: youth, adults: adults, rooms: [room("1", .finalBoard)], freeSince: since)
+        #expect(pick.memberIDs == ["FC", "M1", "M2"])
+    }
 }
 
 @Suite("Locating leaders and parents")
