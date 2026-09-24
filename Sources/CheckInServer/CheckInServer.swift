@@ -30,6 +30,13 @@ public enum CheckInServer {
             return try jsonResponse(lists)
         }
 
+        // The adult form's "I'm here supporting" list: RSVPs and tonight's
+        // walk-ins whose evening is not over. ID, name and unit only.
+        router.get("/api/scout-choices") { _, _ in
+            let choices = await ScoutChoices(night: night)
+            return try jsonResponse(choices.scouts)
+        }
+
         router.post("/api/youth-lookup") { request, _ in
             let form = try await FormFields.decode(request)
             let match = await night.scheduledYouth(matchingEmail: form["email"] ?? "")
@@ -104,6 +111,20 @@ public enum CheckInServer {
             }
             adults = night.adults.map {
                 Adult(last: $0.last, first: $0.first, unitType: $0.unitType, unit: $0.unit)
+            }
+        }
+    }
+
+    struct ScoutChoices: Sendable {
+        struct Youth: Codable, Sendable {
+            let id, first, last, unitType, unit: String
+        }
+        let scouts: [Youth]
+
+        @MainActor
+        init(night: EventNight) {
+            scouts = night.scoutChoices().map {
+                Youth(id: $0.id, first: $0.first, last: $0.last, unitType: $0.unitType, unit: $0.unit)
             }
         }
     }

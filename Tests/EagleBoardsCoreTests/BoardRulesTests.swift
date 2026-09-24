@@ -512,6 +512,51 @@ struct WaitingLineSuggestionTests {
         let pick = BoardSuggestion(for: youth, adults: adults, rooms: [room("1", .finalBoard)], freeSince: since)
         #expect(pick.memberIDs == ["FC", "M1", "M2"])
     }
+
+    // MARK: Volunteers who came for any board go before a youth's own leaders.
+
+    private func linked(_ adult: Adult, supporting: String, woodBadge: String = "") -> Adult {
+        var adult = adult
+        adult.supporting = supporting
+        adult.woodBadge = woodBadge
+        return adult
+    }
+
+    @Test func anUnattachedVolunteerIsProposedBeforeAYouthsLeaderWhoHasWaitedLonger() {
+        let adults = [
+            pool("FC", "Troop9001", "Chair", "Member"),
+            linked(pool("LEAD", "Troop9002", "Member", "Member"), supporting: "SCOUT:Other:Oli:3001"),
+            pool("V1", "Troop9003", "Member", "Member"), pool("V2", "Troop9004", "Member", "Member"),
+        ]
+        let since = ["LEAD": "2026-09-24_18:00-0400", "V1": "2026-09-24_19:30-0400", "V2": "2026-09-24_19:40-0400"]
+        let pick = BoardSuggestion(for: queue("S", "Troop1001", .finalBoard), adults: adults,
+                                   rooms: [room("1", .finalBoard)], freeSince: since)
+        #expect(pick.memberIDs == ["FC", "V1", "V2"])
+    }
+
+    @Test func aWoodBadgeVolunteerCountsAsHereForAnyBoard() {
+        let adults = [
+            pool("FC", "Troop9001", "Chair", "Member"),
+            linked(pool("LEAD", "Troop9002", "Member", "Member"), supporting: "SCOUT:Other:Oli:3001"),
+            linked(pool("WB", "Troop9003", "Member", "Member"), supporting: "SCOUT:Other:Oli:3001", woodBadge: "Y"),
+            pool("V", "Troop9004", "Member", "Member"),
+        ]
+        let since = ["LEAD": "2026-09-24_18:00-0400", "WB": "2026-09-24_19:00-0400", "V": "2026-09-24_19:30-0400"]
+        let pick = BoardSuggestion(for: queue("S", "Troop1001", .finalBoard), adults: adults,
+                                   rooms: [room("1", .finalBoard)], freeSince: since)
+        #expect(pick.memberIDs == ["FC", "WB", "V"])
+    }
+
+    @Test func comingForAnyBoardDoesNotOutrankKeepingAChairFree() {
+        let adults = [
+            pool("FC", "Troop9001", "Chair", "Member"),
+            pool("PC", "Troop9002", "Member", "Chair"),
+            linked(pool("L1", "Troop9003", "Member", "Member"), supporting: "SCOUT:A:A:1"),
+            linked(pool("L2", "Troop9004", "Member", "Member"), supporting: "SCOUT:B:B:2"),
+        ]
+        let pick = propose(queue("S", "Troop1001", .finalBoard), adults)
+        #expect(pick.memberIDs == ["FC", "L1", "L2"])
+    }
 }
 
 @Suite("Locating leaders and parents")

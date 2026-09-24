@@ -55,6 +55,12 @@ struct AdultPanel: View {
                     RoleText(role: adult.projectReviewRoleText)
                 }
                 .width(min: 50, ideal: 70, max: 90)
+                // Volunteering toward a Wood Badge ticket item.
+                TableColumn("WB", value: \.woodBadge) { adult in
+                    Text(adult.woodBadge == "Y" ? "\u{2713}" : "")
+                        .help(adult.woodBadge == "Y" ? "Volunteering toward a Wood Badge ticket item" : "")
+                }
+                .width(min: 28, ideal: 34, max: 44)
             }
         }
     }

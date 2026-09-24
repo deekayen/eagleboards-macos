@@ -603,6 +603,68 @@ struct BoardEveningTests {
         #expect(busyAdults == 0)
     }
 
+    // Java section 19. What an adult says at sign-in.
+    @Test func woodBadgeNoThanksAndTheYouthAnAdultCameToSupport() throws {
+        let rsvp = try lateYouth("Galloway", "Tobias", unit: 3401)
+        var form = [
+            "Last": "Hargrove", "First": "Ines", "Email": "a41@example.org", "UnitType": "Troop", "Unit": "3401",
+            "ProjectReview": "Member", "FinalBoard": "Member",
+            "WoodBadge": "Y", "Supporting": "\(rsvp)|SCOUT:Nobody:Here:0",
+        ]
+        try night.registerAdult(form)
+        let leader = "ADULT:Hargrove:Ines:3401"
+        #expect(night.adult(id: leader)?.woodBadge == "Y", "Wood Badge is recorded")
+        #expect(night.adult(id: leader)?.supporting == "\(rsvp)|SCOUT:Nobody:Here:0", "and whom they came to support")
+        let history = try #require(night.adultHistory.first { $0.id == leader })
+        #expect(history.woodBadge.isEmpty && history.supporting.isEmpty, "neither is kept for next month")
+
+        form["WoodBadge"] = "yes"
+        form["Supporting"] = ""
+        try night.registerAdult(form)
+        #expect(night.adult(id: leader)?.supporting == "", "signing in again says what is true now")
+        #expect(night.adult(id: leader)?.woodBadge == "", "and Wood Badge is Y or nothing")
+
+        // "No thanks" is stored as Unavailable; Seat Board refuses them there.
+        try night.registerAdult([
+            "Last": "Ibarra", "First": "Juno", "Email": "a42@example.org", "UnitType": "Troop", "Unit": "3402",
+            "ProjectReview": "Unavailable", "FinalBoard": "Member",
+        ])
+        let noProject = "ADULT:Ibarra:Juno:3402"
+        #expect(night.adult(id: noProject)?.projectReviewRoleText == "Unavailable")
+        let project = try lateYouth("Jaramillo", "Kai", unit: 3403, "Project")
+        refused("they are not seated on a proposal review") { try seat("200A", project, chair: projectChair1, noProject) }
+        #expect(busyAdults == 0)
+        try seat("101", rsvp, chair: chairOfEither, member(1), noProject)  // a Final board is fine
+        try night.resetBoard(scoutID: rsvp)
+
+        // The sign-in list: RSVPs not yet here, and tonight's youth whose
+        // evening is not over.
+        try CSVFile.write([Scout(fields: [
+            "Type": "SCOUT", "ID": "SCOUT:Rsvp:Only:3999", "Last": "Rsvp", "First": "Only",
+            "UnitType": "Troop", "Unit": "3999", "BoardType": "Final",
+        ])], to: scratch.dataFolder.scheduledYouthURL(night: "2026-09-22"))
+        try night.postponeBoard(scoutID: finalYouth(9))
+        let reopened = try EventNight(folder: scratch.dataFolder, night: "2026-09-22")
+        let choices = reopened.scoutChoices().map(\.id)
+        #expect(choices.contains("SCOUT:Rsvp:Only:3999"), "an RSVP not yet signed in can be chosen")
+        #expect(choices.contains(rsvp), "so can someone signed in tonight")
+        #expect(!choices.contains(finalYouth(9)), "but not someone whose evening is over")
+    }
+
+    @Test func startReviewNamesWhoCameToSupportTheYouthAndWhereTheyAre() throws {
+        try night.registerAdult([
+            "Last": "Scoutmaster", "First": "Sam", "Email": "sm@example.org", "UnitType": "Troop", "Unit": "1001",
+            "ProjectReview": "Member", "FinalBoard": "Member", "Supporting": finalYouth(1),
+        ])
+        let scoutmaster = "ADULT:Scoutmaster:Sam:1001"
+        try seat("102", finalYouth(2), chair: finalChair2, member(3), scoutmaster)  // sitting on another board
+        try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
+        let youth = try #require(night.scout(id: finalYouth(1)))
+        let first = try #require(AdultLocator.locate(for: youth, among: night.adults).first)
+        #expect(first.adult.id == scoutmaster && first.relation == .supporting)
+        #expect(first.whereabouts == "Room 102", "so someone can fetch them from their board")
+    }
+
     private func seatFiveBoards() throws {
         try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
         try seat("102", finalYouth(2), chair: finalChair2, member(3), member(4))

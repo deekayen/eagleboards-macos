@@ -121,6 +121,21 @@ public final class EventNight {
         return adultHistory.first { Self.matchableEmail($0.email) == wanted }
     }
 
+    /// The youth an adult may say at sign-in they came to support: everyone
+    /// who RSVP'd, plus tonight's walk-ins, leaving out anyone whose evening
+    /// is over (Completed or Postponed). Tonight's record wins over the RSVP
+    /// with the same ID; sorted by last name, then first.
+    public func scoutChoices() -> [Scout] {
+        let done = Set(scouts.filter { $0.status == .completed || $0.status == .postponed }.map(\.id))
+        var byID: [String: Scout] = [:]
+        for youth in scheduledScouts + scouts where !youth.last.isEmpty && !done.contains(youth.id) {
+            byID[youth.id] = youth
+        }
+        return byID.values.sorted {
+            ($0.last.lowercased(), $0.first.lowercased()) < ($1.last.lowercased(), $1.first.lowercased())
+        }
+    }
+
     // MARK: - Signing in
 
     /// A youth signs in at the check-in station.
@@ -195,11 +210,17 @@ public final class EventNight {
         }
         incoming.assignIDIfNeeded()
         incoming.refreshDerivedFields()
+        // Tonight-only answers. Anything but "Y" is no.
+        incoming.woodBadge = form["WoodBadge"] == "Y" ? "Y" : ""
+        incoming.supporting = (form["Supporting"] ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
 
         var tonight: Adult
         let tonightIndex: Int
         if let index = adults.firstIndex(where: { $0.id == incoming.id }) {
             adults[index].update(from: incoming, columns: Adult.signInColumns)
+            // The latest sign-in says what is true now.
+            adults[index].woodBadge = incoming.woodBadge
+            adults[index].supporting = incoming.supporting
             tonightIndex = index
         } else {
             adults.append(incoming)
@@ -227,6 +248,11 @@ public final class EventNight {
             history.room = ""
             history.flags = ""
             history["Sel"] = ""
+            // The history pre-fills next month's form; whom someone came to
+            // support, and whether it counted toward Wood Badge, are for
+            // tonight only.
+            history.woodBadge = ""
+            history.supporting = ""
             history.boardHistory += dayMark
             adultHistory.append(history)
             tonight.flags = "W"
@@ -288,6 +314,11 @@ public final class EventNight {
             }
             if !member.room.isEmpty {
                 throw EventError("\(member.fullName) is already on the board in room \(member.room).")
+            }
+            // "No thanks" to this kind of board at sign-in is stored as
+            // Unavailable for it; a hand-picked board must not seat them either.
+            if member.role(for: boardType) == .unavailable {
+                throw EventError("\(member.fullName) is Unavailable for a \(boardType.label).")
             }
             members.append(member)
         }

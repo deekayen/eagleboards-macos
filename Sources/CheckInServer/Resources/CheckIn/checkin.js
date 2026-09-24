@@ -3,6 +3,8 @@
 //
 //   GET  /api/checked-in       -> { refreshSeconds, youth: [...], adults: [...] }
 //                                 names and units only, for the lists at the door
+//   GET  /api/scout-choices    -> [{ id, first, last, unitType, unit }], the youth an
+//                                 adult may say they came to support
 //   POST /api/youth-lookup     email=... -> the pre-registration it matches, or {}
 //   POST /api/adult-lookup     email=... -> the adult history it matches, or {}
 //   POST /register-youth       form fields -> "OK." (200) or the reason (400)
@@ -51,6 +53,15 @@ function ebLookup(path, email) {
    });
 }
 
+function ebScoutChoices() {
+   return fetch("/api/scout-choices", { cache: "no-store" }).then(function (response) {
+      if (!response.ok) {
+         throw new Error("HTTP " + response.status);
+      }
+      return response.json();
+   });
+}
+
 function ebCheckedIn() {
    return fetch("/api/checked-in", { cache: "no-store" }).then(function (response) {
       if (!response.ok) {
@@ -96,7 +107,9 @@ function ebWireEmailPrefill(form, lookupPath, fields) {
 }
 
 // Submit a sign-in form, then return to the welcome page.
-function ebWireRegistration(form, registerPath, fields) {
+// `prepare`, if given, sees the values about to be sent: it may add to them,
+// or return a message to show instead of sending.
+function ebWireRegistration(form, registerPath, fields, prepare) {
    var statusMsg = document.getElementById("statusMsg");
    var registerButton = document.getElementById("registerBtn");
 
@@ -111,6 +124,11 @@ function ebWireRegistration(form, registerPath, fields) {
       fields.forEach(function (name) {
          values[name] = form.elements[name].value;
       });
+      var refusal = prepare ? prepare(values) : null;
+      if (refusal) {
+         setStatus(refusal, "err");
+         return;
+      }
       registerButton.disabled = true;
       setStatus("Registering...", "");
       ebPostForm(registerPath, values).then(function (result) {

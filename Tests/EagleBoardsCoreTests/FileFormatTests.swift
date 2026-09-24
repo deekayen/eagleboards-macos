@@ -10,8 +10,21 @@ struct FileFormatTests {
     /// The exact header lines the Java app writes.
     @Test func headersMatchTheJavaApp() {
         #expect(CSVFile.render([Scout]()) == "Type,ID,RegNum,Last,First,Email,Phone,UnitType,Unit,UnitName,DOB,BoardType,Leader,RegTime,LastUpdateTime,Flags,Room,Status,Result,BoardChair,BoardChairID,BoardMembers,BoardMembersIDs,Notes\n")
-        #expect(CSVFile.render([Adult]()) == "Type,ID,Last,First,Email,Phone,UnitType,Unit,UnitName,ProjectReview,FinalBoard,RegTime,Room,Flags,Sel,BoardHistory\n")
+        #expect(CSVFile.render([Adult]()) == "Type,ID,Last,First,Email,Phone,UnitType,Unit,UnitName,ProjectReview,FinalBoard,RegTime,Room,Flags,Sel,BoardHistory,WoodBadge,Supporting\n")
         #expect(CSVFile.render([Room]()) == "Type,ID,Room,BoardType,Scout,Leaders,RegTime\n")
+    }
+
+    /// Adults files written before WoodBadge and Supporting were appended.
+    @Test func anOlderAdultsFileWithoutTonightsAnswersStillReads() throws {
+        let older = """
+            Type,ID,Last,First,Email,Phone,UnitType,Unit,UnitName,ProjectReview,FinalBoard,RegTime,Room,Flags,Sel,BoardHistory
+            ADULT,ADULT:Able:Ann:2001,Able,Ann,,,Troop,2001,Troop2001,Member,Chair,,101,P,,(2026-08-25)
+
+            """
+        let adult = try #require(CSVFile.parse(Adult.self, text: older).first)
+        #expect(adult.room == "101")
+        #expect(adult.woodBadge.isEmpty && adult.supporting.isEmpty)
+        #expect(adult.cameForAnyBoard)
     }
 
     @Test func aJavaWrittenRowReadsBackUnchanged() {

@@ -94,6 +94,19 @@ struct CheckInServerTests {
         #expect(lists.json["refreshSeconds"] as? Int == 30)
     }
 
+    @Test func theAdultFormListsYouthByNameAndUnitOnly() async throws {
+        _ = try await send("/register-youth", method: .post,
+            form: "First=Jan&Last=Doe&Email=jan%40example.org&Phone=770-555-0100&UnitType=Troop&Unit=1776&BoardType=Final")
+        let reply = try await send("/api/scout-choices")
+        #expect(reply.status == .ok)
+        let youth = try #require(try JSONSerialization.jsonObject(with: Data(reply.body.utf8)) as? [[String: String]])
+        #expect(youth.count == 1)
+        #expect(Set(youth[0].keys) == ["id", "first", "last", "unitType", "unit"])
+        #expect(youth[0]["id"] == "SCOUT:Doe:Jan:1776")
+        #expect(!reply.body.contains("jan@example.org"))
+        #expect(!reply.body.contains("770-555-0100"))
+    }
+
     @Test func aRefusalComesBackInWords() async throws {
         let reply = try await send("/register-adult", method: .post, form: "First=&Last=")
         #expect(reply.status == .badRequest)

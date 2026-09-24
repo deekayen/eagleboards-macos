@@ -249,6 +249,9 @@ public struct Adult: PersonRecord {
     public static let columns = [
         "Type", "ID", "Last", "First", "Email", "Phone", "UnitType", "Unit", "UnitName",
         "ProjectReview", "FinalBoard", "RegTime", "Room", "Flags", "Sel", "BoardHistory",
+        // Per night, set at sign-in and never carried into the adult history.
+        // Appended, as in the Java version, so older files still line up.
+        "WoodBadge", "Supporting",
     ]
 
     /// The columns an adult fills in at the sign-in station.
@@ -286,6 +289,29 @@ public struct Adult: PersonRecord {
         get { self["BoardHistory"] }
         set { self["BoardHistory"] = newValue }
     }
+
+    /// "Y" when tonight counts toward a Wood Badge ticket item.
+    public var woodBadge: String {
+        get { self["WoodBadge"] }
+        set { self["WoodBadge"] = newValue }
+    }
+
+    /// IDs of the youth this adult came to support (their Scoutmaster, say),
+    /// separated by "|" because the data files turn commas into "~".
+    public var supporting: String {
+        get { self["Supporting"] }
+        set { self["Supporting"] = newValue }
+    }
+
+    /// Said at sign-in they came to support this youth.
+    public func supports(_ scoutID: String) -> Bool {
+        supporting.split(separator: "|").contains { $0 == scoutID }
+    }
+
+    /// Came to serve on any board: not here for a particular youth, or
+    /// counting tonight toward Wood Badge (then a volunteer first, whoever
+    /// else they came with).
+    public var cameForAnyBoard: Bool { woodBadge == "Y" || supporting.isEmpty }
 
     /// Stood down for the night with the Disable button.
     public var isDisabledForTonight: Bool { room == disabledForTonightMarker }

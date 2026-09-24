@@ -240,6 +240,7 @@ private struct AdultRecords: View {
         .init("UnitType", "Unit type", .choice(unitTypes)), .init("Unit", "Unit #"),
         .init("FinalBoard", "Final Board", .choice(roles)), .init("ProjectReview", "Proposal Review", .choice(roles)),
         .init("RegTime", "Signed in", .readOnly), .init("Room", "Room", .readOnly),
+        .init("WoodBadge", "Wood Badge", .choice([("", "No"), ("Y", "Yes")])),
     ]
 
     static let historyFields: [FieldSpec] = [

@@ -214,7 +214,9 @@ public struct SeatingReview: Sendable {
 ///     adults fill member seats and a single-type chair is used before one
 ///     who can chair either;
 ///  3. then the one whose adults could serve the fewest other waiting youth;
-///  4. then the adults who have waited longest to volunteer since they were
+///  4. then volunteers who came for any board (`Adult.cameForAnyBoard`: not
+///     linked to a youth, or Wood Badge), so they are not the ones left idle;
+///  5. then the adults who have waited longest to volunteer since they were
 ///     last free (`freeSinceTimes`), and sign-in order within a minute.
 ///
 /// With no full board to be had it proposes what it can, in the same
@@ -328,7 +330,10 @@ public struct BoardSuggestion: Sendable, Equatable {
                     since: freeSince[adult.id] ?? "",
                     order: order)
             }
-            .sorted { ($0.chairs, $0.useful, $0.since, $0.order) < ($1.chairs, $1.useful, $1.since, $1.order) }
+            .sorted {
+                ($0.chairs, $0.useful, $0.adult.cameForAnyBoard ? 0 : 1, $0.since, $0.order)
+                    < ($1.chairs, $1.useful, $1.adult.cameForAnyBoard ? 0 : 1, $1.since, $1.order)
+            }
         let chairs = pool.filter { Self.canChair($0.adult, for: scout) }
         let sitters = pool.filter { Self.canSit($0.adult, for: scout) }
 
@@ -393,6 +398,8 @@ public struct BoardSuggestion: Sendable, Equatable {
 /// so someone can fetch them when the board is ready or has finished.
 public enum AdultLocator {
     public enum Relation: String, Sendable {
+        /// Said at sign-in they came to support this youth.
+        case supporting = "Supporting"
         case leader = "Leader"
         case parent = "Parent"
     }
@@ -402,19 +409,29 @@ public enum AdultLocator {
         public let relation: Relation
         public var id: String { adult.id }
         /// Where to look: their board's room, or the main room.
-        public var whereabouts: String { adult.room.isEmpty ? "Main room" : "Room \(adult.room)" }
+        public var whereabouts: String {
+            adult.room.isEmpty ? "Main room" : adult.isDisabledForTonight ? "marked as gone home" : "Room \(adult.room)"
+        }
     }
 
     /// A leader is an adult whose last name appears in the youth's Leader
     /// field and who is in the same unit (or whose first name appears there
     /// too). A parent is an adult in the same unit with the youth's last name.
+    /// Adults who said at sign-in they came to support this youth come first,
+    /// and are not guessed at again.
     public static func locate(for scout: Scout, among adults: [Adult]) -> [Match] {
         let leaderText = scout.leader.lowercased()
         let scoutLast = scout.last.lowercased()
         var leaders: [Match] = []
         var parents: [Match] = []
 
+        var supporting: [Match] = []
+
         for adult in adults {
+            if adult.supports(scout.id) {
+                supporting.append(Match(adult: adult, relation: .supporting))
+                continue
+            }
             let adultLast = adult.last.lowercased()
             let adultFirst = adult.first.lowercased()
             let sameUnit = !scout.unitName.isEmpty && adult.unitName == scout.unitName
@@ -425,7 +442,7 @@ public enum AdultLocator {
                 parents.append(Match(adult: adult, relation: .parent))
             }
         }
-        return leaders + parents
+        return supporting + leaders + parents
     }
 }
 

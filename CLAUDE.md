@@ -46,7 +46,14 @@ a native window. See `PROVENANCE.md`.
 - **Board suggestions** (`BoardSuggestion`) weigh the whole waiting line;
   the same algorithm and test cases are in the Java (`proposeBoard`) and
   Windows (`SchedulerLogic.AutoSelect`) versions. Change all three together.
+  Just above that, volunteers who came for any board (`Adult.cameForAnyBoard`:
+  not linked to a youth, or Wood Badge) go before a youth's own leaders.
   The last tie-break is who has waited longest to volunteer since last free
   (`BoardSuggestion.freeSinceTimes`), after saving chairs and flexible adults.
+- **Adult sign-in answers.** "No thanks" to a board type is stored as the
+  role `Unavailable` (Seat Board refuses it). `WoodBadge` and `Supporting`
+  (youth IDs, `|`-separated) are appended to the adult record, per night,
+  never copied into the history; `/api/scout-choices` feeds the form's list.
+  Start Review and Locate name supporting adults first.
 - **No `var##` names**, even to match anything. CI fails on them.
 - **District-neutral branding**, settled: never add a district or council name.
