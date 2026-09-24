@@ -24,7 +24,7 @@ struct HelpView: View {
                 }
 
                 section("Seat a board") {
-                    step("Select a youth. The scheduler proposes a board: a chair, enough members, and a free room of the right kind. It never picks adults from the youth's own unit.")
+                    step("Select a youth. The scheduler proposes a board: a chair, enough members, and a free room of the right kind. It never picks adults from the youth's own unit. It picks with the whole waiting line in mind: it keeps adults who can chair free for the boards still to come, and uses adults whose troop rules them out for youth still waiting. If there aren't enough adults to do that it still proposes the best board it can.")
                     step("Change who sits on the board with the checkboxes in Adult Board Members. Checked adults stay checked while you click around; Clear empties the list.")
                     step("Press Seat Board. The sheet lists anything that stops the board -- too few or too many members, no qualified chair, someone already on another board -- and anything worth a second look, each of which needs its own tick.")
                     step("Choose the chair. Only members whose role for this kind of board is Chair are offered. If none is free, promote someone in the Records window by changing their role.")

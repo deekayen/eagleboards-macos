@@ -43,5 +43,8 @@ a native window. See `PROVENANCE.md`.
   touches seating, running or tearing down a board. Scenarios added to the Java
   project's `test-board-evening.sh` are mirrored there too (and in the Windows
   version); where one cannot arise here, the stand-in test says why.
+- **Board suggestions** (`BoardSuggestion`) weigh the whole waiting line;
+  the same algorithm and test cases are in the Java (`proposeBoard`) and
+  Windows (`SchedulerLogic.AutoSelect`) versions. Change all three together.
 - **No `var##` names**, even to match anything. CI fails on them.
 - **District-neutral branding**, settled: never add a district or council name.

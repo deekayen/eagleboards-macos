@@ -196,49 +196,159 @@ public struct SeatingReview: Sendable {
 
 /// The board the scheduler proposes when a waiting youth is selected: a
 /// chair, enough members to make a board, and a free room of the right kind.
+///
+/// It used to take the first qualified chair and the first adults whose role
+/// was Member, in sign-in order. A Final board's Member is often a project
+/// chair, so the first Final board of the night could take both project
+/// chairs and leave every project review without one; and it ignored the
+/// troops of the youth still waiting.
+///
+/// Now every legal board is considered -- one qualified chair plus the
+/// working number of members, none from the youth's unit -- and the one
+/// chosen is, in order:
+///
+///  1. the one leaving the most of the `waiting` youth (the OTHER waiting
+///     youth, in queue order) able to get a full board at once from the
+///     adults left over, so chairs and troop conflicts both count;
+///  2. then the one using up the fewest chair qualifications, so member-only
+///     adults fill member seats and a single-type chair is used before one
+///     who can chair either;
+///  3. then the one whose adults could serve the fewest other waiting youth;
+///  4. then sign-in order.
+///
+/// With no full board to be had it proposes what it can, in the same
+/// preference order, and says what is short. The same algorithm, with the
+/// same test cases, is `proposeBoard` in the Java version's process_seat.js
+/// and `SchedulerLogic.AutoSelect` in the Windows version.
 public struct BoardSuggestion: Sendable, Equatable {
     public var chairID: String?
+    /// The whole board, chair first.
     public var memberIDs: [String] = []
     public var roomID: String?
     public var problems: [String] = []
 
-    /// Pick from `adults` in sign-in order, skipping anyone already on a board,
-    /// disabled, or from the youth's own unit.
-    public init(for scout: Scout, adults: [Adult], rooms: [Room]) {
+    private struct Candidate {
+        let adult: Adult
+        let chairs: Int
+        let useful: Int
+        let order: Int
+        var profile: String {
+            "\(adult.unitName)|\(adult.role(for: .finalBoard)?.rawValue ?? "")|\(adult.role(for: .projectReview)?.rawValue ?? "")"
+        }
+    }
+
+    private static func sharesUnit(_ adult: Adult, _ scout: Scout) -> Bool {
+        !BoardRules.unitConflicts(scoutUnitName: scout.unitName, members: [adult]).isEmpty
+    }
+
+    private static func canSit(_ adult: Adult, for scout: Scout) -> Bool {
+        guard let boardType = scout.boardType, let role = adult.role(for: boardType) else { return false }
+        return (role == .chair || role == .member) && !sharesUnit(adult, scout)
+    }
+
+    private static func canChair(_ adult: Adult, for scout: Scout) -> Bool {
+        guard let boardType = scout.boardType else { return false }
+        return adult.role(for: boardType) == .chair && !sharesUnit(adult, scout)
+    }
+
+    private static func membersBesideChair(_ boardType: BoardType) -> Int {
+        BoardRules.minimumMembers(for: boardType) - 1
+    }
+
+    /// How many of `waiting`, in queue order, can each still get a full board
+    /// at once from `pool` (sorted by preference).
+    private static func countSeatable(_ pool: [Candidate], _ waiting: [Scout]) -> Int {
+        var used = Set<String>()
+        var seated = 0
+        for youth in waiting {
+            guard let boardType = youth.boardType,
+                  let chair = pool.first(where: { !used.contains($0.adult.id) && canChair($0.adult, for: youth) })
+            else { continue }
+            let need = membersBesideChair(boardType)
+            let members = pool.filter {
+                !used.contains($0.adult.id) && $0.adult.id != chair.adult.id && canSit($0.adult, for: youth)
+            }.prefix(need)
+            if members.count == need {
+                used.insert(chair.adult.id)
+                used.formUnion(members.map(\.adult.id))
+                seated += 1
+            }
+        }
+        return seated
+    }
+
+    /// Choose from `adults` (in sign-in order), skipping anyone on a board,
+    /// disabled for tonight, Unavailable, or from the youth's own unit.
+    public init(for scout: Scout, adults: [Adult], rooms: [Room], waiting: [Scout] = []) {
         guard let boardType = scout.boardType else {
             problems.append("\(scout.fullName) has no board type.")
             return
         }
         let label = boardType.label
+        let need = Self.membersBesideChair(boardType)
 
-        func pick(_ roles: Set<BoardRole>, count: Int, skipping taken: [String]) -> [String] {
-            var picked: [String] = []
-            for adult in adults where picked.count < count {
-                guard adult.isAvailable, !taken.contains(adult.id),
-                      BoardRules.unitConflicts(scoutUnitName: scout.unitName, members: [adult]).isEmpty,
-                      let role = adult.role(for: boardType), roles.contains(role)
-                else { continue }
-                picked.append(adult.id)
+        let pool = adults.enumerated()
+            .filter { $0.element.isAvailable }
+            .map { order, adult in
+                Candidate(
+                    adult: adult,
+                    chairs: BoardType.allCases.filter { adult.role(for: $0) == .chair }.count,
+                    useful: waiting.filter { Self.canSit(adult, for: $0) }.count,
+                    order: order)
             }
-            return picked
+            .sorted { ($0.chairs, $0.useful, $0.order) < ($1.chairs, $1.useful, $1.order) }
+        let chairs = pool.filter { Self.canChair($0.adult, for: scout) }
+        let sitters = pool.filter { Self.canSit($0.adult, for: scout) }
+
+        var best: [Candidate]?
+        var bestScore = (seatable: -1, chairsKept: 0, flexibility: 0)
+        var triedChairs = Set<String>()
+        for chair in chairs where triedChairs.insert(chair.profile).inserted {
+            let others = sitters.filter { $0.adult.id != chair.adult.id }
+            var combo: [Candidate] = []
+
+            func visit(_ start: Int) {
+                if combo.count == need {
+                    let board = [chair] + combo
+                    let taken = Set(board.map(\.adult.id))
+                    let score = (
+                        seatable: Self.countSeatable(pool.filter { !taken.contains($0.adult.id) }, waiting),
+                        chairsKept: -board.map(\.chairs).reduce(0, +),
+                        flexibility: -board.map(\.useful).reduce(0, +))
+                    if best == nil || score > bestScore {
+                        bestScore = score
+                        best = board
+                    }
+                    return
+                }
+                // Adults from the same unit with the same roles are
+                // interchangeable here, so only the first is tried in each
+                // seat: the same answer from a far smaller search.
+                var tried = Set<String>()
+                for index in start..<others.count where tried.insert(others[index].profile).inserted {
+                    combo.append(others[index])
+                    visit(index + 1)
+                    combo.removeLast()
+                }
+            }
+            visit(0)
         }
 
-        let chair = pick([.chair], count: 1, skipping: []).first
-        if chair == nil {
-            problems.append("No \(label) chairs are available.")
+        if let best {
+            chairID = best[0].adult.id
+            memberIDs = best.map(\.adult.id)
+        } else {
+            // No full board: what there is, best first, and what is short.
+            chairID = chairs.first?.adult.id
+            if chairID == nil {
+                problems.append("No \(label) chairs are available.")
+            }
+            let members = sitters.filter { $0.adult.id != chairID }.prefix(need).map(\.adult.id)
+            if members.count < need {
+                problems.append("Only \(members.count) \(label) member\(members.count == 1 ? " is" : "s are") available.")
+            }
+            memberIDs = (chairID.map { [$0] } ?? []) + members
         }
-        chairID = chair
-
-        let wanted = BoardRules.minimumMembers(for: boardType) - 1
-        let alreadyTaken = chair.map { [$0] } ?? []
-        var members = pick([.member], count: wanted, skipping: alreadyTaken)
-        if members.count < wanted {
-            members += pick([.member, .chair], count: wanted - members.count, skipping: alreadyTaken + members)
-        }
-        if members.count < wanted {
-            problems.append("Only \(members.count) \(label) member\(members.count == 1 ? " is" : "s are") available.")
-        }
-        memberIDs = alreadyTaken + members
 
         roomID = rooms.first { $0.isFree && $0.boardType == boardType }?.id
         if roomID == nil {

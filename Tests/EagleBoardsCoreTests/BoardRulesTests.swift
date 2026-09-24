@@ -311,6 +311,153 @@ struct BoardSuggestionTests {
     }
 }
 
+/// The suggestion weighing the whole waiting line. The same cases, in the
+/// same order, are in the Java version's scripts/test-seat-conflicts.js and
+/// the Windows version's SchedulerLogicTests; keep all three in step.
+/// Arguments are in the Java test's order: final role, then project.
+@Suite("Board suggestion across the waiting line")
+struct WaitingLineSuggestionTests {
+    private func pool(_ id: String, _ unit: String, _ final: String, _ project: String, room: String = "") -> Adult {
+        Adult(fields: [
+            "Type": "ADULT", "ID": id, "First": id, "Last": id, "UnitName": unit,
+            "FinalBoard": final, "ProjectReview": project, "Room": room,
+        ])
+    }
+
+    private func queue(_ id: String, _ unit: String, _ boardType: BoardType) -> Scout {
+        Scout(fields: [
+            "Type": "SCOUT", "ID": id, "First": id, "Last": id, "UnitName": unit,
+            "BoardType": boardType.rawValue, "Status": BoardStatus.registered.rawValue,
+        ])
+    }
+
+    private func propose(_ youth: Scout, _ adults: [Adult], waiting: [Scout] = []) -> BoardSuggestion {
+        BoardSuggestion(for: youth, adults: adults, rooms: [room("1", youth.boardType ?? .finalBoard)], waiting: waiting)
+    }
+
+    @Test func memberOnlyAdultsFillTheMemberSeatsNotAProjectChair() {
+        let pick = propose(queue("S", "Troop1001", .finalBoard), [
+            pool("FC", "Troop9001", "Chair", "Member"),
+            pool("PC", "Troop9002", "Member", "Chair"),
+            pool("M1", "Troop9003", "Member", "Member"),
+            pool("M2", "Troop9004", "Member", "Member"),
+        ])
+        #expect(pick.memberIDs == ["FC", "M1", "M2"])
+        #expect(pick.problems.isEmpty)
+    }
+
+    @Test func aChairOfOneKindIsUsedBeforeAChairOfBoth() {
+        let pick = propose(queue("S", "Troop1001", .finalBoard), [
+            pool("BOTH", "Troop9001", "Chair", "Chair"),
+            pool("FC", "Troop9002", "Chair", "Member"),
+            pool("M1", "Troop9003", "Member", "Member"),
+            pool("M2", "Troop9004", "Member", "Member"),
+        ])
+        #expect(pick.chairID == "FC")
+    }
+
+    @Test func whenMemberOnlyAdultsRunOutAChairCapableAdultFillsTheSeat() {
+        let pick = propose(queue("S", "Troop1001", .finalBoard), [
+            pool("FC", "Troop9001", "Chair", "Member"),
+            pool("PC", "Troop9002", "Member", "Chair"),
+            pool("M1", "Troop9003", "Member", "Member"),
+        ])
+        #expect(pick.memberIDs == ["FC", "M1", "PC"])
+        #expect(pick.problems.isEmpty)
+    }
+
+    @Test func anAdultWhoCannotServeTheNextYouthsTroopIsUsedHere() {
+        let pick = propose(queue("S", "Troop1001", .projectReview), [
+            pool("P1", "Troop3001", "Member", "Chair"),
+            pool("P2", "Troop3002", "Member", "Chair"),
+            pool("B", "Troop4001", "Member", "Member"),
+            pool("A", "Troop2001", "Member", "Member"),
+        ], waiting: [queue("T", "Troop2001", .projectReview)])
+        #expect(pick.memberIDs == ["P1", "A"])
+    }
+
+    @Test func aYouthStillWaitingWhoCanBeSeatedOutranksAChairKeptForLater() {
+        let pick = propose(queue("S", "Troop1001", .finalBoard), [
+            pool("FC1", "Troop3001", "Chair", "Member"),
+            pool("FC2", "Troop3002", "Chair", "Member"),
+            pool("M", "Troop3003", "Member", "Member"),
+            pool("Y", "Troop2001", "Member", "Chair"),
+            pool("Z", "Troop2001", "Member", "Member"),
+            pool("W", "Troop3004", "Member", "Member"),
+        ], waiting: [queue("T", "Troop2001", .finalBoard)])
+        #expect(pick.memberIDs == ["FC1", "Z", "Y"])
+    }
+
+    @Test func neverProposesSomeoneWhoCannotSit() {
+        let pick = propose(queue("S", "Troop1001", .finalBoard), [
+            pool("SAME", "Troop1001", "Chair", "Chair"),
+            pool("BUSY", "Troop9001", "Chair", "Chair", room: "101"),
+            pool("GONE", "Troop9002", "Chair", "Chair", room: disabledForTonightMarker),
+            pool("NOPE", "Troop9003", "Unavailable", "Member"),
+            pool("FC", "Troop9004", "Chair", "Member"),
+            pool("M1", "Troop9005", "Member", "Member"),
+            pool("M2", "Troop9006", "Member", "Member"),
+        ])
+        #expect(pick.memberIDs == ["FC", "M1", "M2"])
+    }
+
+    @Test func withNoChairItStillProposesTheMembersAndSaysSo() {
+        let pick = propose(queue("S", "Troop1001", .finalBoard), [
+            pool("M1", "Troop9001", "Member", "Member"),
+            pool("M2", "Troop9002", "Member", "Member"),
+        ])
+        #expect(pick.chairID == nil)
+        #expect(pick.memberIDs == ["M1", "M2"])
+        #expect(pick.problems == ["No Final Board chairs are available."])
+    }
+
+    @Test func withTooFewMembersItProposesWhatThereIsAndSaysSo() {
+        let pick = propose(queue("S", "Troop1001", .finalBoard), [
+            pool("FC", "Troop9001", "Chair", "Member"),
+            pool("M1", "Troop9002", "Member", "Member"),
+        ])
+        #expect(pick.memberIDs == ["FC", "M1"])
+        #expect(pick.problems == ["Only 1 Final Board member is available."])
+    }
+
+    /// The evening test's shape: 9 Final and 5 Project youth, 30 adults, five
+    /// of whom chair anything. Proposing boards down the queue must reach the
+    /// chair cap of five at once; sign-in order stalled at three, because the
+    /// first Final board took both project chairs as its members.
+    @Test func aWholeEveningSeatsFiveBoardsAtOnce() {
+        var adults = [
+            pool("FC1", "Troop2001", "Chair", "Chair"),
+            pool("FC2", "Troop2002", "Chair", "Member"),
+            pool("FC3", "Troop2003", "Chair", "Member"),
+            pool("PC1", "Troop2004", "Member", "Chair"),
+            pool("PC2", "Troop2005", "Member", "Chair"),
+        ]
+        for number in 6...25 {
+            adults.append(pool("M\(number)", "Troop\(2000 + number)", "Member", "Member"))
+        }
+        adults.append(pool("U26", "Troop2026", "Member", "Unavailable"))
+        adults.append(pool("U27", "Troop2027", "Member", "Unavailable"))
+        adults.append(pool("U28", "Troop1001", "Unavailable", "Member"))
+        adults.append(pool("U29", "Troop1002", "Unavailable", "Member"))
+        adults.append(pool("U30", "Troop1003", "Unavailable", "Member"))
+
+        let line = (1...14).map { queue("S\($0)", "Troop\(1000 + $0)", $0 <= 9 ? .finalBoard : .projectReview) }
+        var seated = Set<String>()
+        var boards: [BoardType: Int] = [.finalBoard: 0, .projectReview: 0]
+        for (index, youth) in line.enumerated() {
+            let stillWaiting = line.filter { $0.id != youth.id && !seated.contains($0.id) }
+            let pick = propose(youth, adults, waiting: stillWaiting)
+            guard pick.problems.isEmpty, let boardType = youth.boardType else { continue }
+            seated.insert(youth.id)
+            boards[boardType, default: 0] += 1
+            for adultIndex in adults.indices where pick.memberIDs.contains(adults[adultIndex].id) {
+                adults[adultIndex].room = "R\(index)"
+            }
+        }
+        #expect(boards[.finalBoard] == 3 && boards[.projectReview] == 2, "three Final and two Project at once")
+    }
+}
+
 @Suite("Locating leaders and parents")
 struct AdultLocatorTests {
     @Test func findsTheLeaderByNameAndUnitAndAParentByLastName() {

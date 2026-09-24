@@ -240,7 +240,12 @@ final class AppModel {
 
         switch youth.status {
         case .registered, .verified:
-            let suggestion = BoardSuggestion(for: youth, adults: night.adults, rooms: night.rooms)
+            // The other waiting youth in queue order (pre-registered first), so
+            // the proposal keeps chairs and adults free for the boards to come.
+            let waiting = night.scouts
+                .filter { $0.id != youth.id && $0.status?.isWaitingForBoard == true }
+                .sorted { $0.queueOrder < $1.queueOrder }
+            let suggestion = BoardSuggestion(for: youth, adults: night.adults, rooms: night.rooms, waiting: waiting)
             checkedAdultIDs = suggestion.memberIDs
             selectedRoomID = suggestion.roomID
             if suggestion.problems.isEmpty {
