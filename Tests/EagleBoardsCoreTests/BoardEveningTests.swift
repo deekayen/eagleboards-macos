@@ -651,6 +651,25 @@ struct BoardEveningTests {
         #expect(!choices.contains(finalYouth(9)), "but not someone whose evening is over")
     }
 
+    // Java section 19, linking after both have signed in.
+    @Test func anOperatorLinksAnAdultToAYouthAfterBothSignedIn() throws {
+        try night.setSupporting(true, adultID: member(1), scoutID: finalYouth(1))
+        #expect(night.adult(id: member(1))?.supporting == finalYouth(1))
+        try night.setSupporting(true, adultID: member(1), scoutID: finalYouth(1))
+        #expect(night.adult(id: member(1))?.supporting == finalYouth(1), "pressing it twice links once")
+
+        try seat("101", finalYouth(1), chair: chairOfEither, member(2), member(3))
+        try runBoard(finalYouth(1))
+        #expect(night.adult(id: member(1))?.supporting == finalYouth(1), "the link survives the youth's board")
+
+        try night.setSupporting(false, adultID: member(1), scoutID: finalYouth(1))
+        #expect(night.adult(id: member(1))?.supporting == "", "and can be undone")
+
+        refused("an unknown adult") { try night.setSupporting(true, adultID: "ADULT:Nobody:Here:0", scoutID: finalYouth(2)) }
+        refused("an unknown youth") { try night.setSupporting(true, adultID: member(1), scoutID: "SCOUT:Nobody:Here:0") }
+        try night.setSupporting(false, adultID: member(1), scoutID: "SCOUT:Nobody:Here:0")  // clearing a stale link is fine
+    }
+
     @Test func startReviewNamesWhoCameToSupportTheYouthAndWhereTheyAre() throws {
         try night.registerAdult([
             "Last": "Scoutmaster", "First": "Sam", "Email": "sm@example.org", "UnitType": "Troop", "Unit": "1001",

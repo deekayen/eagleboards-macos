@@ -26,6 +26,12 @@ struct AdultPanel: View {
                 Button("Disable") { model.confirmAvailability(false) }
                     .disabled(selectedAdult?.isAvailable != true)
                     .help("Take an adult out of the pool for tonight, for example because they have gone home")
+                ToolbarSeparator()
+                Button(selectedAdultSupportsSelectedYouth ? "Unlink" : "Link") {
+                    model.confirmSupportLink()
+                }
+                .disabled(selectedAdult == nil || model.selectedYouth == nil)
+                .help("Link the selected adult to the selected youth as someone who came to support them, or unlink them")
             }
             Table(rows, selection: $model.selectedAdultID, sortOrder: $sortOrder) {
                 TableColumn("") { adult in
@@ -66,6 +72,11 @@ struct AdultPanel: View {
     }
 
     private var selectedAdult: Adult? { model.selectedAdultID.flatMap { night.adult(id: $0) } }
+
+    private var selectedAdultSupportsSelectedYouth: Bool {
+        guard let adult = selectedAdult, let youth = model.selectedYouth else { return false }
+        return adult.supports(youth.id)
+    }
 
     private var checkedSummary: String {
         let available = night.adults.filter(\.isAvailable).count

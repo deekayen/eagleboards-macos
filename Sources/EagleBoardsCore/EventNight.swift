@@ -610,6 +610,21 @@ public final class EventNight {
         try save(.adults)
     }
 
+    /// Link an adult to a youth as someone who came to support them, or
+    /// unlink them: the adult panel's Link button, for the adult who did not
+    /// check the youth at sign-in. Writes the same Supporting column. Linking
+    /// needs a youth who is signed in or RSVP'd; clearing a stale link does not.
+    public func setSupporting(_ linked: Bool, adultID: String, scoutID: String) throws {
+        guard let index = adults.firstIndex(where: { $0.id == adultID }) else {
+            throw EventError("There is no adult '\(adultID)'.")
+        }
+        if linked && scout(id: scoutID) == nil && !scheduledScouts.contains(where: { $0.id == scoutID }) {
+            throw EventError("There is no youth '\(scoutID)'.")
+        }
+        adults[index].supporting = Adult.withSupportLink(adults[index].supporting, scoutID, linked: linked)
+        try save(.adults)
+    }
+
     // MARK: - Editing records directly
 
     /// Replace a youth record as edited in the Records window.

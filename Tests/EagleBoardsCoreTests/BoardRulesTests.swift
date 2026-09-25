@@ -614,3 +614,20 @@ struct RoomTimerTests {
         #expect(RoomTimer.state(status: .seated, boardType: .finalBoard, minutes: 500, config: off) == nil)
     }
 }
+
+/// The adult panel's Link button editing a Supporting list. The same cases
+/// are in the Java and Windows versions.
+@Suite("Linking an adult to a youth")
+struct SupportLinkTests {
+    @Test(arguments: [
+        ("", "SCOUT:A:A:1", true, "SCOUT:A:A:1"),
+        ("SCOUT:A:A:1", "SCOUT:B:B:2", true, "SCOUT:A:A:1|SCOUT:B:B:2"),
+        ("SCOUT:A:A:1|SCOUT:B:B:2", "SCOUT:A:A:1", true, "SCOUT:B:B:2|SCOUT:A:A:1"),
+        ("SCOUT:A:A:1|SCOUT:B:B:2", "SCOUT:A:A:1", false, "SCOUT:B:B:2"),
+        ("SCOUT:A:A:1", "SCOUT:A:A:1", false, ""),
+        ("SCOUT:Doe~ Jr.:Jan:1", "SCOUT:B:B:2", true, "SCOUT:Doe~ Jr.:Jan:1|SCOUT:B:B:2"),
+    ])
+    func linkingEditsTheSupportingList(supporting: String, scoutID: String, linked: Bool, expected: String) {
+        #expect(Adult.withSupportLink(supporting, scoutID, linked: linked) == expected)
+    }
+}

@@ -54,6 +54,7 @@ a native window. See `PROVENANCE.md`.
   role `Unavailable` (Seat Board refuses it). `WoodBadge` and `Supporting`
   (youth IDs, `|`-separated) are appended to the adult record, per night,
   never copied into the history; `/api/scout-choices` feeds the form's list.
-  Start Review and Locate name supporting adults first.
+  Start Review and Locate name supporting adults first. The adult panel's Link
+  button (`EventNight.setSupporting`) links or unlinks them after sign-in.
 - **No `var##` names**, even to match anything. CI fails on them.
 - **District-neutral branding**, settled: never add a district or council name.

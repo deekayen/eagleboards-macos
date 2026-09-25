@@ -308,6 +308,17 @@ public struct Adult: PersonRecord {
         supporting.split(separator: "|").contains { $0 == scoutID }
     }
 
+    /// A Supporting list with one youth linked or unlinked. Order is kept and a
+    /// youth is never listed twice. The same as withSupportLink in the Java
+    /// version's process_seat.js.
+    public static func withSupportLink(_ supporting: String, _ scoutID: String, linked: Bool) -> String {
+        var ids = supporting.split(separator: "|").map(String.init).filter { !$0.isEmpty && $0 != scoutID }
+        if linked {
+            ids.append(scoutID)
+        }
+        return ids.joined(separator: "|")
+    }
+
     /// Came to serve on any board: not here for a particular youth, or
     /// counting tonight toward Wood Badge (then a volunteer first, whoever
     /// else they came with).

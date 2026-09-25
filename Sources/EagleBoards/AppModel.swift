@@ -404,6 +404,31 @@ final class AppModel {
         }
     }
 
+    /// Link the selected adult to the selected youth as someone who came to
+    /// support them, or unlink them -- for the adult who did not check the
+    /// youth at sign-in. Start Review names them from then on. Works for an
+    /// adult on a board too: a Scoutmaster often is by then.
+    func confirmSupportLink() {
+        guard let night, let adultID = selectedAdultID, let adult = night.adult(id: adultID),
+              let youth = selectedYouth else { return }
+        let linked = adult.supports(youth.id)
+        confirmation = Confirmation(
+            title: linked ? "Unlink \(adult.fullName)?" : "Link \(adult.fullName)?",
+            message: linked
+                ? "\(adult.fullName) is linked as supporting \(youth.fullName). Unlink them?"
+                : "\(adult.fullName) came to support \(youth.fullName)? Start Review will then say where to find them.",
+            actionTitle: linked ? "Unlink" : "Link"
+        ) { [weak self] in
+            guard let self else { return }
+            if self.attempt({ try night.setSupporting(!linked, adultID: adultID, scoutID: youth.id) }) {
+                self.notice = Notice(
+                    title: linked ? "Unlinked" : "Linked",
+                    lines: ["\(adult.fullName) \(linked ? "is no longer linked to" : "is linked to") \(youth.fullName)."],
+                    kind: .success)
+            }
+        }
+    }
+
     // MARK: - Rooms
 
     func confirmRemoveSelectedRoom() {
