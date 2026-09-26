@@ -223,7 +223,7 @@ struct SeatingReviewTests {
         let busy = adult("Busy", "Elsewhere", unitName: "Troop3", room: "102")
         let unavailable = adult("Not", "Tonight", unitName: "Troop4", final: .unavailable)
         let review = SeatingReview(scout: scout(), members: [chair, gone, busy, unavailable], room: finalRoom)
-        #expect(review.blockingProblems.contains { $0.contains("disabled for tonight") })
+        #expect(review.blockingProblems.contains { $0.contains("disabled for today") })
         #expect(review.blockingProblems.contains { $0.contains("room 102") })
         #expect(review.blockingProblems.contains { $0.contains("unavailable") })
     }

@@ -105,7 +105,7 @@ struct CheckInDetails: View {
             case .starting:
                 ProgressView("Starting the sign-in station…")
             case .stopped:
-                Text("The sign-in station starts when a night is open.")
+                Text("The sign-in station starts when an event is open.")
             }
         }
         .padding(16)

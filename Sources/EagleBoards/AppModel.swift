@@ -28,6 +28,7 @@ final class AppModel {
         let folderPath = launch.dataFolderPath
         port = launch.port
         importOnOpen = launch.importOnOpen
+        proposeBoards = launch.proposeBoards
         signUpGeniusAllowed = launch.signUpGeniusAllowed
         hasSignUpGeniusKey = launch.signUpGeniusAllowed && SignUpGeniusKeychain.exists()
         if let folderPath {
@@ -84,6 +85,15 @@ final class AppModel {
 
     var importOnOpen: Bool {
         didSet { UserDefaults.standard.set(importOnOpen, forKey: Keys.importOnOpen) }
+    }
+
+    /// Selecting a waiting youth proposes a whole board; off, the board
+    /// starts empty for the operator to pick. Settings › General.
+    var proposeBoards: Bool {
+        didSet {
+            UserDefaults.standard.set(proposeBoards, forKey: Keys.proposeBoards)
+            refreshProposals()
+        }
     }
 
     /// Addresses the sign-in station can use, venue network first.
@@ -208,7 +218,7 @@ final class AppModel {
             case .addRoom: "add room"
             case .swapRooms(let roomID): "swap \(roomID)"
             case .renameRoom(let roomID): "rename \(roomID)"
-            case .openNight: "open night"
+            case .openNight: "open event"
             }
         }
     }
@@ -286,10 +296,13 @@ final class AppModel {
         }
     }
 
-    /// Throw away any changes and propose a board afresh.
+    /// Throw away any changes and propose a whole board, whether or not
+    /// boards are proposed on selection.
     func suggestBoard() {
         guard let night, let youth = selectedYouth, youth.status?.isWaitingForBoard == true else { return }
-        drafts[youth.id] = proposedBoard(for: youth, in: night)
+        drafts[youth.id] = proposedBoard(for: youth, in: night, whole: true)
+        // Asked for by hand, so kept even when proposals are off.
+        drafts[youth.id]?.isEdited = !proposeBoards
     }
 
     /// Something a proposal depends on has changed: a room was added or
@@ -310,7 +323,12 @@ final class AppModel {
         drafts[id]?.isEdited = true
     }
 
-    private func proposedBoard(for youth: Scout, in night: EventNight) -> BoardDraft {
+    private func proposedBoard(for youth: Scout, in night: EventNight, whole: Bool? = nil) -> BoardDraft {
+        guard whole ?? proposeBoards else {
+            // Picking by hand: no one yet, but a free room of the right kind.
+            let roomID = night.rooms.first { $0.isFree && $0.boardType == youth.boardType }?.id
+            return BoardDraft(roomID: roomID, memberIDs: [], problems: [])
+        }
         // The other waiting youth in queue order (pre-registered first), so
         // the proposal keeps chairs and adults free for the boards to come.
         let waiting = night.scouts

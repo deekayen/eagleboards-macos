@@ -10,13 +10,14 @@ import Foundation
 /// A scratch folder is for synthetic people. The keychain's SignUpGenius key
 /// belongs to the real district, so with EAGLEBOARDS_DATA_FOLDER set the app
 /// neither reads the key nor imports, unless EAGLEBOARDS_SIGNUPGENIUS=1 says
-/// to. Otherwise opening tonight would pull real youth into the scratch
+/// to. Otherwise opening today's event would pull real youth into the scratch
 /// folder and into any screenshot taken of it.
 public struct LaunchSettings: Equatable, Sendable {
     public enum Keys {
         public static let dataFolderPath = "dataFolderPath"
         public static let port = "checkInPort"
         public static let importOnOpen = "importSignUpsOnOpen"
+        public static let proposeBoards = "proposeBoardOnSelect"
     }
 
     public enum Environment {
@@ -30,6 +31,9 @@ public struct LaunchSettings: Equatable, Sendable {
     public let dataFolderPath: String?
     public let port: Int
     public let importOnOpen: Bool
+    /// Selecting a waiting youth proposes a whole board. Off, the board
+    /// starts empty (with a free room) for the operator to pick by hand.
+    public let proposeBoards: Bool
     /// Whether the app may read the SignUpGenius key or import at all.
     public let signUpGeniusAllowed: Bool
 
@@ -40,12 +44,14 @@ public struct LaunchSettings: Equatable, Sendable {
         defaults.register(defaults: [
             Keys.port: Self.defaultPort,
             Keys.importOnOpen: true,
+            Keys.proposeBoards: true,
         ])
         let scratchFolder = environment[Environment.dataFolder].flatMap { $0.isEmpty ? nil : $0 }
         dataFolderPath = scratchFolder ?? defaults.string(forKey: Keys.dataFolderPath)
         let savedPort = defaults.integer(forKey: Keys.port)
         port = Int(environment[Environment.port] ?? "") ?? (savedPort > 0 ? savedPort : Self.defaultPort)
         importOnOpen = defaults.bool(forKey: Keys.importOnOpen)
+        proposeBoards = defaults.bool(forKey: Keys.proposeBoards)
         signUpGeniusAllowed = scratchFolder == nil || environment[Environment.allowSignUpGenius] == "1"
     }
 }

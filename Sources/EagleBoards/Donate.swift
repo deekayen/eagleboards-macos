@@ -57,7 +57,7 @@ enum AboutPanel {
         let centered = NSMutableParagraphStyle()
         centered.alignment = .center
         let credits = NSMutableAttributedString(
-            string: "Free to use. If it helps your district's board nights, you can support its development:\n",
+            string: "Free to use. If it helps your district's board events, you can support its development:\n",
             attributes: [.font: body, .foregroundColor: NSColor.labelColor, .paragraphStyle: centered]
         )
         for (index, link) in SupportLink.allCases.enumerated() {

@@ -50,7 +50,7 @@ struct SignInCodeWindow: View {
         switch model.serverState {
         case .running: "Join the venue's Wi-Fi so a tablet can reach the sign-in page."
         case .starting: "The code appears in a moment."
-        case .stopped: "It starts when a night is open."
+        case .stopped: "It starts when an event is open."
         case .failed(let message): message
         }
     }

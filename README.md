@@ -1,7 +1,7 @@
 # Eagle Boards
 
 A Mac app for the check-in desk and room assignments on an Eagle Scout board
-of review night. Youth and adults sign themselves in on a tablet at the door,
+of review event. Youth and adults sign themselves in on a tablet at the door,
 using its web browser. You sit at the Mac, put each youth with a board and a
 room, and record the result when they come out.
 
@@ -12,10 +12,10 @@ This is the native Mac version of the Java
 [Eagle Board Scheduler](https://github.com/deekayen/eagleboards-java). It reads and
 writes the same data files, so a district can switch between them.
 
-**Running an event night? This page is the whole manual.** The same guide is
+**Running an event? This page is the whole manual.** The same guide is
 in the app under **Help › Eagle Boards Help**.
 
-## Before the first night
+## Before the first event
 
 You need three things:
 
@@ -36,7 +36,7 @@ private.
 
 ## Starting up
 
-Open Eagle Boards. It opens tonight and starts the sign-in station at once.
+Open Eagle Boards. It opens today's event and starts the sign-in station at once.
 
 If macOS asks whether Eagle Boards may accept incoming network connections,
 click **Allow**. Otherwise the tablet cannot reach it.
@@ -55,12 +55,12 @@ Do this before anyone arrives. A board cannot be seated without a room.
 
 Click **Add Room** at the bottom of the sidebar (or choose **Room › Add
 Room…**) and add each room, marking it **Final Board** or **Proposal Review**
-by what it is used for tonight. After the first night, **Room › Copy Rooms
-From** brings back an earlier night's list.
+by what it is used for today. After the first event, **Room › Copy Rooms
+From** brings back an earlier event's list.
 
 To hold two proposal reviews in one room, add it twice, e.g. `200A` and `200B`.
 
-## The night, step by step
+## The event, step by step
 
 ### 1. People sign in
 
@@ -88,10 +88,16 @@ Select a waiting youth. Eagle Boards proposes a board in the inspector: a
 chair, enough members, and a free room of the right kind. It never picks adults
 from the youth's own unit.
 
-Change the board in the inspector: **+** adds an adult from the free list
-below it, **−** takes one off, and adults can be dragged onto it from the
-Adults list. A board you have changed is kept while you look at other youth.
-**Suggest Again** starts over.
+Change the board in the inspector: click an adult in the free list below it
+to add them (**Find an adult** narrows the list), and **−** takes one off. In
+the **Adults** list you can also Command-click several adults and choose
+**Adult › Add to Board** (**⌘B**), or drag them onto the board. A board you
+have changed is kept while you look at other youth; **Suggest a Board**
+replaces it with a proposal.
+
+To pick every board yourself, set **Settings › General › When you select a
+waiting youth** to **Start with an empty board**. Selecting a youth then picks
+only a free room.
 
 Press **Seat Board…** (or **⌘↩**, or double-click the youth). You can also drag
 a waiting youth onto a free room in the sidebar. The sheet lists anything that stops the board, such as
@@ -106,7 +112,7 @@ The members now have the room and the paperwork. The youth waits outside.
 When the members have finished reading, select the youth and press **Start
 Review** (**⌘↩** again). The confirmation lists who came with the youth, and
 their leader and parents if they signed in, so they can be fetched too. The
-inspector lists them all evening under **With Them**.
+inspector lists them throughout the event under **With Them**.
 
 ### 5. Complete
 
@@ -122,7 +128,7 @@ and add any notes. The room and the members are free for the next board.
   may chair it. When the qualified chairs are all busy, promote someone in the
   **Records** window. Nobody is made chair by accident.
 - **One board at a time.** An adult on a board cannot be put on another.
-  **Disable** takes someone out of the pool for the night, for example when
+  **Disable** takes someone out of the pool for the event, for example when
   they have gone home. **Enable** brings them back.
 - **Same unit.** This council does not allow adults from the youth's own unit
   on the board. You may override that, but a board must still have at least one
@@ -139,13 +145,13 @@ Timers**.
 ## SignUpGenius
 
 Put the district's SignUpGenius API key in **Settings › SignUpGenius**.
-Eagle Boards keeps it in your macOS keychain. When tonight opens, it imports
+Eagle Boards keeps it in your macOS keychain. When today's event opens, it imports
 the sign-up: youth become pre-registrations and adults join the history. Use
 **File › Import Sign-Ups** to do it again.
 
-## After the night
+## After the event
 
-**File › Export Board Results** saves the night as a spreadsheet (CSV).
+**File › Export Board Results** saves the event as a spreadsheet (CSV).
 Everything is saved as it happens; there is nothing to save before quitting.
 
 Made a mistake? **Edit › Undo** takes back the last step, whether seating,
@@ -167,7 +173,7 @@ when a room passes its red time while you are in another app.
 
 ## Donating
 
-Eagle Boards is free. If it helps your board nights, **Help › Donate** lists
+Eagle Boards is free. If it helps your board events, **Help › Donate** lists
 ways to support its development.
 
 ## For developers

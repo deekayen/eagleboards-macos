@@ -102,7 +102,7 @@ public struct SeatingReview: Sendable {
         case .inProgress:
             blockingProblems.append("\(scoutName) is in a review now, in room \(scout.room).")
         case .completed:
-            blockingProblems.append("\(scoutName) has already completed a board tonight.")
+            blockingProblems.append("\(scoutName) has already completed a board today.")
         case .postponed:
             blockingProblems.append("\(scoutName)'s board was postponed.")
         case nil:
@@ -120,7 +120,7 @@ public struct SeatingReview: Sendable {
 
         for member in members {
             if member.isDisabledForTonight {
-                blockingProblems.append("\(member.fullName) has been disabled for tonight. Use Enable if they are back.")
+                blockingProblems.append("\(member.fullName) has been disabled for today. Use Enable if they are back.")
             } else if member.isOnBoard {
                 blockingProblems.append("\(member.fullName) is already on the board in room \(member.room).")
             }

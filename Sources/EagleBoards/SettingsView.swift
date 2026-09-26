@@ -20,7 +20,23 @@ private struct GeneralSettings: View {
     @State private var portText = ""
 
     var body: some View {
+        @Bindable var model = model
+
         Form {
+            Section {
+                Picker("When you select a waiting youth", selection: $model.proposeBoards) {
+                    Text("Propose a board").tag(true)
+                    Text("Start with an empty board").tag(false)
+                }
+                .pickerStyle(.radioGroup)
+            } header: {
+                Text("Boards")
+            } footer: {
+                Text("A proposed board picks a chair, members and a room with the whole waiting line in mind. "
+                    + "Start empty to choose the adults yourself; a free room is still picked, and Suggest a Board "
+                    + "in the inspector proposes one whenever you want it.")
+                    .foregroundStyle(.secondary)
+            }
             Section("Data folder") {
                 LabeledContent("Folder", value: model.dataFolder?.root.path ?? "Not chosen")
                 HStack {
@@ -105,7 +121,7 @@ private struct TimerSettings: View {
             }
             .formStyle(.grouped)
         } else {
-            ContentUnavailableView("Open a night first", systemImage: "timer")
+            ContentUnavailableView("Open an event first", systemImage: "timer")
                 .frame(height: 200)
         }
     }
@@ -151,7 +167,7 @@ private struct SignUpGeniusSettings: View {
             } header: {
                 Text("SignUpGenius")
             } footer: {
-                Text("With a key, Eagle Boards reads tonight's Eagle board sign-up: youth become pre-registrations, so their "
+                Text("With a key, Eagle Boards reads today's Eagle board sign-up: youth become pre-registrations, so their "
                     + "details fill in at the door and they sign in as P rather than W, and adults are added to the history. "
                     + "The key is kept in your macOS keychain, not in the data folder.")
                     .foregroundStyle(.secondary)
@@ -162,7 +178,7 @@ private struct SignUpGeniusSettings: View {
                 }
             }
             Section {
-                Toggle("Import when tonight is opened", isOn: $model.importOnOpen)
+                Toggle("Import when today's event is opened", isOn: $model.importOnOpen)
                 Button("Import Now") { Task { await model.importSignUps() } }
                     .disabled(model.night == nil || model.isImporting || !model.hasSignUpGeniusKey)
             }

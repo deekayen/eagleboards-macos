@@ -48,7 +48,7 @@ struct SchedulerSidebar: View {
                     Label("Add Room", systemImage: "plus")
                 }
                 .buttonStyle(.borderless)
-                .help("Add a room for tonight")
+                .help("Add a room for today")
                 Spacer()
             }
             .padding(.horizontal, 12)

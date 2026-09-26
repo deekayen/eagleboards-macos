@@ -310,7 +310,7 @@ public final class EventNight {
                 throw EventError("There is no adult '\(memberID)'.")
             }
             if member.isDisabledForTonight {
-                throw EventError("\(member.fullName) has been disabled for tonight.")
+                throw EventError("\(member.fullName) has been disabled for today.")
             }
             if !member.room.isEmpty {
                 throw EventError("\(member.fullName) is already on the board in room \(member.room).")
@@ -459,7 +459,7 @@ public final class EventNight {
         var memberIDs: [String] = []
         if holdsRoom(earlier) {
             guard let index = rooms.firstIndex(where: { $0.name == earlier.room }) else {
-                throw EventError("Room \(earlier.room) is no longer on tonight's list.")
+                throw EventError("Room \(earlier.room) is no longer on today's list.")
             }
             guard rooms[index].isFree || rooms[index].name == currentRoom else {
                 throw EventError("Room \(earlier.room) has been given to \(rooms[index].scoutName) since.")

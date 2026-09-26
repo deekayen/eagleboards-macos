@@ -37,7 +37,7 @@ struct WelcomeView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Where should Eagle Boards keep its data?")
                         .font(.headline)
-                    Text("Each event night gets its own folder inside, and a history of every adult who has signed in is kept across nights. "
+                    Text("Each event gets its own dated folder inside, and a history of every adult who has signed in is kept across events. "
                         + "It holds personal information, some of it about minors, so choose a private place.")
                         .font(.callout)
                         .foregroundStyle(.secondary)

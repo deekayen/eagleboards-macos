@@ -69,3 +69,24 @@ struct LaunchSettingsTests {
         #expect(LaunchSettings(environment: [:], defaults: defaults).port == 9090)
     }
 }
+
+/// Whether selecting a waiting youth proposes a board, or leaves it for the
+/// operator to pick.
+@Suite("Proposing boards")
+struct ProposeBoardsSettingTests {
+    @Test func boardsAreProposedUnlessTurnedOff() {
+        let (defaults, suite) = scratchDefaults()
+        defer { defaults.removePersistentDomain(forName: suite) }
+        #expect(LaunchSettings(environment: [:], defaults: defaults).proposeBoards)
+
+        defaults.set(false, forKey: LaunchSettings.Keys.proposeBoards)
+        #expect(!LaunchSettings(environment: [:], defaults: defaults).proposeBoards)
+    }
+
+    @Test func theCommandLineCanTurnItOff() {
+        let (defaults, suite) = scratchDefaults()
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set("NO", forKey: LaunchSettings.Keys.proposeBoards)
+        #expect(!LaunchSettings(environment: [:], defaults: defaults).proposeBoards)
+    }
+}

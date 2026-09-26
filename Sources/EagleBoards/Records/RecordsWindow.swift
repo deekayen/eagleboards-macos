@@ -33,13 +33,13 @@ struct RecordsWindow: View {
     var body: some View {
         NavigationSplitView {
             List(selection: Binding<Kind?>(get: { kind }, set: { if let chosen = $0 { kind = chosen } })) {
-                Section("Tonight") {
+                Section("This Event") {
                     row(.youth)
+                    row(.scheduled)
                     row(.adults)
                     row(.rooms)
                 }
-                Section("Before Tonight") {
-                    row(.scheduled)
+                Section("All Events") {
                     row(.history)
                 }
             }
@@ -55,7 +55,7 @@ struct RecordsWindow: View {
                     case .rooms: RoomRecords(night: night, search: search)
                     }
                 } else {
-                    ContentUnavailableView("No night is open", systemImage: "calendar.badge.exclamationmark",
+                    ContentUnavailableView("No event is open", systemImage: "calendar.badge.exclamationmark",
                                            description: Text("Choose a data folder in the Eagle Boards window first."))
                 }
             }
@@ -244,13 +244,13 @@ private struct AdultRecords: View {
             TableColumn("Project", value: \.projectReviewRoleText) { RoleText(role: $0.projectReviewRoleText) }
             // One column that means "Room" tonight and "Nights served" in the
             // history, rather than conditional columns (macOS 14.4 and later).
-            TableColumn(history ? "Nights" : "Room", value: \.room) { adult in
+            TableColumn(history ? "Events" : "Room", value: \.room) { adult in
                 if history {
                     Text("\(adult.boardHistory.filter { $0 == "(" }.count)")
                         .monospacedDigit()
                         .help(adult.boardHistory)
                 } else {
-                    Text(adult.isDisabledForTonight ? "Off tonight" : adult.room)
+                    Text(adult.isDisabledForTonight ? "Off today" : adult.room)
                 }
             }
             TableColumn("Email", value: \.email)
@@ -292,7 +292,7 @@ private struct AdultRecords: View {
         .init("Email", "Email"), .init("Phone", "Phone"),
         .init("UnitType", "Unit type", .choice(unitTypes)), .init("Unit", "Unit #"),
         .init("FinalBoard", "Final Board", .choice(roles)), .init("ProjectReview", "Proposal Review", .choice(roles)),
-        .init("BoardHistory", "Nights signed in", .readOnly),
+        .init("BoardHistory", "Events signed in", .readOnly),
     ]
 }
 

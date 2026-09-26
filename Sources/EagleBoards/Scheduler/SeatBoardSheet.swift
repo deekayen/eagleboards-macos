@@ -224,7 +224,7 @@ struct AddRoomSheet: View {
                 ForEach(BoardType.allCases) { Text($0.label).tag($0) }
             }
             .pickerStyle(.segmented)
-            Text("Mark rooms by what they are used for tonight, not by what they are called. "
+            Text("Mark rooms by what they are used for today, not by what they are called. "
                 + "To hold two proposal reviews in one room, add it twice, e.g. 200A and 200B.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
@@ -363,11 +363,11 @@ struct OpenNightSheet: View {
     var body: some View {
         let nights = nightsOnFile
         VStack(alignment: .leading, spacing: 12) {
-            Text("Open a Night").font(.title2.bold())
-            Text("The sign-in station serves whichever night is open.")
+            Text("Open an Event").font(.title2.bold())
+            Text("The sign-in station serves whichever event is open.")
                 .foregroundStyle(.secondary)
             List(nights, id: \.self, selection: $chosen) { night in
-                Text(night == model.today ? "\(night) (tonight)" : night)
+                Text(night == model.today ? "\(night) (today)" : night)
             }
             .frame(height: 260)
             HStack {

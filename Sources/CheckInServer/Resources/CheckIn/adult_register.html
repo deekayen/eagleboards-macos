@@ -89,10 +89,10 @@
                </div>
             </fieldset>
 
-            <!-- Tonight only: neither answer is kept in the adult history, so
+            <!-- This event only: neither answer is kept in the adult history, so
                  next month's form does not pre-fill last month's. -->
             <fieldset>
-               <legend>Tonight</legend>
+               <legend>Today</legend>
                <label class="reg-check">
                   <input type="checkbox" id="WoodBadge">
                   I'm volunteering toward a Wood Badge ticket item
@@ -142,7 +142,7 @@
          ebWireEmailPrefill(form, "/api/adult-lookup",
             ["ID", "Last", "First", "Phone", "UnitType", "Unit", "FinalBoard", "ProjectReview"]);
          // The youth an adult may say they came to support: RSVPs and
-         // tonight's walk-ins whose evening is not over, names and units only.
+         // today's walk-ins whose event is not over, names and units only.
          var scoutList = document.getElementById("scoutList");
          var scoutFilter = document.getElementById("scoutFilter");
          ebScoutChoices().then(function (scouts) {

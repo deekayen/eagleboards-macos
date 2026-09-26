@@ -311,7 +311,7 @@ body.eb-public .reg-pair > .reg-field.reg-grow   { flex: 3 1 200px; }
 
 /* A checkbox with its text beside it, the whole row tappable at the touch
    target height. The .reg-field label rule above would stack it; this undoes
-   that for the adult form's "Tonight" answers. */
+   that for the adult form's "Today" answers. */
 body.eb-public .reg-check,
 body.eb-public .reg-field label.reg-check {
    display: flex;

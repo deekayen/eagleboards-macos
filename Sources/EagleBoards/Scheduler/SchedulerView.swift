@@ -116,7 +116,7 @@ struct SchedulerView: View {
     }
 
     private var nightSubtitle: String {
-        night.night == model.today ? "Tonight, \(night.night)" : "\(night.night) (an earlier night)"
+        night.night == model.today ? "Today, \(night.night)" : "\(night.night) (an earlier event)"
     }
 
     @ToolbarContentBuilder
@@ -133,7 +133,7 @@ struct SchedulerView: View {
             } label: {
                 Label("Import Sign-Ups", systemImage: "square.and.arrow.down")
             }
-            .help("Import tonight's pre-registrations and adult sign-ups from SignUpGenius")
+            .help("Import today's pre-registrations and adult sign-ups from SignUpGenius")
             .disabled(model.isImporting)
 
             Button {

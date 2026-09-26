@@ -94,7 +94,7 @@ struct AdultStatusLabel: View {
         if adult.isDisabledForTonight {
             Label("Gone home", systemImage: "moon.zzz")
                 .foregroundStyle(.secondary)
-                .help("Disabled for tonight. Enable brings them back.")
+                .help("Disabled for today. Enable brings them back.")
         } else if adult.isOnBoard {
             Label("Room \(adult.room)", systemImage: "person.3.fill")
                 .help("On the board in room \(adult.room)")
@@ -140,9 +140,9 @@ struct AdultActionButtons: View {
             .disabled(single == nil || youth == nil)
         }
         Divider()
-        Button("Enable for Tonight") { run { model.setAvailable(true) } }
+        Button("Enable for Today") { run { model.setAvailable(true) } }
             .disabled(!adults.contains(where: \.isDisabledForTonight))
-        Button("Disable for Tonight") { run { model.setAvailable(false) } }
+        Button("Disable for Today") { run { model.setAvailable(false) } }
             .disabled(!adults.contains(where: \.isAvailable))
     }
 

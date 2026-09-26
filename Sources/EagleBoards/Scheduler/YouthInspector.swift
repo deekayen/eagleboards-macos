@@ -97,7 +97,7 @@ private struct DraftBoardSections: View {
                     }
                 }
                 if members.isEmpty {
-                    Text("Drag adults here, or add them from the list below.")
+                    Text("Click adults in the list below to add them, or drag them here from the Adults list.")
                         .foregroundStyle(.secondary)
                 }
             } header: {
@@ -107,7 +107,10 @@ private struct DraftBoardSections: View {
                     Text(sizeText(members.count, boardType)).foregroundStyle(.secondary)
                 }
             } footer: {
-                ReviewNotes(problems: draft.problems + review.blockingProblems, warnings: review.warnings)
+                // An empty board is one being picked, not a mistake: say what
+                // stops it only once someone is on it.
+                ReviewNotes(problems: draft.problems + (members.isEmpty ? [] : review.blockingProblems),
+                            warnings: review.warnings)
             }
             .listRowBackground(isTargeted ? Color.accentColor.opacity(0.12) : nil)
             .dropDestination(for: String.self) { items, _ in
@@ -118,8 +121,8 @@ private struct DraftBoardSections: View {
 
             Section {
                 HStack {
-                    Button("Suggest Again") { model.suggestBoard() }
-                        .help("Throw away changes and propose a board afresh")
+                    Button("Suggest a Board") { model.suggestBoard() }
+                        .help("Replace this board with a proposed chair, members and room")
                     Button("Clear") { model.clearDraft() }
                         .disabled(members.isEmpty)
                     Spacer()
@@ -129,7 +132,7 @@ private struct DraftBoardSections: View {
                 }
                 Button("Postpone", role: .destructive) { model.postpone() }
                     .buttonStyle(.link)
-                    .help("Put this board off to another night, for example when the paperwork is not ready")
+                    .help("Put this board off to another event, for example when the paperwork is not ready")
             }
 
             FreeAdultsSection(youth: youth, night: night, boardType: boardType, draftIDs: Set(draft.memberIDs))
@@ -233,17 +236,22 @@ private struct ReviewNotes: View {
     }
 }
 
-/// Adults free to sit on this kind of board, chairs first. The + adds them.
+/// Adults free to sit on this kind of board, chairs first. Click one to put
+/// them on the board; type to find someone.
 private struct FreeAdultsSection: View {
     @Environment(AppModel.self) private var model
     let youth: Scout
     let night: EventNight
     let boardType: BoardType
     let draftIDs: Set<Adult.ID>
+    @State private var search = ""
 
     var body: some View {
+        let query = search.trimmingCharacters(in: .whitespaces)
         let free = night.adults
             .filter { $0.canJoin(boardType) && !draftIDs.contains($0.id) }
+            .filter { query.isEmpty || $0.fullName.localizedCaseInsensitiveContains(query)
+                || $0.unitName.localizedCaseInsensitiveContains(query) || $0.unitLabel.localizedCaseInsensitiveContains(query) }
             .sorted { lhs, rhs in
                 let lhsChairs = lhs.canChair(boardType), rhsChairs = rhs.canChair(boardType)
                 if lhsChairs != rhsChairs { return lhsChairs }
@@ -251,8 +259,11 @@ private struct FreeAdultsSection: View {
             }
 
         Section("Free for a \(boardType.label) (\(free.count))") {
+            TextField("Find an adult", text: $search, prompt: Text("Name or unit"))
+                .labelsHidden()
             if free.isEmpty {
-                Text("Everyone who could sit is on a board.").foregroundStyle(.secondary)
+                Text(query.isEmpty ? "Everyone who could sit is on a board." : "No free adult matches.")
+                    .foregroundStyle(.secondary)
             }
             ForEach(free) { adult in
                 let sameUnit = !BoardRules.unitConflicts(scoutUnitName: youth.unitName, members: [adult]).isEmpty
@@ -268,7 +279,7 @@ private struct FreeAdultsSection: View {
                     Text(adult.unitLabel).font(.caption).foregroundStyle(.secondary)
                     RoleText(role: adult.role(for: boardType)?.rawValue ?? "")
                     Button {
-                        model.addToDraft([adult.id])
+                        add(adult)
                     } label: {
                         Image(systemName: "plus.circle")
                     }
@@ -276,9 +287,17 @@ private struct FreeAdultsSection: View {
                     .help("Put \(adult.fullName) on this board")
                     .accessibilityLabel("Add \(adult.fullName)")
                 }
+                .contentShape(Rectangle())
+                .onTapGesture { add(adult) }
                 .draggable(DragPayload.adult(adult.id))
             }
         }
+    }
+
+    /// Put them on the board, and clear the search for the next one.
+    private func add(_ adult: Adult) {
+        model.addToDraft([adult.id])
+        search = ""
     }
 }
 
@@ -333,7 +352,7 @@ private struct ResultSection: View {
     var body: some View {
         Section(youth.status == .postponed ? "Postponed" : "Result") {
             if youth.status == .postponed {
-                Text("Put off to another night. Edit › Undo brings them back to the waiting list, if it was the last thing done.")
+                Text("Put off to another event. Edit › Undo brings them back to the waiting list, if it was the last thing done.")
                     .foregroundStyle(.secondary)
             }
             if youth.status == .completed {

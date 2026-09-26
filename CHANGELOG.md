@@ -49,8 +49,16 @@ the sign-in QR code large, for a second display or a projector.
 that reads in dark mode. The Java app's status colors stay in
 `config.properties`, unchanged, but the Mac app no longer offers to edit them.
 
+**Boards can be picked by hand.** Settings › General can start each waiting
+youth with an empty board instead of a proposal. The inspector's free adults
+can be searched and added with a click.
+
+**Events, not nights.** Board events are not always in the evening, so the
+app says "event" and "today" where it said "night" and "tonight". The data
+files and folder names are unchanged.
+
 **Records** has a sidebar, an inspector you can hide, and File › Open Recent
-Night.
+Event.
 
 **Seat Board shows everything at once.** Every reason a board cannot be
 seated is listed together instead of one alert at a time, and each warning
@@ -63,7 +71,7 @@ chair.
 - A youth who signs in twice keeps their place in line. The Java app issued a
   new P or W number every time.
 - An adult who signs in twice is recorded once in the adult history for the
-  night.
+  event.
 - A first and last name are required, and a new youth must choose a board
   type.
 - Emails match regardless of case, and `NONE` never matches anyone.
@@ -86,7 +94,7 @@ later) and macOS 14 or later. Intel Macs are not supported.
 
 **New:**
 - A QR code for the sign-in address.
-- Copy rooms from an earlier night.
+- Copy rooms from an earlier event.
 - The Mac is kept awake while serving, and Eagle Boards asks before quitting.
 - Deleting a youth or adult whose board is active is refused.
 - Data files are written atomically, so a crash mid-save cannot truncate one.

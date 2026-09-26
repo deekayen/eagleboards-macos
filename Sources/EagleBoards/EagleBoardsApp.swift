@@ -80,12 +80,12 @@ struct EagleBoardsCommands: Commands {
 
     var body: some Commands {
         CommandGroup(after: .newItem) {
-            Button("Open Another Night…") { model.sheet = .openNight }
+            Button("Open Another Event…") { model.sheet = .openNight }
                 .keyboardShortcut("o")
                 .disabled(model.dataFolder == nil)
-            Menu("Open Recent Night") {
+            Menu("Open Recent Event") {
                 ForEach(recentNights, id: \.self) { name in
-                    Button(name == model.today ? "\(name) (Tonight)" : name) {
+                    Button(name == model.today ? "\(name) (Today)" : name) {
                         if let folder = model.dataFolder { model.open(folder: folder, night: name) }
                     }
                     .disabled(name == model.night?.night)
@@ -93,7 +93,7 @@ struct EagleBoardsCommands: Commands {
             }
             .disabled(recentNights.isEmpty)
             Button("Choose Data Folder…") { model.chooseDataFolderWithPanel() }
-            Button("Show Tonight's Folder in Finder") { model.showDataFolderInFinder() }
+            Button("Show Event Folder in Finder") { model.showDataFolderInFinder() }
                 .disabled(model.night == nil)
             Divider()
             Button("Import Sign-Ups from SignUpGenius") { Task { await model.importSignUps() } }

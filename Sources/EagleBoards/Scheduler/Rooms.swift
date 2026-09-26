@@ -176,7 +176,7 @@ struct NoRoomsYet: View {
         ContentUnavailableView {
             Label("No Rooms Yet", systemImage: "door.left.hand.closed")
         } description: {
-            Text("A board cannot be seated without a room. Mark each one Final or Project by what it is used for tonight.")
+            Text("A board cannot be seated without a room. Mark each one Final or Project by what it is used for today.")
         } actions: {
             HStack {
                 Button("Add Room…") { model.sheet = .addRoom }
@@ -215,7 +215,7 @@ struct CopyRoomsItems: View {
         }
         .fixedSize()
         .disabled(earlierNights.isEmpty)
-        .help("Add the rooms from an earlier night, empty. Rooms already here are skipped.")
+        .help("Add the rooms from an earlier event, empty. Rooms already here are skipped.")
     }
 }
 
