@@ -385,12 +385,15 @@ final class AppModel {
     }
 
     /// Clicking a room selects it, and the youth in it if any.
+    /// A free room has no youth, so the youth selected before is let go:
+    /// the inspector and Next Step must not go on acting on someone the
+    /// operator has clicked away from.
     func selectRoom(_ id: Room.ID) {
         selectedRoomID = id
-        if let night, let room = night.room(id: id), !room.isFree,
-           let youth = night.scouts.first(where: { $0.room == room.name && !($0.status?.isFinished ?? false) }) {
-            selectYouth(youth.id)
+        let occupant = night?.room(id: id).flatMap { room in
+            room.isFree ? nil : night?.scouts.first { $0.room == room.name && !($0.status?.isFinished ?? false) }
         }
+        selectYouth(occupant?.id)
     }
 
     // MARK: - Board actions

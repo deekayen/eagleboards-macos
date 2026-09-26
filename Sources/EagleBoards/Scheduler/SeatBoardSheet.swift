@@ -27,6 +27,15 @@ struct SeatBoardSheet: View {
             let warningsCleared = review.warnings.allSatisfy { acknowledged.contains($0.id) }
 
             VStack(spacing: 0) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Seat \(youth.fullName)'s Board").font(.headline)
+                    Text("The members get the room and the paperwork. \(youth.first) waits outside until Start Review.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
                 Form {
                     Section {
                         LabeledContent("Youth", value: youth.fullName)
@@ -130,7 +139,8 @@ struct SeatBoardSheet: View {
                     .keyboardShortcut(.defaultAction)
                     .disabled(!review.canSeat || !chairIsQualified || !warningsCleared)
                 }
-                .padding()
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
             }
             .frame(width: 560, height: 640)
             .onAppear {
@@ -160,6 +170,47 @@ struct SeatBoardSheet: View {
     }
 }
 
+/// The frame the small sheets share, after the sheets in Apple's own apps:
+/// a bold title and a line on what it does, the fields grouped, and the
+/// buttons at the bottom right with the default one last.
+struct SheetLayout<Fields: View, Buttons: View>: View {
+    let title: String
+    var message: String?
+    var width: CGFloat = 440
+    @ViewBuilder var fields: Fields
+    @ViewBuilder var buttons: Buttons
+
+    var body: some View {
+        VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title).font(.headline)
+                if let message {
+                    Text(message)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+
+            Form { fields }
+                .formStyle(.grouped)
+                .scrollDisabled(true)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack {
+                Spacer()
+                buttons
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 20)
+        }
+        .frame(width: width)
+    }
+}
+
 /// Complete: record the result. The room and the members are freed.
 struct CompleteBoardSheet: View {
     @Environment(AppModel.self) private var model
@@ -172,39 +223,34 @@ struct CompleteBoardSheet: View {
 
     var body: some View {
         let youth = night.scout(id: scoutID)
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Complete \(youth?.fullName ?? "board")")
-                .font(.title2.bold())
-            if let youth {
-                Text("Room \(youth.room) · \(youth.boardType?.label ?? youth.boardTypeText) · chaired by \(youth.boardChair)")
-                    .foregroundStyle(.secondary)
+        SheetLayout(
+            title: "Complete \(youth.map { "\($0.fullName)'s" } ?? "the") Board",
+            message: youth.map {
+                "Room \($0.room) · \($0.boardType?.label ?? $0.boardTypeText) · chaired by \($0.boardChair). "
+                    + "The room and the members are freed for the next board."
             }
-            Picker("Result", selection: $result) {
-                ForEach(BoardResult.allCases) { choice in
-                    Text(choice.label).tag(choice)
-                }
-            }
-            .pickerStyle(.radioGroup)
-            Text("Notes").font(.headline)
-            TextEditor(text: $notes)
-                .font(.body)
-                .frame(minHeight: 110)
-                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(.quaternary))
-            HStack {
-                Spacer()
-                Button("Cancel", role: .cancel) { dismiss() }
-                    .keyboardShortcut(.cancelAction)
-                Button("Complete") {
-                    if model.complete(scoutID: scoutID, result: result, notes: notes.trimmingCharacters(in: .whitespacesAndNewlines)) {
-                        dismiss()
+        ) {
+            Section {
+                Picker("Result", selection: $result) {
+                    ForEach(BoardResult.allCases) { choice in
+                        Text(choice.label).tag(choice)
                     }
                 }
-                .keyboardShortcut(.defaultAction)
-                .disabled(youth?.status != .inProgress)
+                .pickerStyle(.radioGroup)
+                TextField("Notes", text: $notes, prompt: Text("Optional"), axis: .vertical)
+                    .lineLimit(3...8)
             }
+        } buttons: {
+            Button("Cancel", role: .cancel) { dismiss() }
+                .keyboardShortcut(.cancelAction)
+            Button("Complete") {
+                if model.complete(scoutID: scoutID, result: result, notes: notes.trimmingCharacters(in: .whitespacesAndNewlines)) {
+                    dismiss()
+                }
+            }
+            .keyboardShortcut(.defaultAction)
+            .disabled(youth?.status != .inProgress)
         }
-        .padding(20)
-        .frame(width: 460)
     }
 }
 
@@ -218,37 +264,35 @@ struct AddRoomSheet: View {
     @State private var problem: String?
 
     var body: some View {
-        Form {
-            TextField("Room", text: $name, prompt: Text("e.g. 101 or 200A"))
-            Picker("Used for", selection: $boardType) {
-                ForEach(BoardType.allCases) { Text($0.label).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            Text("Mark rooms by what they are used for today, not by what they are called. "
-                + "To hold two proposal reviews in one room, add it twice, e.g. 200A and 200B.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            if let problem {
-                Text(problem).foregroundStyle(.red)
-            }
-            HStack {
-                Spacer()
-                Button("Cancel", role: .cancel) { dismiss() }
-                    .keyboardShortcut(.cancelAction)
-                Button("Add Room") {
-                    do {
-                        try model.addRoom(named: name, boardType: boardType)
-                        dismiss()
-                    } catch {
-                        problem = error.localizedDescription
-                    }
+        SheetLayout(
+            title: "Add a Room",
+            message: "Mark it by what it is used for today, not by what it is called. "
+                + "To hold two proposal reviews in one room, add it twice, e.g. 200A and 200B."
+        ) {
+            Section {
+                TextField("Name", text: $name, prompt: Text("101 or 200A"))
+                Picker("Used for", selection: $boardType) {
+                    ForEach(BoardType.allCases) { Text($0.label).tag($0) }
                 }
-                .keyboardShortcut(.defaultAction)
+            } footer: {
+                if let problem {
+                    Text(problem).foregroundStyle(.red)
+                }
             }
+        } buttons: {
+            Button("Cancel", role: .cancel) { dismiss() }
+                .keyboardShortcut(.cancelAction)
+            Button("Add Room") {
+                do {
+                    try model.addRoom(named: name, boardType: boardType)
+                    dismiss()
+                } catch {
+                    problem = error.localizedDescription
+                }
+            }
+            .keyboardShortcut(.defaultAction)
+            .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
         }
-        .padding(20)
-        .frame(width: 420)
     }
 }
 
@@ -269,35 +313,31 @@ struct RenameRoomSheet: View {
 
     var body: some View {
         let room = night.room(id: roomID)
-        Form {
-            TextField("New name", text: $name, prompt: Text("e.g. 101 or 200A"))
-            if let room, !room.isFree {
-                Text("\(room.scoutName)'s board is in this room. It moves with the new name; nobody has to be reseated.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            if let problem {
-                Text(problem).foregroundStyle(.red)
-            }
-            HStack {
-                Spacer()
-                Button("Cancel", role: .cancel) { dismiss() }
-                    .keyboardShortcut(.cancelAction)
-                Button("Rename") {
-                    do {
-                        onRenamed(try rename?(name) ?? night.renameRoom(id: roomID, to: name))
-                        dismiss()
-                    } catch {
-                        problem = error.localizedDescription
-                    }
+        SheetLayout(
+            title: "Rename Room \(room?.name ?? "")",
+            message: room.flatMap { $0.isFree ? nil : "\($0.scoutName)'s board is in this room. It moves with the new name; nobody has to be reseated." }
+        ) {
+            Section {
+                TextField("New name", text: $name, prompt: Text("101 or 200A"))
+            } footer: {
+                if let problem {
+                    Text(problem).foregroundStyle(.red)
                 }
-                .keyboardShortcut(.defaultAction)
             }
+        } buttons: {
+            Button("Cancel", role: .cancel) { dismiss() }
+                .keyboardShortcut(.cancelAction)
+            Button("Rename") {
+                do {
+                    onRenamed(try rename?(name) ?? night.renameRoom(id: roomID, to: name))
+                    dismiss()
+                } catch {
+                    problem = error.localizedDescription
+                }
+            }
+            .keyboardShortcut(.defaultAction)
+            .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || name == room?.name)
         }
-        .padding(20)
-        .frame(width: 420)
-        .navigationTitle("Rename Room \(room?.name ?? "")")
         .onAppear { name = room?.name ?? "" }
     }
 }
@@ -316,37 +356,36 @@ struct SwapRoomsSheet: View {
         let second = secondRoomID.flatMap { night.room(id: $0) }
         let mixedTypes = first != nil && second != nil && first?.boardType != second?.boardType
 
-        Form {
-            LabeledContent("Room", value: first.map(describe) ?? firstRoomID)
-            Picker("Swap with", selection: $secondRoomID) {
-                Text("Choose a room").tag(String?.none)
-                ForEach(night.rooms.filter { $0.id != firstRoomID }) { room in
-                    Text(describe(room)).tag(Optional(room.id))
-                }
-            }
-            Text("Everything moves: the youth, the board members and the room card. Swapping with a free room moves the board.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            if mixedTypes, let first, let second {
-                Toggle("Room \(first.name) is for \(first.boardType?.label ?? "?") and room \(second.name) is for \(second.boardType?.label ?? "?"). Swap anyway", isOn: $mixedTypesConfirmed)
-            }
-            HStack {
-                Spacer()
-                Button("Cancel", role: .cancel) { dismiss() }
-                    .keyboardShortcut(.cancelAction)
-                Button("Swap") {
-                    guard let secondRoomID else { return }
-                    if model.swapRooms(firstRoomID, secondRoomID) {
-                        dismiss()
+        SheetLayout(
+            title: "Move the Board in Room \(first?.name ?? "")",
+            message: "Everything moves: the youth, the board members and the room card. "
+                + "Choosing a room with a board in it swaps the two."
+        ) {
+            Section {
+                LabeledContent("From", value: first.map(describe) ?? firstRoomID)
+                Picker("To", selection: $secondRoomID) {
+                    Text("Choose a Room").tag(String?.none)
+                    ForEach(night.rooms.filter { $0.id != firstRoomID }) { room in
+                        Text(describe(room)).tag(Optional(room.id))
                     }
                 }
-                .keyboardShortcut(.defaultAction)
-                .disabled(second == nil || (mixedTypes && !mixedTypesConfirmed))
+                if mixedTypes, let first, let second {
+                    Toggle("Room \(first.name) is for \(first.boardType?.label ?? "?") and room \(second.name) is for "
+                        + "\(second.boardType?.label ?? "?"). Move anyway", isOn: $mixedTypesConfirmed)
+                }
             }
+        } buttons: {
+            Button("Cancel", role: .cancel) { dismiss() }
+                .keyboardShortcut(.cancelAction)
+            Button(second?.isFree == false ? "Swap" : "Move") {
+                guard let secondRoomID else { return }
+                if model.swapRooms(firstRoomID, secondRoomID) {
+                    dismiss()
+                }
+            }
+            .keyboardShortcut(.defaultAction)
+            .disabled(second == nil || (mixedTypes && !mixedTypesConfirmed))
         }
-        .padding(20)
-        .frame(width: 480)
     }
 
     private func describe(_ room: Room) -> String {
@@ -354,43 +393,42 @@ struct SwapRoomsSheet: View {
     }
 }
 
-/// Open an earlier night, for its records or its report.
+/// Open another event, for its records or its report.
 struct OpenNightSheet: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var chosen: String?
 
     var body: some View {
-        let nights = nightsOnFile
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Open an Event").font(.title2.bold())
-            Text("The sign-in station serves whichever event is open.")
-                .foregroundStyle(.secondary)
-            List(nights, id: \.self, selection: $chosen) { night in
-                Text(night == model.today ? "\(night) (today)" : night)
-            }
-            .frame(height: 260)
-            HStack {
-                Spacer()
-                Button("Cancel", role: .cancel) { dismiss() }
-                    .keyboardShortcut(.cancelAction)
-                Button("Open") {
-                    if let chosen, let folder = model.dataFolder {
-                        model.open(folder: folder, night: chosen)
-                        dismiss()
+        SheetLayout(
+            title: "Open Another Event",
+            message: "The sign-in station serves whichever event is open."
+        ) {
+            Section {
+                Picker("Event", selection: $chosen) {
+                    ForEach(eventsOnFile, id: \.self) { name in
+                        Text(name == model.today ? "\(name) (today)" : name).tag(Optional(name))
                     }
                 }
-                .keyboardShortcut(.defaultAction)
-                .disabled(chosen == nil)
             }
+        } buttons: {
+            Button("Cancel", role: .cancel) { dismiss() }
+                .keyboardShortcut(.cancelAction)
+            Button("Open") {
+                if let chosen, let folder = model.dataFolder {
+                    model.open(folder: folder, night: chosen)
+                    dismiss()
+                }
+            }
+            .keyboardShortcut(.defaultAction)
+            .disabled(chosen == nil || chosen == model.night?.night)
         }
-        .padding(20)
-        .frame(width: 380)
         .onAppear { chosen = model.night?.night }
     }
 
-    private var nightsOnFile: [String] {
-        let onFile = model.dataFolder?.nights() ?? []
+    /// Newest first, with today even before it has a folder.
+    private var eventsOnFile: [String] {
+        let onFile = (model.dataFolder?.nights() ?? []).sorted(by: >)
         return onFile.contains(model.today) ? onFile : [model.today] + onFile
     }
 }
