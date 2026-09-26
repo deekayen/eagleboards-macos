@@ -4,6 +4,11 @@ Guidance for anyone (human or AI) making changes here. Read
 [CONTRIBUTING.md](CONTRIBUTING.md) first; it holds the architecture and the
 rules. This file adds what an agent in particular needs.
 
+**Read `SPEC.md` in `deekayen/eagleboards-shared` before changing the
+operator screen, the check-in pages, the board rules or the data files.**
+It is the source of truth for anything more than one version of Eagle
+Boards does; this repo does not decide shared behavior on its own.
+
 ## What this is
 
 The native Mac version of the Java Eagle Board Scheduler
