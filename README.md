@@ -9,7 +9,7 @@ It runs on one Mac at the event. It needs no internet, only a Wi-Fi network
 that the tablet and the Mac are both on.
 
 This is the native Mac version of the Java
-[Eagle Board Scheduler](https://github.com/deekayen/eagleboards). It reads and
+[Eagle Board Scheduler](https://github.com/deekayen/eagleboards-java). It reads and
 writes the same data files, so a district can switch between them.
 
 **Running an event night? This page is the whole manual.** The same guide is

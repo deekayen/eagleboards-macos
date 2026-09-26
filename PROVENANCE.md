@@ -1,7 +1,7 @@
 # Provenance
 
 Eagle Boards is the native Mac version of the **Eagle Board Scheduler**, a Java
-application maintained at `deekayen/eagleboards`.
+application maintained at `deekayen/eagleboards-java`.
 
 That Java application was itself reconstructed from an inherited binary. The
 original was written by a third party for a Scouting district, and only its
