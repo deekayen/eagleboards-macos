@@ -110,7 +110,6 @@ struct EagleBoardsCommands: Commands {
             sectionButton("On Boards", .onBoards, "2")
             sectionButton("Finished", .finished, "3")
             sectionButton("Adults", .adults, "4")
-            sectionButton("Rooms", .rooms, "5")
             Divider()
         }
         CommandMenu("Board") {

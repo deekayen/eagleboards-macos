@@ -1,10 +1,11 @@
 import EagleBoardsCore
 import SwiftUI
 
-/// The operator's screen for the evening. The sidebar picks a list -- youth
-/// waiting, on boards or finished, the adults, or the rooms -- and the
-/// inspector follows the selected youth: the board being drawn up for them,
-/// or how it went.
+/// The operator's screen for the evening (O-3: one live-operations view).
+/// The sidebar filters the queue -- youth waiting, on boards or finished, or
+/// the adults -- and the rooms sit beside it always, whichever filter is
+/// chosen. The inspector follows the selected youth: the board being drawn
+/// up for them, or how it went.
 ///
 /// Nothing here polls. The event night is observed directly, so a youth who
 /// signs in at the door appears the moment the tablet's request lands.
@@ -86,15 +87,25 @@ struct SchedulerView: View {
             + night.scouts.map { "\($0.id)|\($0.statusText)|\($0.boardTypeText)" }
     }
 
-    @ViewBuilder
+    /// The queue, filtered to the sidebar's choice, beside the rooms -- both
+    /// always on screen together (O-3), so a room's timer is never out of
+    /// sight while working the queue.
     private var content: some View {
+        HSplitView {
+            queue
+                .frame(minWidth: 340, idealWidth: 520)
+            RoomsGrid(night: night)
+                .frame(minWidth: 280)
+        }
+    }
+
+    @ViewBuilder
+    private var queue: some View {
         switch model.section {
         case .waiting, .onBoards, .finished:
             YouthList(night: night, section: model.section)
         case .adults:
             AdultList(night: night)
-        case .rooms, .room:
-            RoomsGrid(night: night)
         }
     }
 
@@ -104,14 +115,12 @@ struct SchedulerView: View {
         case .onBoards: "On Boards"
         case .finished: "Finished"
         case .adults: "Adults"
-        case .rooms, .room: "Rooms"
         }
     }
 
     private var searchPrompt: String {
         switch model.section {
         case .adults: "Name, unit or room"
-        case .rooms, .room: "Room or name"
         default: "Name, unit or leader"
         }
     }

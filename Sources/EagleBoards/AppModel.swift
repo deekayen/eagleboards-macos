@@ -160,14 +160,14 @@ final class AppModel {
 
     // MARK: - The operator's work in progress
 
-    /// What the scheduler window's sidebar has chosen to list.
+    /// Which of the queue's filters the sidebar has chosen (O-3): the rooms
+    /// and the inspector are always visible beside it, not separate
+    /// destinations of their own.
     enum Section: Hashable {
         case waiting
         case onBoards
         case finished
         case adults
-        case rooms
-        case room(Room.ID)
 
         /// Does this youth belong in this list?
         func lists(_ youth: Scout) -> Bool {
@@ -175,7 +175,7 @@ final class AppModel {
             case .waiting: youth.status?.isWaitingForBoard ?? true
             case .onBoards: youth.status == .seated || youth.status == .inProgress
             case .finished: youth.status?.isFinished ?? false
-            case .adults, .rooms, .room: false
+            case .adults: false
             }
         }
     }
@@ -272,13 +272,10 @@ final class AppModel {
         drafts = [:]
     }
 
-    /// Show a list in the main window. A room shows every room with that one
-    /// selected, and the youth in it.
+    /// Filter the queue in the main window. The rooms and the inspector do
+    /// not change: they are always there beside it.
     func show(_ newSection: Section) {
         section = newSection
-        if case .room(let roomID) = newSection {
-            selectRoom(roomID)
-        }
     }
 
     /// Selecting a waiting youth proposes a board, the way the Java scheduler
@@ -611,7 +608,6 @@ final class AppModel {
     private func tidySelection() {
         guard let night else { return }
         if let id = selectedRoomID, night.room(id: id) == nil { selectedRoomID = nil }
-        if case .room(let id) = section, night.room(id: id) == nil { section = .rooms }
         selectedAdultIDs = selectedAdultIDs.filter { night.adult(id: $0) != nil }
         for scoutID in drafts.keys {
             if let roomID = drafts[scoutID]?.roomID, night.room(id: roomID) == nil { drafts[scoutID]?.roomID = nil }
@@ -717,7 +713,6 @@ final class AppModel {
     /// After a rename the room keeps its record but not necessarily its ID.
     func roomRenamed(from oldID: Room.ID, to newID: Room.ID) {
         if selectedRoomID == oldID { selectedRoomID = newID }
-        if section == .room(oldID) { section = .room(newID) }
         for scoutID in drafts.keys where drafts[scoutID]?.roomID == oldID {
             drafts[scoutID]?.roomID = newID
         }
