@@ -44,6 +44,7 @@ struct SchedulerView: View {
         .sheet(item: $model.sheet) { sheet in
             switch sheet {
             case .seatBoard(let scoutID): SeatBoardSheet(night: night, scoutID: scoutID)
+            case .changeMembers(let scoutID): ChangeMembersSheet(night: night, scoutID: scoutID)
             case .completeBoard(let scoutID): CompleteBoardSheet(night: night, scoutID: scoutID)
             case .addRoom: AddRoomSheet(night: night)
             case .swapRooms(let roomID): SwapRoomsSheet(night: night, firstRoomID: roomID)
@@ -163,7 +164,7 @@ struct NextStepButton: View {
         Button {
             model.performNextStep()
         } label: {
-            Label(step?.title ?? "Next Step", systemImage: symbol(for: step))
+            Label(step?.title ?? BoardStep.seat.title, systemImage: symbol(for: step))
                 .labelStyle(.titleAndIcon)
                 .fixedSize()
         }

@@ -67,6 +67,85 @@ public enum BoardRules {
         guard !scoutUnitName.isEmpty else { return true }
         return members.contains { $0.unitName.isEmpty || $0.unitName != scoutUnitName }
     }
+
+    /// Who may sit on this board and who must chair it, shared by seating a
+    /// new board (`SeatingReview`) and changing an already-seated one's
+    /// members (`ChangeMembersReview`). `sittingIn` is the room the board
+    /// being edited already holds, if any: a member already there is not
+    /// "already on another board" on that account alone.
+    static func memberReview(
+        scoutName: String, scoutUnitName: String, boardType: BoardType, members: [Adult], sittingIn currentRoom: String
+    ) -> (blocking: [String], warnings: [SeatingReview.Warning], qualifiedChairs: [Adult]) {
+        var blocking: [String] = []
+        var warnings: [SeatingReview.Warning] = []
+
+        if members.isEmpty {
+            blocking.append("No board members are selected.")
+        }
+
+        for member in members {
+            if member.isDisabledForTonight {
+                blocking.append("\(member.fullName) has been disabled for today. Use Enable if they are back.")
+            } else if member.isOnBoard && member.room != currentRoom {
+                blocking.append("\(member.fullName) is already on the board in room \(member.room).")
+            }
+            if member.role(for: boardType) == .unavailable {
+                blocking.append("\(member.fullName) is unavailable for \(boardType.label)s.")
+            }
+        }
+
+        // Who is on the board comes before how many.
+        let conflicts = unitConflicts(scoutUnitName: scoutUnitName, members: members)
+        if !conflicts.isEmpty {
+            let names = conflicts.map(\.fullName).joined(separator: ", ")
+            if !hasMemberFromOutsideUnit(scoutUnitName: scoutUnitName, members: members) {
+                blocking.append(
+                    "Every selected member is in \(scoutUnitName), \(scoutName)'s own unit. "
+                        + "A board must include at least one member from outside the unit "
+                        + "(Guide to Advancement 8.0.3.0)."
+                )
+            } else {
+                let count = conflicts.count
+                warnings.append(SeatingReview.Warning(
+                    title: "\(count) member\(count == 1 ? " is" : "s are") from \(scoutName)'s unit",
+                    detail: "\(names) \(count == 1 ? "is" : "are") in \(scoutUnitName). This council does not "
+                        + "permit adults from the scout's own unit on a board. Seating anyway falls back to the "
+                        + "national rule, which this board still meets: at least one member is from outside the unit."
+                ))
+            }
+        }
+
+        let qualifiedChairs = members.filter { $0.canChair(boardType) }
+        if !members.isEmpty && qualifiedChairs.isEmpty {
+            let roleColumn = boardType == .projectReview ? "Project" : "Final"
+            blocking.append(
+                "None of the selected members is qualified to chair a \(boardType.label). "
+                    + "Select someone whose \(roleColumn) role is Chair, or promote someone in the "
+                    + "Records window by setting their \(roleColumn) role to Chair."
+            )
+        }
+
+        let minimum = minimumMembers(for: boardType)
+        switch checkSize(members.count, for: boardType) {
+        case .tooFew where !members.isEmpty:
+            blocking.append(
+                "Only \(members.count) member\(members.count == 1 ? "" : "s") selected; a \(boardType.label) needs \(minimum)."
+            )
+        case .tooMany:
+            blocking.append(
+                "\(members.count) members selected; no more than \(boardMaximum) are permitted (Guide to Advancement 8.0.0.3)."
+            )
+        case .overPreferred:
+            warnings.append(SeatingReview.Warning(
+                title: "\(members.count) members selected",
+                detail: "Only \(minimum) are required for a \(boardType.label)."
+            ))
+        case .tooFew, .ok:
+            break
+        }
+
+        return (blocking, warnings, qualifiedChairs)
+    }
 }
 
 /// Everything the operator needs to decide before a board is seated, worked
@@ -114,70 +193,11 @@ public struct SeatingReview: Sendable {
             return
         }
 
-        if members.isEmpty {
-            blockingProblems.append("No board members are selected.")
-        }
-
-        for member in members {
-            if member.isDisabledForTonight {
-                blockingProblems.append("\(member.fullName) has been disabled for today. Use Enable if they are back.")
-            } else if member.isOnBoard {
-                blockingProblems.append("\(member.fullName) is already on the board in room \(member.room).")
-            }
-            if member.role(for: boardType) == .unavailable {
-                blockingProblems.append("\(member.fullName) is unavailable for \(boardType.label)s.")
-            }
-        }
-
-        // Who is on the board comes before how many.
-        let conflicts = BoardRules.unitConflicts(scoutUnitName: scout.unitName, members: members)
-        if !conflicts.isEmpty {
-            let names = conflicts.map(\.fullName).joined(separator: ", ")
-            if !BoardRules.hasMemberFromOutsideUnit(scoutUnitName: scout.unitName, members: members) {
-                blockingProblems.append(
-                    "Every selected member is in \(scout.unitName), \(scoutName)'s own unit. "
-                        + "A board must include at least one member from outside the unit "
-                        + "(Guide to Advancement 8.0.3.0)."
-                )
-            } else {
-                let count = conflicts.count
-                warnings.append(Warning(
-                    title: "\(count) member\(count == 1 ? " is" : "s are") from \(scoutName)'s unit",
-                    detail: "\(names) \(count == 1 ? "is" : "are") in \(scout.unitName). This council does not "
-                        + "permit adults from the scout's own unit on a board. Seating anyway falls back to the "
-                        + "national rule, which this board still meets: at least one member is from outside the unit."
-                ))
-            }
-        }
-
-        qualifiedChairs = members.filter { $0.canChair(boardType) }
-        if !members.isEmpty && qualifiedChairs.isEmpty {
-            let roleColumn = boardType == .projectReview ? "Project" : "Final"
-            blockingProblems.append(
-                "None of the selected members is qualified to chair a \(boardType.label). "
-                    + "Select someone whose \(roleColumn) role is Chair, or promote someone in the "
-                    + "Records window by setting their \(roleColumn) role to Chair."
-            )
-        }
-
-        let minimum = BoardRules.minimumMembers(for: boardType)
-        switch BoardRules.checkSize(members.count, for: boardType) {
-        case .tooFew where !members.isEmpty:
-            blockingProblems.append(
-                "Only \(members.count) member\(members.count == 1 ? "" : "s") selected; a \(boardType.label) needs \(minimum)."
-            )
-        case .tooMany:
-            blockingProblems.append(
-                "\(members.count) members selected; no more than \(BoardRules.boardMaximum) are permitted (Guide to Advancement 8.0.0.3)."
-            )
-        case .overPreferred:
-            warnings.append(Warning(
-                title: "\(members.count) members selected",
-                detail: "Only \(minimum) are required for a \(boardType.label)."
-            ))
-        case .tooFew, .ok:
-            break
-        }
+        let review = BoardRules.memberReview(
+            scoutName: scoutName, scoutUnitName: scout.unitName, boardType: boardType, members: members, sittingIn: "")
+        blockingProblems += review.blocking
+        warnings += review.warnings
+        qualifiedChairs = review.qualifiedChairs
 
         if let room {
             if !room.isFree {
@@ -191,6 +211,37 @@ public struct SeatingReview: Sendable {
         } else {
             blockingProblems.append("No room is selected.")
         }
+    }
+}
+
+/// Everything the operator needs to decide before changing who sits on a
+/// board that is already Seated or InProgress: the same composition rules
+/// `SeatingReview` checks, but the room is the one the board already holds,
+/// not a choice, and the youth's status is expected to be past waiting.
+public struct ChangeMembersReview: Sendable {
+    public private(set) var blockingProblems: [String] = []
+    public private(set) var warnings: [SeatingReview.Warning] = []
+    public private(set) var qualifiedChairs: [Adult] = []
+
+    public var canApply: Bool { blockingProblems.isEmpty }
+
+    public init(scout: Scout, members: [Adult]) {
+        let scoutName = scout.fullName
+
+        guard scout.status == .seated || scout.status == .inProgress else {
+            blockingProblems.append("\(scoutName)'s board members can only be changed while seated or in review.")
+            return
+        }
+        guard let boardType = scout.boardType else {
+            blockingProblems.append("\(scoutName) has no board type.")
+            return
+        }
+
+        let review = BoardRules.memberReview(
+            scoutName: scoutName, scoutUnitName: scout.unitName, boardType: boardType, members: members, sittingIn: scout.room)
+        blockingProblems = review.blocking
+        warnings = review.warnings
+        qualifiedChairs = review.qualifiedChairs
     }
 }
 

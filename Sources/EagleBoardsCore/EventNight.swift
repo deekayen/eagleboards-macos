@@ -364,6 +364,89 @@ public final class EventNight {
         try save(.youth, .rooms, .adults)
     }
 
+    /// Change who sits on a board that is already Seated or InProgress: the
+    /// same composition checks as `seatBoard`, the room stays the one the
+    /// board already holds, and a member taken off is freed. The room timer
+    /// is left running -- this corrects the board already convening or in
+    /// review, not a new step in its lifecycle.
+    public func changeMembers(scoutID: String, chairID: String, memberIDs: [String]) throws {
+        guard let scoutIndex = scouts.firstIndex(where: { $0.id == scoutID }) else {
+            throw EventError("There is no youth '\(scoutID)'.")
+        }
+        var scout = scouts[scoutIndex]
+        guard scout.status == .seated || scout.status == .inProgress else {
+            throw EventError("\(scout.fullName)'s board members can only be changed while seated or in review (status '\(scout.statusText)').")
+        }
+        guard let roomIndex = rooms.firstIndex(where: { $0.name == scout.room }) else {
+            throw EventError("Room \(scout.room) was not found.")
+        }
+        guard let boardType = scout.boardType else {
+            throw EventError("\(scout.fullName) has no board type.")
+        }
+
+        var seenIDs = Set<String>()
+        let uniqueMemberIDs = memberIDs
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty && seenIDs.insert($0).inserted }
+        guard !uniqueMemberIDs.isEmpty else {
+            throw EventError("No board members are selected.")
+        }
+
+        var members: [Adult] = []
+        for memberID in uniqueMemberIDs {
+            guard let member = adult(id: memberID) else {
+                throw EventError("There is no adult '\(memberID)'.")
+            }
+            if member.isDisabledForTonight {
+                throw EventError("\(member.fullName) has been disabled for today.")
+            }
+            if !member.room.isEmpty && member.room != scout.room {
+                throw EventError("\(member.fullName) is already on the board in room \(member.room).")
+            }
+            if member.role(for: boardType) == .unavailable {
+                throw EventError("\(member.fullName) is Unavailable for a \(boardType.label).")
+            }
+            members.append(member)
+        }
+
+        let minimum = BoardRules.minimumMembers(for: boardType)
+        switch BoardRules.checkSize(members.count, for: boardType) {
+        case .tooFew:
+            throw EventError("Only \(members.count) board member(s) selected; \(minimum) required for a \(boardType.label).")
+        case .tooMany:
+            throw EventError("\(members.count) board members selected; no more than \(BoardRules.boardMaximum) permitted (Guide to Advancement 8.0.0.3).")
+        case .ok, .overPreferred:
+            break
+        }
+
+        guard let chair = adult(id: chairID) else {
+            throw EventError("There is no adult '\(chairID)' to chair the board.")
+        }
+        guard uniqueMemberIDs.contains(chair.id) else {
+            throw EventError("\(chair.fullName) is chairing but is not one of the board members.")
+        }
+        guard chair.canChair(boardType) else {
+            let role = chair.role(for: boardType)?.rawValue ?? "none"
+            throw EventError("\(chair.fullName) is not qualified to chair a \(boardType.label) (role: \(role)).")
+        }
+
+        let leavingIDs = Set(scout.boardMemberIDs.split(separator: ",").map(String.init)).subtracting(uniqueMemberIDs)
+        let memberNames = members.map(\.fullName).joined(separator: ",")
+        rooms[roomIndex].leaderNames = memberNames
+        scout.boardMembers = memberNames
+        scout.boardMemberIDs = uniqueMemberIDs.joined(separator: ",")
+        scout.boardChair = chair.fullName
+        scout.boardChairID = chair.id
+        scouts[scoutIndex] = scout
+        for index in adults.indices where leavingIDs.contains(adults[index].id) {
+            adults[index].room = ""
+        }
+        for index in adults.indices where uniqueMemberIDs.contains(adults[index].id) {
+            adults[index].room = scout.room
+        }
+        try save(.youth, .rooms, .adults)
+    }
+
     /// Bring the youth into the room and begin the review.
     public func startReview(scoutID: String) throws {
         guard let index = scouts.firstIndex(where: { $0.id == scoutID }) else {

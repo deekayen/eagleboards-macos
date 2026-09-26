@@ -205,6 +205,7 @@ final class AppModel {
 
     enum Sheet: Identifiable {
         case seatBoard(scoutID: String)
+        case changeMembers(scoutID: String)
         case completeBoard(scoutID: String)
         case addRoom
         case swapRooms(roomID: String)
@@ -214,6 +215,7 @@ final class AppModel {
         var id: String {
             switch self {
             case .seatBoard(let scoutID): "seat \(scoutID)"
+            case .changeMembers(let scoutID): "change members \(scoutID)"
             case .completeBoard(let scoutID): "complete \(scoutID)"
             case .addRoom: "add room"
             case .swapRooms(let roomID): "swap \(roomID)"
@@ -462,6 +464,22 @@ final class AppModel {
             attention.askPermissionIfNeeded()
         }
         return seated
+    }
+
+    var canChangeMembers: Bool {
+        let status = selectedYouth?.status
+        return status == .seated || status == .inProgress
+    }
+
+    func beginChangingMembers() {
+        guard let youth = selectedYouth, canChangeMembers else { return }
+        sheet = .changeMembers(scoutID: youth.id)
+    }
+
+    func changeMembers(scoutID: String, chairID: String, memberIDs: [String]) -> Bool {
+        changeBoard(scoutID, "Change Members", failure: "Could not change the board members") { night in
+            try night.changeMembers(scoutID: scoutID, chairID: chairID, memberIDs: memberIDs)
+        }
     }
 
     func confirmStartReview() {

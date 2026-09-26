@@ -222,6 +222,8 @@ struct YouthActionButtons: View {
         Button(BoardStep.complete.title) { run { model.beginCompleting() } }
             .keyboardShortcut(status?.nextStep == .complete ? KeyboardShortcut(.return, modifiers: .command) : nil)
             .disabled(!idle || status?.nextStep != .complete)
+        Button("Change Members…") { run { model.beginChangingMembers() } }
+            .disabled(!idle || (status != .seated && status != .inProgress))
         Divider()
         Button("Suggest a Board") { run { model.suggestBoard() } }
             .disabled(status?.isWaitingForBoard != true)

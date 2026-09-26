@@ -220,6 +220,52 @@ struct BoardEveningTests {
         #expect(adultRoom(chairOfEither) == "104")
     }
 
+    /// Windows' `ChangeBoardMembers`, ported: the operator can correct who
+    /// sits on a board already Seated or InProgress without resetting it,
+    /// under the same composition rules `seatBoard` enforces, and Undo
+    /// generalizes to it through `restoreBoard` with no changes of its own.
+    @Test func changeMembersCorrectsWhoSitsWithoutResettingTheRoom() throws {
+        try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
+        let seated = try #require(night.scout(id: finalYouth(1)))
+
+        refused("only a seated or in-review board can have its members changed") {
+            try night.changeMembers(scoutID: finalYouth(2), chairID: finalChair2, memberIDs: [finalChair2, member(3)])
+        }
+
+        try night.changeMembers(scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [chairOfEither, member(1), member(3)])
+        let changed = try #require(night.scout(id: finalYouth(1)))
+        #expect(changed.status == .seated, "still seated, not reseated")
+        #expect(changed.lastUpdateTime == seated.lastUpdateTime, "the room timer keeps running")
+        #expect(changed.boardMemberIDs.split(separator: ",").count == 3)
+        #expect(adultRoom(member(2)) == "", "dropped off the board, freed")
+        #expect(adultRoom(member(3)) == "101", "added to the board")
+        #expect(night.room(named: "101")?.leaderNames == changed.boardMembers)
+
+        try seat("102", finalYouth(2), chair: finalChair2, member(4), member(9))
+        refused("a member already on another board cannot be added") {
+            try night.changeMembers(scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [chairOfEither, member(4)])
+        }
+
+        try night.startReview(scoutID: finalYouth(1))
+        let inReview = try #require(night.scout(id: finalYouth(1)))
+        try night.changeMembers(scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [chairOfEither, member(1), member(2)])
+        #expect(status(finalYouth(1)) == .inProgress, "changing members mid-review does not end it")
+        #expect(night.scout(id: finalYouth(1))?.lastUpdateTime == inReview.lastUpdateTime, "the review timer keeps running too")
+
+        refused("the chair must stay one of the members") {
+            try night.changeMembers(scoutID: finalYouth(1), chairID: member(5), memberIDs: [chairOfEither, member(1), member(2)])
+        }
+        refused("a board of one is below the Final minimum") {
+            try night.changeMembers(scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [chairOfEither])
+        }
+
+        try night.restoreBoard(inReview)
+        #expect(adultRoom(member(3)) == "101", "back on the board after undo, as it was mid-review")
+        #expect(adultRoom(member(2)) == "", "not on the board being restored to, so freed by the undo")
+        #expect(adultRoom(member(1)) == "101")
+        #expect(night.scout(id: finalYouth(1))?.boardMemberIDs.split(separator: ",").count == 3)
+    }
+
     @Test func postponeAndReset() throws {
         try seatFiveBoards()
         try night.postponeBoard(scoutID: finalYouth(9))

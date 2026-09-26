@@ -312,6 +312,8 @@ private struct SittingBoardSection: View {
             LabeledContent("Members") {
                 Text(youth.boardMembers.withListSeparators).multilineTextAlignment(.trailing)
             }
+            Button("Change Members…") { model.beginChangingMembers() }
+                .help("Remove or add members without resetting the room timer")
         }
         Section {
             HStack {
