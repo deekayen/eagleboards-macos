@@ -2,7 +2,7 @@
 
 Versions are CalVer: the release date.
 
-## Unreleased
+## 2026.09.25
 
 The first version of Eagle Boards, the native Mac version of the Java Eagle
 Board Scheduler.
