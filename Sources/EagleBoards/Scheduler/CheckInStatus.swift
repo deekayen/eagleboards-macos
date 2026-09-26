@@ -46,6 +46,7 @@ struct CheckInStatusButton: View {
 
 struct CheckInDetails: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -88,6 +89,8 @@ struct CheckInDetails: View {
                     Button("Open Sign-In Page Here") {
                         NSWorkspace.shared.open(URL(string: "http://127.0.0.1:\(port)/")!)
                     }
+                    Button("Show Code in a Window") { openWindow(id: WindowID.signInCode) }
+                        .help("A large code to put on a second display or a projector by the door")
                     Spacer()
                     Text("Only the sign-in pages are on the network.")
                         .font(.caption)

@@ -8,8 +8,6 @@ struct SettingsView: View {
                 .tabItem { Label("General", systemImage: "gearshape") }
             TimerSettings()
                 .tabItem { Label("Timers", systemImage: "timer") }
-            ColorSettings()
-                .tabItem { Label("Colors", systemImage: "paintpalette") }
             SignUpGeniusSettings()
                 .tabItem { Label("SignUpGenius", systemImage: "square.and.arrow.down") }
         }
@@ -124,59 +122,6 @@ private struct TimerSettings: View {
             set: { newValue in
                 var edited = night.config
                 edited[keyPath: keyPath] = newValue
-                model.attempt("Could not save the settings") { try night.updateConfig(edited) }
-            }
-        )
-    }
-}
-
-private struct ColorSettings: View {
-    @Environment(AppModel.self) private var model
-    private let statuses: [BoardStatus] = [.registered, .seated, .inProgress, .completed, .postponed]
-
-    var body: some View {
-        if let night = model.night {
-            Form {
-                Section {
-                    ForEach(statuses, id: \.self) { status in
-                        HStack {
-                            Text(status.label)
-                            Spacer()
-                            ColorPicker("Status badge", selection: colorBinding(status, highlighted: false, night), supportsOpacity: false)
-                                .labelsHidden()
-                            StatusBadge(statusText: status.rawValue, config: night.config)
-                                .frame(width: 100)
-                        }
-                    }
-                } footer: {
-                    Text("Status badges use these colors. They are saved in config.properties, which the Java Eagle Board Scheduler reads too.")
-                        .foregroundStyle(.secondary)
-                }
-                Section {
-                    Button("Restore Default Colors") {
-                        var edited = night.config
-                        for status in BoardStatus.allCases {
-                            for highlighted in [false, true] {
-                                edited.setColorHex(Config.standard.colorHex(for: status, highlighted: highlighted), for: status, highlighted: highlighted)
-                            }
-                        }
-                        model.attempt("Could not save the settings") { try night.updateConfig(edited) }
-                    }
-                }
-            }
-            .formStyle(.grouped)
-        } else {
-            ContentUnavailableView("Open a night first", systemImage: "paintpalette")
-                .frame(height: 200)
-        }
-    }
-
-    private func colorBinding(_ status: BoardStatus, highlighted: Bool, _ night: EventNight) -> Binding<Color> {
-        Binding(
-            get: { night.config.color(for: status, highlighted: highlighted) },
-            set: { color in
-                var edited = night.config
-                edited.setColorHex(color.hexString, for: status, highlighted: highlighted)
                 model.attempt("Could not save the settings") { try night.updateConfig(edited) }
             }
         )

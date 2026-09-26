@@ -64,5 +64,8 @@ a native window. See `PROVENANCE.md`.
   action lives in the Board, Adult or Room menu (and the matching context
   menu), not in buttons along a panel. Report outcomes as alerts titled with
   what failed, or show them in the inspector; no self-dismissing toasts.
+  A change the operator makes registers its inverse with Undo (`AppModel`'s
+  `change` and `changeBoard`) instead of asking "Are you sure?"; a board step
+  is undone with `EventNight.restoreBoard`.
 - **No `var##` names**, even to match anything. CI fails on them.
 - **District-neutral branding**, settled: never add a district or council name.

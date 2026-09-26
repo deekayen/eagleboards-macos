@@ -35,6 +35,23 @@ a free room. Messages that used to vanish from the bottom of the window are
 now alerts that say what failed, or live in the inspector (who to fetch for a
 youth). Link and Disable no longer ask first; Unlink and Enable undo them.
 
+**Undo.** Edit › Undo takes back a board step (seat, start, complete, postpone,
+reset), Disable and Enable, Link and Unlink, and every room change, so Reset,
+Postpone and Remove Room no longer ask first. `EventNight.restoreBoard` puts a
+board back and refuses when its room or a member has been given to another
+board since, so undo can never put an adult on two boards.
+
+**While the window is behind.** The Dock icon shows how many are waiting, and a
+notification says when a room passes its red time. Window › Sign-In Code shows
+the sign-in QR code large, for a second display or a projector.
+
+**Status colors follow the system.** Badges use a symbol and a system color
+that reads in dark mode. The Java app's status colors stay in
+`config.properties`, unchanged, but the Mac app no longer offers to edit them.
+
+**Records** has a sidebar, an inspector you can hide, and File › Open Recent
+Night.
+
 **Seat Board shows everything at once.** Every reason a board cannot be
 seated is listed together instead of one alert at a time, and each warning
 (same-unit member, a fourth member, a room of the other kind) takes its own

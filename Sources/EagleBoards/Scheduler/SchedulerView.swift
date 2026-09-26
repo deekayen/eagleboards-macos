@@ -11,6 +11,7 @@ import SwiftUI
 struct SchedulerView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.undoManager) private var undoManager
     let night: EventNight
 
     var body: some View {
@@ -47,9 +48,7 @@ struct SchedulerView: View {
             case .addRoom: AddRoomSheet(night: night)
             case .swapRooms(let roomID): SwapRoomsSheet(night: night, firstRoomID: roomID)
             case .renameRoom(let roomID):
-                RenameRoomSheet(night: night, roomID: roomID) { newID in
-                    model.roomRenamed(from: roomID, to: newID)
-                }
+                RenameRoomSheet(night: night, roomID: roomID, rename: { try model.renameRoom(roomID, to: $0) })
             case .openNight: OpenNightSheet()
             }
         }
@@ -67,6 +66,15 @@ struct SchedulerView: View {
         }
         .messageAlert()
         .onChange(of: proposalInputs) { model.refreshProposals() }
+        .onAppear { model.undoManager = undoManager }
+        .onChange(of: model.waitingCount, initial: true) { model.attention.showWaiting(model.waitingCount) }
+        .task(id: night.night) {
+            while !Task.isCancelled {
+                model.checkRoomTimers()
+                try? await Task.sleep(for: .seconds(30))
+            }
+        }
+        .onChange(of: undoManager) { model.undoManager = undoManager }
     }
 
     /// What a proposed board is made from. When any of it changes, proposals

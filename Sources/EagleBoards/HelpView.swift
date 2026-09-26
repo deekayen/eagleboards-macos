@@ -10,6 +10,7 @@ struct HelpView: View {
                 section("Before anyone arrives") {
                     step("Open Eagle Boards on the admin Mac. It opens tonight and starts the sign-in station.")
                     step("Click the sign-in status at the top left of the window. Scan the QR code with the tablet at the door, or type the address into its browser. The tablet must be on the same Wi-Fi as the Mac.")
+                    step("For a second display or a projector by the door, choose Window › Sign-In Code (Command-3) and make it as large as you like.")
                     step("Add tonight's rooms with Add Room at the bottom of the sidebar, or Room › Add Room…, marking each Final or Project by what it is used for tonight. After the first night, Room › Copy Rooms From brings back last month's rooms.")
                     step("To hold two proposal reviews in one room, add it twice, e.g. 200A and 200B.")
                     step("To rename a room, right-click it in the sidebar or on its card and choose Rename…. A board already in it moves with it; nobody is reseated.")
@@ -20,7 +21,7 @@ struct HelpView: View {
                     step("At the tablet, a youth taps I am a Youth and an adult taps I am 21+. Each fills in the form.")
                     step("People who pre-registered on SignUpGenius, and adults who have served before, are recognized by email and their form fills itself in.")
                     step("They appear in the scheduler the moment they register. Youth are numbered P1, P2… if they pre-registered and W1, W2… if they walked in, and the list keeps pre-registered youth ahead of walk-ins.")
-                    step("Check the paperwork as youth sign in. If it is not in order, select them and choose Board › Postpone….")
+                    step("Check the paperwork as youth sign in. If it is not in order, select them and choose Board › Postpone. Edit › Undo brings them back.")
                 }
 
                 section("Seat a board") {
@@ -50,14 +51,16 @@ struct HelpView: View {
                 }
 
                 section("Room timers") {
+                    bullet("The Dock icon shows how many youth are waiting. If a room passes its red time while you are in another app, a notification says so; macOS asks once whether to allow them, after the first board is seated.")
                     bullet("Each busy room shows the minutes since its last step. While a board convenes the card turns red after 30 minutes. Once the review starts, a final board turns yellow at 30 and red at 45; a proposal review at 25 and 40.")
                     bullet("They are prompts, not limits. Change them in Settings › Timers.")
                 }
 
                 section("Menus") {
                     bullet("Every action is in the Board, Adult and Room menus, and on the right-click menu of a youth, an adult or a room.")
+                    bullet("Edit › Undo (Command-Z) takes back the last step: seating, starting, completing, postponing or resetting a board, disabling or enabling an adult, linking, and adding, removing, renaming or swapping rooms. It is refused if the room or a member has been given to another board since.")
                     bullet("Board › Locate Leader and Parents (Command-L) shows who came with the selected youth, and where they are, in the inspector.")
-                    bullet("Board › Reset Board… undoes seating: the youth waits again and the room and members are freed.")
+                    bullet("Board › Reset Board undoes seating: the youth waits again and the room and members are freed.")
                     bullet("Adult › Disable for Tonight takes adults out of the pool, for example when they have gone home. Enable for Tonight brings them back.")
                     bullet("Room › Move Board to Another Room… moves a board, or swaps two boards.")
                     bullet("View › Waiting, On Boards, Finished, Adults and Rooms (Option-Command-1 to 5) switch lists.")

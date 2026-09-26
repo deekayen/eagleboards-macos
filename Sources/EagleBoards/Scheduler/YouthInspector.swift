@@ -44,7 +44,7 @@ private struct YouthHeader: View {
                 HStack(alignment: .firstTextBaseline) {
                     Text(youth.fullName).font(.title2.bold())
                     Spacer()
-                    StatusBadge(statusText: youth.statusText, config: night.config)
+                    StatusBadge(statusText: youth.statusText)
                 }
                 Text([youth.regNum, youth.unitName, youth.boardType?.label ?? youth.boardTypeText]
                     .filter { !$0.isEmpty }
@@ -127,7 +127,7 @@ private struct DraftBoardSections: View {
                         .buttonStyle(.borderedProminent)
                         .disabled(members.isEmpty || model.sheet != nil)
                 }
-                Button("Postpone…", role: .destructive) { model.confirmPostpone() }
+                Button("Postpone", role: .destructive) { model.postpone() }
                     .buttonStyle(.link)
                     .help("Put this board off to another night, for example when the paperwork is not ready")
             }
@@ -308,7 +308,7 @@ private struct SittingBoardSection: View {
         }
         Section {
             HStack {
-                Button("Reset Board…") { model.confirmReset() }
+                Button("Reset Board") { model.reset() }
                     .help("Undo seating: the youth waits again and the room and members are freed")
                 Spacer()
                 if youth.status == .seated {
@@ -332,6 +332,10 @@ private struct ResultSection: View {
 
     var body: some View {
         Section(youth.status == .postponed ? "Postponed" : "Result") {
+            if youth.status == .postponed {
+                Text("Put off to another night. Edit › Undo brings them back to the waiting list, if it was the last thing done.")
+                    .foregroundStyle(.secondary)
+            }
             if youth.status == .completed {
                 LabeledContent("Result", value: BoardResult(rawValue: youth.result)?.label ?? youth.result)
             }

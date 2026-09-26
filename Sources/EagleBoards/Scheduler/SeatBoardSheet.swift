@@ -238,7 +238,7 @@ struct AddRoomSheet: View {
                     .keyboardShortcut(.cancelAction)
                 Button("Add Room") {
                     do {
-                        try night.addRoom(named: name, boardType: boardType)
+                        try model.addRoom(named: name, boardType: boardType)
                         dismiss()
                     } catch {
                         problem = error.localizedDescription
@@ -258,7 +258,10 @@ struct RenameRoomSheet: View {
     @Environment(\.dismiss) private var dismiss
     let night: EventNight
     let roomID: String
-    /// Called with the room's new ID, which changes with its name.
+    /// Does the rename and returns the room's new ID, which changes with its
+    /// name. The scheduler's makes it undoable.
+    var rename: ((String) throws -> String)?
+    /// Called with the room's new ID.
     var onRenamed: (String) -> Void = { _ in }
 
     @State private var name = ""
@@ -283,7 +286,7 @@ struct RenameRoomSheet: View {
                     .keyboardShortcut(.cancelAction)
                 Button("Rename") {
                     do {
-                        onRenamed(try night.renameRoom(id: roomID, to: name))
+                        onRenamed(try rename?(name) ?? night.renameRoom(id: roomID, to: name))
                         dismiss()
                     } catch {
                         problem = error.localizedDescription
@@ -334,8 +337,7 @@ struct SwapRoomsSheet: View {
                     .keyboardShortcut(.cancelAction)
                 Button("Swap") {
                     guard let secondRoomID else { return }
-                    if model.attempt("Could not move the board", { try night.swapRooms(firstRoomID, secondRoomID) }) {
-                        model.selectedRoomID = secondRoomID
+                    if model.swapRooms(firstRoomID, secondRoomID) {
                         dismiss()
                     }
                 }

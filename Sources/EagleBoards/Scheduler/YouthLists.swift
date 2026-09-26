@@ -113,7 +113,7 @@ private struct OnBoardsTable: View {
     @State private var sortOrder = [KeyPathComparator(\Scout.room)]
 
     var body: some View {
-        Table(rows.sorted(using: sortOrder), selection: selection, sortOrder: $sortOrder) {
+        Table(of: Scout.self, selection: selection, sortOrder: $sortOrder) {
             TableColumn("Room", value: \.room)
                 .width(min: 40, ideal: 50, max: 70)
             TableColumn("Time", value: \.minutesSortKey) { youth in
@@ -124,7 +124,7 @@ private struct OnBoardsTable: View {
             }
             .width(min: 50, ideal: 60, max: 80)
             TableColumn("Status", value: \.statusRank) { youth in
-                StatusBadge(statusText: youth.statusText, config: night.config)
+                StatusBadge(statusText: youth.statusText)
             }
             .width(min: 70, ideal: 90, max: 110)
             TableColumn("Last", value: \.last)
@@ -141,6 +141,8 @@ private struct OnBoardsTable: View {
             TableColumn("Members", value: \.boardMembers) { youth in
                 Text(youth.boardMembers.withListSeparators).help(youth.boardMembers.withListSeparators)
             }
+        } rows: {
+            ForEach(rows.sorted(using: sortOrder)) { TableRow($0) }
         }
     }
 }
@@ -152,7 +154,7 @@ private struct FinishedTable: View {
     @State private var sortOrder = [KeyPathComparator(\Scout.queueOrder)]
 
     var body: some View {
-        Table(rows.sorted(using: sortOrder), selection: selection, sortOrder: $sortOrder) {
+        Table(of: Scout.self, selection: selection, sortOrder: $sortOrder) {
             TableColumn("#", value: \.queueOrder) { youth in
                 Text(youth.regNum).help(youth.regNumHelp)
             }
@@ -168,7 +170,7 @@ private struct FinishedTable: View {
             }
             .width(min: 50, ideal: 64, max: 90)
             TableColumn("Status", value: \.statusRank) { youth in
-                StatusBadge(statusText: youth.statusText, config: night.config)
+                StatusBadge(statusText: youth.statusText)
             }
             .width(min: 70, ideal: 90, max: 110)
             TableColumn("Result", value: \.result) { youth in
@@ -182,6 +184,8 @@ private struct FinishedTable: View {
             TableColumn("Notes", value: \.notes) { youth in
                 Text(youth.notes.withCommasRestored).help(youth.notes.withCommasRestored)
             }
+        } rows: {
+            ForEach(rows.sorted(using: sortOrder)) { TableRow($0) }
         }
     }
 }
@@ -228,9 +232,9 @@ struct YouthActionButtons: View {
             .keyboardShortcut("l")
             .disabled(youth == nil)
         Divider()
-        Button("Reset Board…") { run { model.confirmReset() } }
+        Button("Reset Board") { run { model.reset() } }
             .disabled(!(status == .seated || status == .inProgress || status == .verified))
-        Button("Postpone…") { run { model.confirmPostpone() } }
+        Button("Postpone") { run { model.postpone() } }
             .disabled(status?.isWaitingForBoard != true)
     }
 

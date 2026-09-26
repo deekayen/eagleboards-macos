@@ -112,7 +112,7 @@ struct RoomCard: View {
                 HStack(spacing: 6) {
                     Text(room.scoutName).fontWeight(.semibold)
                     if let occupant {
-                        StatusBadge(statusText: occupant.statusText, config: night.config)
+                        StatusBadge(statusText: occupant.statusText)
                     }
                 }
                 Text(room.leaderNames.withListSeparators)
@@ -248,7 +248,7 @@ struct RoomActionButtons: View {
         }
         .disabled(room == nil)
         Divider()
-        Button("Remove Room…") { run(room) { _ in model.confirmRemoveSelectedRoom() } }
+        Button("Remove Room") { run(room) { _ in model.removeSelectedRoom() } }
             .disabled(room?.isFree != true)
     }
 

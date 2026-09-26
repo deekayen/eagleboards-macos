@@ -43,6 +43,8 @@ click **Allow**. Otherwise the tablet cannot reach it.
 
 Click the green **Sign-in** address at the top left of the window. Scan the QR
 code with the tablet's camera, or type the address into the tablet's browser.
+For a second display or a projector, **Window › Sign-In Code** shows the code
+as large as the window.
 
 Only the sign-in pages are on the network. The scheduler, the records and the
 settings stay on the Mac, so nobody at the door can look up anyone's details.
@@ -74,7 +76,7 @@ youth are listed ahead of walk-ins.
 ### 2. Check the paperwork
 
 Check each youth's paperwork as they sign in. If it is not in order, select
-them and choose **Board › Postpone…**.
+them and choose **Board › Postpone**. **Edit › Undo** brings them back.
 
 ### 3. Seat a board
 
@@ -146,6 +148,14 @@ the sign-up: youth become pre-registrations and adults join the history. Use
 **File › Export Board Results** saves the night as a spreadsheet (CSV).
 Everything is saved as it happens; there is nothing to save before quitting.
 
+Made a mistake? **Edit › Undo** takes back the last step, whether seating,
+starting, completing, postponing or resetting a board, disabling an adult, or
+a change to the rooms. It is refused once the room or a member has been given
+to another board.
+
+The Dock icon shows how many youth are waiting, and a notification tells you
+when a room passes its red time while you are in another app.
+
 ## If something goes wrong
 
 | Problem | What to do |
@@ -153,7 +163,7 @@ Everything is saved as it happens; there is nothing to save before quitting.
 | The tablet cannot open the address | Check both are on the same Wi-Fi. Click the sign-in address and try another address listed there. Check that Eagle Boards is allowed in System Settings › Network › Firewall. |
 | "Port 8080 is already in use" | Quit the other program (the Java Eagle Board Scheduler uses 8080 too), or change the port in Settings › General. |
 | "Not qualified to chair" | Promote someone: open Records › Adults, select them, and set their Final or Project role to Chair. |
-| A board was seated by mistake | Select the youth and choose **Board › Reset Board…**. |
+| A board was seated by mistake | Select the youth and choose **Board › Reset Board**, or **Edit › Undo** right after seating. |
 
 ## Donating
 

@@ -684,6 +684,78 @@ struct BoardEveningTests {
         #expect(first.whereabouts == "Room 102", "so someone can fetch them from their board")
     }
 
+    // MARK: - Undo
+
+    /// Undo of each step is restoreBoard with the record from before it.
+    @Test func eachStepIsUndoneAndRedone() throws {
+        let waiting = try #require(night.scout(id: finalYouth(1)))
+        try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
+        let seated = try #require(night.scout(id: finalYouth(1)))
+
+        try night.restoreBoard(waiting)
+        #expect(status(finalYouth(1)) == .registered)
+        #expect(roomOf(finalYouth(1)) == "")
+        #expect(adultRoom(chairOfEither) == "")
+        #expect(night.room(named: "101")?.isFree == true)
+
+        try night.restoreBoard(seated)
+        #expect(status(finalYouth(1)) == .seated)
+        #expect(adultRoom(member(2)) == "101")
+        #expect(night.room(named: "101")?.scoutName == seated.fullName)
+
+        try night.startReview(scoutID: finalYouth(1))
+        let inReview = try #require(night.scout(id: finalYouth(1)))
+        try night.restoreBoard(seated)
+        #expect(status(finalYouth(1)) == .seated)
+        #expect(night.scout(id: finalYouth(1))?.lastUpdateTime == seated.lastUpdateTime, "the convening timer resumes")
+        try night.restoreBoard(inReview)
+
+        try night.completeBoard(scoutID: finalYouth(1), result: .adjourned, notes: "Come back next month")
+        #expect(adultRoom(chairOfEither) == "")
+        try night.restoreBoard(inReview)
+        #expect(status(finalYouth(1)) == .inProgress)
+        #expect(night.scout(id: finalYouth(1))?.result == "")
+        #expect(night.scout(id: finalYouth(1))?.notes == "")
+        #expect(adultRoom(chairOfEither) == "101", "the members are back on the board")
+        #expect(night.room(named: "101")?.isFree == false)
+
+        try night.resetBoard(scoutID: finalYouth(1))
+        try night.restoreBoard(inReview)
+        #expect(status(finalYouth(1)) == .inProgress)
+        #expect(adultRoom(member(1)) == "101")
+
+        let other = try #require(night.scout(id: finalYouth(2)))
+        try night.postponeBoard(scoutID: finalYouth(2))
+        try night.restoreBoard(other)
+        #expect(status(finalYouth(2)) == .registered)
+    }
+
+    /// Undo cannot put anyone on two boards: once the room or a member has
+    /// been given to another board, the old board stays as it is.
+    @Test func undoIsRefusedOnceTheEveningHasMovedOn() throws {
+        try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
+        let seated = try #require(night.scout(id: finalYouth(1)))
+        try night.resetBoard(scoutID: finalYouth(1))
+
+        try seat("101", finalYouth(2), chair: finalChair2, member(3), member(4))
+        refused("room 101 has another board now") { try night.restoreBoard(seated) }
+        #expect(status(finalYouth(1)) == .registered)
+        #expect(night.room(named: "101")?.scoutName == night.scout(id: finalYouth(2))?.fullName)
+
+        try night.resetBoard(scoutID: finalYouth(2))
+        try seat("102", finalYouth(3), chair: finalChair3, member(1), member(5))
+        refused("a member is on another board now") { try night.restoreBoard(seated) }
+        #expect(adultRoom(member(1)) == "102")
+
+        try night.resetBoard(scoutID: finalYouth(3))
+        try night.setAvailable(false, adultID: member(2))
+        refused("a member has gone home") { try night.restoreBoard(seated) }
+
+        try night.setAvailable(true, adultID: member(2))
+        try night.restoreBoard(seated)
+        #expect(status(finalYouth(1)) == .seated)
+    }
+
     private func seatFiveBoards() throws {
         try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
         try seat("102", finalYouth(2), chair: finalChair2, member(3), member(4))

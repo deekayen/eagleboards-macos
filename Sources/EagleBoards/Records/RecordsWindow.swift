@@ -14,38 +14,57 @@ struct RecordsWindow: View {
         case history = "Adult History"
         case rooms = "Rooms"
         var id: String { rawValue }
+
+        var symbolName: String {
+            switch self {
+            case .youth: "person.crop.circle"
+            case .scheduled: "calendar"
+            case .adults: "person.2"
+            case .history: "clock.arrow.circlepath"
+            case .rooms: "door.left.hand.closed"
+            }
+        }
     }
 
     @State private var kind: Kind = .youth
     @State private var search = ""
+    @State private var showsInspector = true
 
     var body: some View {
-        Group {
-            if let night = model.night {
-                switch kind {
-                case .youth: YouthRecords(night: night, scheduled: false, search: search)
-                case .scheduled: YouthRecords(night: night, scheduled: true, search: search)
-                case .adults: AdultRecords(night: night, history: false, search: search)
-                case .history: AdultRecords(night: night, history: true, search: search)
-                case .rooms: RoomRecords(night: night, search: search)
+        NavigationSplitView {
+            List(selection: Binding<Kind?>(get: { kind }, set: { if let chosen = $0 { kind = chosen } })) {
+                Section("Tonight") {
+                    row(.youth)
+                    row(.adults)
+                    row(.rooms)
                 }
-            } else {
-                ContentUnavailableView("No night is open", systemImage: "calendar.badge.exclamationmark",
-                                       description: Text("Choose a data folder in the Eagle Boards window first."))
+                Section("Before Tonight") {
+                    row(.scheduled)
+                    row(.history)
+                }
             }
+            .navigationSplitViewColumnWidth(min: 170, ideal: 190, max: 260)
+        } detail: {
+            Group {
+                if let night = model.night {
+                    switch kind {
+                    case .youth: YouthRecords(night: night, scheduled: false, search: search, showsInspector: $showsInspector)
+                    case .scheduled: YouthRecords(night: night, scheduled: true, search: search, showsInspector: $showsInspector)
+                    case .adults: AdultRecords(night: night, history: false, search: search, showsInspector: $showsInspector)
+                    case .history: AdultRecords(night: night, history: true, search: search, showsInspector: $showsInspector)
+                    case .rooms: RoomRecords(night: night, search: search)
+                    }
+                } else {
+                    ContentUnavailableView("No night is open", systemImage: "calendar.badge.exclamationmark",
+                                           description: Text("Choose a data folder in the Eagle Boards window first."))
+                }
+            }
+            .navigationTitle(kind.rawValue)
+            .navigationSubtitle(model.night?.night ?? "")
         }
         .frame(minWidth: 820, minHeight: 480)
-        .navigationTitle("Records")
-        .navigationSubtitle(model.night?.night ?? "")
         .searchable(text: $search, placement: .toolbar, prompt: "Name, email or unit")
         .toolbar {
-            ToolbarItem(placement: .principal) {
-                Picker("Records", selection: $kind) {
-                    ForEach(Kind.allCases) { Text($0.rawValue).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-            }
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     export()
@@ -55,8 +74,35 @@ struct RecordsWindow: View {
                 .help("Save this list as a spreadsheet (CSV)")
                 .disabled(model.night == nil)
             }
+            if kind != .rooms {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showsInspector.toggle()
+                    } label: {
+                        Label("Inspector", systemImage: "sidebar.trailing")
+                    }
+                    .help("Show or hide the record editor")
+                }
+            }
         }
         .messageAlert()
+    }
+
+    private func row(_ kind: Kind) -> some View {
+        Label(kind.rawValue, systemImage: kind.symbolName)
+            .badge(count(kind))
+            .tag(kind)
+    }
+
+    private func count(_ kind: Kind) -> Int {
+        guard let night = model.night else { return 0 }
+        switch kind {
+        case .youth: return night.scouts.count
+        case .scheduled: return night.scheduledScouts.count
+        case .adults: return night.adults.count
+        case .history: return night.adultHistory.count
+        case .rooms: return night.rooms.count
+        }
     }
 
     private func export() {
@@ -94,6 +140,7 @@ private struct YouthRecords: View {
     let night: EventNight
     let scheduled: Bool
     let search: String
+    @Binding var showsInspector: Bool
     @State private var selection: Scout.ID?
     @State private var sortOrder = [KeyPathComparator(\Scout.last)]
 
@@ -120,7 +167,7 @@ private struct YouthRecords: View {
                     TableColumn("First", value: \.first)
                     TableColumn("Unit", value: \.unitName)
                     TableColumn("Board", value: \.boardTypeText) { Text($0.boardType?.label ?? $0.boardTypeText) }
-                    TableColumn("Status", value: \.statusRank) { StatusBadge(statusText: $0.statusText, config: night.config) }
+                    TableColumn("Status", value: \.statusRank) { StatusBadge(statusText: $0.statusText) }
                     TableColumn("Result", value: \.result)
                     TableColumn("Email", value: \.email)
                     TableColumn("Phone", value: \.phone)
@@ -128,7 +175,7 @@ private struct YouthRecords: View {
                 }
             }
         }
-        .inspector(isPresented: .constant(true)) {
+        .inspector(isPresented: $showsInspector) {
             Group {
                 if let id = selection, let youth = (scheduled ? night.scheduledScouts : night.scouts).first(where: { $0.id == id }) {
                     RecordEditor(record: youth, fields: scheduled ? Self.scheduledFields : Self.youthFields, noun: "youth") { edited in
@@ -181,6 +228,7 @@ private struct AdultRecords: View {
     let night: EventNight
     let history: Bool
     let search: String
+    @Binding var showsInspector: Bool
     @State private var selection: Adult.ID?
     @State private var sortOrder = [KeyPathComparator(\Adult.last)]
 
@@ -208,7 +256,7 @@ private struct AdultRecords: View {
             TableColumn("Email", value: \.email)
             TableColumn("Phone", value: \.phone)
         }
-        .inspector(isPresented: .constant(true)) {
+        .inspector(isPresented: $showsInspector) {
             Group {
                 if let id = selection, let adult = (history ? night.adultHistory : night.adults).first(where: { $0.id == id }) {
                     RecordEditor(record: adult, fields: history ? Self.historyFields : Self.adultFields, noun: "adult") { edited in
@@ -287,9 +335,9 @@ private struct RoomRecords: View {
             }
         }
         .sheet(item: $renaming) { room in
-            RenameRoomSheet(night: night, roomID: room.id) { newID in
+            RenameRoomSheet(night: night, roomID: room.id, onRenamed: { newID in
                 if selection == room.id { selection = newID }
-            }
+            })
         }
     }
 }

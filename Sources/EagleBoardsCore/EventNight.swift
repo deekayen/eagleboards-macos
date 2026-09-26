@@ -438,6 +438,71 @@ public final class EventNight {
         try save(.youth, .rooms, .adults)
     }
 
+    /// Put a youth's board back the way it was before a step -- what Undo
+    /// does after Seat Board, Start Review, Complete, Postpone or Reset. The
+    /// board columns and the timer come back from `earlier`; anything else on
+    /// the record (a leader corrected since) is left as it is now. The room
+    /// and the members are taken back, or released, to match.
+    ///
+    /// Refused when the room or a member has been given to another board, or
+    /// a member has gone home, since: the evening has moved on, and undoing
+    /// would put someone on two boards at once.
+    public func restoreBoard(_ earlier: Scout) throws {
+        guard let scoutIndex = scouts.firstIndex(where: { $0.id == earlier.id }) else {
+            throw EventError("There is no youth '\(earlier.id)'.")
+        }
+        let current = scouts[scoutIndex]
+        let holdsRoom: (Scout) -> Bool = { $0.status == .seated || $0.status == .inProgress }
+        let currentRoom = holdsRoom(current) ? current.room : nil
+
+        var roomIndex: Int?
+        var memberIDs: [String] = []
+        if holdsRoom(earlier) {
+            guard let index = rooms.firstIndex(where: { $0.name == earlier.room }) else {
+                throw EventError("Room \(earlier.room) is no longer on tonight's list.")
+            }
+            guard rooms[index].isFree || rooms[index].name == currentRoom else {
+                throw EventError("Room \(earlier.room) has been given to \(rooms[index].scoutName) since.")
+            }
+            memberIDs = earlier.boardMemberIDs.split(separator: ",").map(String.init)
+            for memberID in memberIDs {
+                guard let member = adult(id: memberID) else {
+                    throw EventError("There is no adult '\(memberID)'.")
+                }
+                if member.isDisabledForTonight {
+                    throw EventError("\(member.fullName) has gone home since.")
+                }
+                guard member.room.isEmpty || member.room == currentRoom else {
+                    throw EventError("\(member.fullName) is on the board in room \(member.room) now.")
+                }
+            }
+            roomIndex = index
+        }
+
+        if let currentRoom, let index = rooms.firstIndex(where: { $0.name == currentRoom }) {
+            releaseRoom(at: index)
+        }
+        var restored = current
+        restored.statusText = earlier.statusText
+        restored.room = earlier.room
+        restored.boardChair = earlier.boardChair
+        restored.boardChairID = earlier.boardChairID
+        restored.boardMembers = earlier.boardMembers
+        restored.boardMemberIDs = earlier.boardMemberIDs
+        restored.result = earlier.result
+        restored.notes = earlier.notes
+        restored.lastUpdateTime = earlier.lastUpdateTime
+        scouts[scoutIndex] = restored
+        if let roomIndex {
+            rooms[roomIndex].scoutName = restored.fullName
+            rooms[roomIndex].leaderNames = restored.boardMembers
+            for index in adults.indices where memberIDs.contains(adults[index].id) {
+                adults[index].room = restored.room
+            }
+        }
+        try save(.youth, .rooms, .adults)
+    }
+
     private func releaseRoom(at roomIndex: Int) {
         let roomName = rooms[roomIndex].name
         for index in adults.indices where adults[index].room == roomName {
@@ -611,7 +676,7 @@ public final class EventNight {
     }
 
     /// Link an adult to a youth as someone who came to support them, or
-    /// unlink them: the adult panel's Link button, for the adult who did not
+    /// unlink them after sign-in, for the adult who did not
     /// check the youth at sign-in. Writes the same Supporting column. Linking
     /// needs a youth who is signed in or RSVP'd; clearing a stale link does not.
     public func setSupporting(_ linked: Bool, adultID: String, scoutID: String) throws {

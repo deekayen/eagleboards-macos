@@ -22,6 +22,12 @@ struct EagleBoardsApp: App {
         }
         .defaultSize(width: 1100, height: 700)
 
+        Window("Sign-In Code", id: WindowID.signInCode) {
+            SignInCodeWindow()
+                .environment(model)
+        }
+        .defaultSize(width: 560, height: 680)
+
         Window("Eagle Boards Help", id: WindowID.help) {
             HelpView()
         }
@@ -38,6 +44,7 @@ enum WindowID {
     static let scheduler = "scheduler"
     static let records = "records"
     static let help = "help"
+    static let signInCode = "signInCode"
 }
 
 /// Keeps the app a regular app when launched straight from `swift run`, and
@@ -76,6 +83,15 @@ struct EagleBoardsCommands: Commands {
             Button("Open Another Night…") { model.sheet = .openNight }
                 .keyboardShortcut("o")
                 .disabled(model.dataFolder == nil)
+            Menu("Open Recent Night") {
+                ForEach(recentNights, id: \.self) { name in
+                    Button(name == model.today ? "\(name) (Tonight)" : name) {
+                        if let folder = model.dataFolder { model.open(folder: folder, night: name) }
+                    }
+                    .disabled(name == model.night?.night)
+                }
+            }
+            .disabled(recentNights.isEmpty)
             Button("Choose Data Folder…") { model.chooseDataFolderWithPanel() }
             Button("Show Tonight's Folder in Finder") { model.showDataFolderInFinder() }
                 .disabled(model.night == nil)
@@ -119,6 +135,8 @@ struct EagleBoardsCommands: Commands {
                 .keyboardShortcut("1")
             Button("Records") { openWindow(id: WindowID.records) }
                 .keyboardShortcut("2")
+            Button("Sign-In Code") { openWindow(id: WindowID.signInCode) }
+                .keyboardShortcut("3")
             Divider()
         }
         CommandGroup(replacing: .appInfo) {
@@ -130,6 +148,14 @@ struct EagleBoardsCommands: Commands {
             Divider()
             DonateMenu()
         }
+    }
+
+    /// The nights on file, newest first, and tonight even before it has a folder.
+    private var recentNights: [String] {
+        guard let folder = model.dataFolder else { return [] }
+        let onFile = folder.nights().sorted(by: >)
+        let nights = onFile.contains(model.today) ? onFile : [model.today] + onFile
+        return Array(nights.prefix(10))
     }
 
     private func sectionButton(_ title: String, _ section: AppModel.Section, _ key: KeyEquivalent) -> some View {
