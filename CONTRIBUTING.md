@@ -29,7 +29,7 @@ without a window or a socket:
 
 | Target | What lives there |
 | --- | --- |
-| `EagleBoardsCore` | `Records.swift` (the record types), `DataFiles.swift` (the CSV and `config.properties` dialects), `BoardRules.swift` (composition rules, board suggestion, locating leaders, room timers), `EventNight.swift` (one night's state and every change to it), `SignUpGenius.swift`. No UI, no server. |
+| `EagleBoardsCore` | `Records.swift` (the record types), `DataFiles.swift` (the CSV and `config.properties` dialects), `BoardRules.swift` (composition rules, board suggestion, locating leaders, room timers), `EventNight.swift` (one night's state and every change to it), `SignUpGenius.swift`, `LaunchSettings.swift` (saved preferences and the development environment variables). No UI, no server. |
 | `CheckInServer` | The web server for the tablets, and the sign-in pages in `Resources/CheckIn`. It serves those pages and the five calls they make, and nothing else. |
 | `EagleBoards` | The SwiftUI app. `AppModel` holds which night is open, runs the server, and keeps the operator's work in progress. |
 
@@ -69,6 +69,13 @@ To run against synthetic data without touching the folder the app remembers:
 EAGLEBOARDS_DATA_FOLDER=/tmp/eb-scratch EAGLEBOARDS_PORT=18123 "build/Eagle Boards.app/Contents/MacOS/Eagle Boards"
 ```
 
+With `EAGLEBOARDS_DATA_FOLDER` set, SignUpGenius is off for the run: the app
+does not read the key from your keychain, so opening tonight cannot import the
+district's real sign-ups into the scratch folder or put an "Imported" notice in
+a screenshot. Set `EAGLEBOARDS_SIGNUPGENIUS=1` as well only when you mean to
+test the import itself, and never screenshot the result. Preferences given on
+the command line (`-importSignUpsOnOpen NO`, `-checkInPort 18123`) work too.
+
 **Prefer pushing over re-running everything locally.** CI (`build.yml`) runs
 the tests, builds the app, checks the bundle, and runs the guards
 below. Run things locally to debug what CI found, or to iterate.
@@ -84,7 +91,7 @@ below. Run things locally to debug what CI found, or to iterate.
    hook once per clone: `git config core.hooksPath scripts/hooks`.
 3. **Test against synthetic data, never real data.** Tests create throwaway
    folders of made-up people. Never point the app at the real adult history
-   while taking screenshots.
+   while taking screenshots, or let it use the SignUpGenius key (see above).
 4. **The data files are the contract.** Both this app and the Java Eagle Board
    Scheduler read and write them, so a district can move between the two, or
    fall back to the Java app on the night. Keep column names, column order,

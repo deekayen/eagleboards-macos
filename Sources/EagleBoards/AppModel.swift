@@ -9,11 +9,7 @@ import SwiftUI
 @MainActor
 @Observable
 final class AppModel {
-    private enum Keys {
-        static let dataFolderPath = "dataFolderPath"
-        static let port = "checkInPort"
-        static let importOnOpen = "importSignUpsOnOpen"
-    }
+    private typealias Keys = LaunchSettings.Keys
 
     // MARK: - The open night
 
@@ -25,14 +21,15 @@ final class AppModel {
     var today: String { Timestamp.dayStamp(for: Date()) }
 
     init() {
-        let environment = ProcessInfo.processInfo.environment
-        // For development: point the app at a scratch folder of synthetic data
-        // without touching the saved choice. Never point it at real data you
-        // are about to screenshot.
-        let folderPath = environment["EAGLEBOARDS_DATA_FOLDER"] ?? UserDefaults.standard.string(forKey: Keys.dataFolderPath)
-        port = Int(environment["EAGLEBOARDS_PORT"] ?? "") ?? (UserDefaults.standard.object(forKey: Keys.port) as? Int) ?? 8080
-        importOnOpen = UserDefaults.standard.object(forKey: Keys.importOnOpen) as? Bool ?? true
-        hasSignUpGeniusKey = SignUpGeniusKeychain.exists()
+        // For development, EAGLEBOARDS_DATA_FOLDER points the app at a scratch
+        // folder of synthetic data without touching the saved choice, and
+        // keeps SignUpGenius out of it. See LaunchSettings.
+        let launch = LaunchSettings(environment: ProcessInfo.processInfo.environment, defaults: .standard)
+        let folderPath = launch.dataFolderPath
+        port = launch.port
+        importOnOpen = launch.importOnOpen
+        signUpGeniusAllowed = launch.signUpGeniusAllowed
+        hasSignUpGeniusKey = launch.signUpGeniusAllowed && SignUpGeniusKeychain.exists()
         if let folderPath {
             open(folder: DataFolder(root: URL(filePath: folderPath, directoryHint: .isDirectory)), night: today)
         }
@@ -53,7 +50,7 @@ final class AppModel {
             openError = nil
             clearSchedulerSelection()
             startServer()
-            if importOnOpen, name == today, hasSignUpGeniusKey {
+            if signUpGeniusAllowed, importOnOpen, name == today, hasSignUpGeniusKey {
                 Task { await importSignUps() }
             }
         } catch {
@@ -450,9 +447,13 @@ final class AppModel {
     /// Checked once at launch and after each save, rather than on every
     /// redraw: reading the keychain can put up a prompt.
     private(set) var hasSignUpGeniusKey = false
+    /// False when launched on a scratch folder: the keychain's key is for
+    /// real sign-ups, which must not land in synthetic data.
+    let signUpGeniusAllowed: Bool
 
     /// Store the key (or remove it, if empty). Returns whether it was saved.
     func saveSignUpGeniusKey(_ key: String) -> Bool {
+        guard signUpGeniusAllowed else { return false }
         let saved = SignUpGeniusKeychain.write(key)
         hasSignUpGeniusKey = SignUpGeniusKeychain.exists()
         return saved
@@ -460,6 +461,10 @@ final class AppModel {
 
     func importSignUps() async {
         guard let night else { return }
+        guard signUpGeniusAllowed else {
+            problem = "SignUpGenius is off while EAGLEBOARDS_DATA_FOLDER is set. Set EAGLEBOARDS_SIGNUPGENIUS=1 to use it."
+            return
+        }
         guard let key = SignUpGeniusKeychain.read() else {
             problem = "Add your SignUpGenius API key in Settings first."
             return

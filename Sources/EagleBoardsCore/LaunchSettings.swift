@@ -1,0 +1,51 @@
+import Foundation
+
+/// What the app starts with: the saved preferences, and the environment
+/// variables a developer uses to run it against a scratch folder.
+///
+///   EAGLEBOARDS_DATA_FOLDER      open this folder instead of the saved one
+///   EAGLEBOARDS_PORT             serve sign-in on this port
+///   EAGLEBOARDS_SIGNUPGENIUS=1   with a scratch folder, still use SignUpGenius
+///
+/// A scratch folder is for synthetic people. The keychain's SignUpGenius key
+/// belongs to the real district, so with EAGLEBOARDS_DATA_FOLDER set the app
+/// neither reads the key nor imports, unless EAGLEBOARDS_SIGNUPGENIUS=1 says
+/// to. Otherwise opening tonight would pull real youth into the scratch
+/// folder and into any screenshot taken of it.
+public struct LaunchSettings: Equatable, Sendable {
+    public enum Keys {
+        public static let dataFolderPath = "dataFolderPath"
+        public static let port = "checkInPort"
+        public static let importOnOpen = "importSignUpsOnOpen"
+    }
+
+    public enum Environment {
+        public static let dataFolder = "EAGLEBOARDS_DATA_FOLDER"
+        public static let port = "EAGLEBOARDS_PORT"
+        public static let allowSignUpGenius = "EAGLEBOARDS_SIGNUPGENIUS"
+    }
+
+    public static let defaultPort = 8080
+
+    public let dataFolderPath: String?
+    public let port: Int
+    public let importOnOpen: Bool
+    /// Whether the app may read the SignUpGenius key or import at all.
+    public let signUpGeniusAllowed: Bool
+
+    /// Reads `defaults` through `bool(forKey:)` and `integer(forKey:)`, so a
+    /// command-line `-importSignUpsOnOpen NO` or `-checkInPort 18123`, which
+    /// arrive as strings, count too.
+    public init(environment: [String: String], defaults: UserDefaults) {
+        defaults.register(defaults: [
+            Keys.port: Self.defaultPort,
+            Keys.importOnOpen: true,
+        ])
+        let scratchFolder = environment[Environment.dataFolder].flatMap { $0.isEmpty ? nil : $0 }
+        dataFolderPath = scratchFolder ?? defaults.string(forKey: Keys.dataFolderPath)
+        let savedPort = defaults.integer(forKey: Keys.port)
+        port = Int(environment[Environment.port] ?? "") ?? (savedPort > 0 ? savedPort : Self.defaultPort)
+        importOnOpen = defaults.bool(forKey: Keys.importOnOpen)
+        signUpGeniusAllowed = scratchFolder == nil || environment[Environment.allowSignUpGenius] == "1"
+    }
+}

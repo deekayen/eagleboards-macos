@@ -197,6 +197,7 @@ private struct SignUpGeniusSettings: View {
                     Button("Save Key") {
                         saved = model.saveSignUpGeniusKey(key)
                     }
+                    .disabled(!model.signUpGeniusAllowed)
                     if saved {
                         Label("Saved in your keychain", systemImage: "checkmark.circle.fill")
                             .foregroundStyle(.green)
@@ -209,6 +210,11 @@ private struct SignUpGeniusSettings: View {
                     + "details fill in at the door and they sign in as P rather than W, and adults are added to the history. "
                     + "The key is kept in your macOS keychain, not in the data folder.")
                     .foregroundStyle(.secondary)
+                if !model.signUpGeniusAllowed {
+                    Text("Off for this run: EAGLEBOARDS_DATA_FOLDER is set, so the keychain is not read. "
+                        + "Set EAGLEBOARDS_SIGNUPGENIUS=1 to use it with a scratch folder.")
+                        .foregroundStyle(.orange)
+                }
             }
             Section {
                 Toggle("Import when tonight is opened", isOn: $model.importOnOpen)

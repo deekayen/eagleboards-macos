@@ -25,7 +25,10 @@ a native window. See `PROVENANCE.md`.
 - To look at the app, run it with `EAGLEBOARDS_DATA_FOLDER` pointing at a
   scratch folder of **synthetic** people and `EAGLEBOARDS_PORT` on a spare
   port. Never load a real `Master_AdultHistory.csv` into anything you
-  screenshot.
+  screenshot. `EAGLEBOARDS_DATA_FOLDER` also switches SignUpGenius off (no
+  keychain read, no import on open), so the real key cannot pull minors'
+  sign-ups into synthetic data. Never set `EAGLEBOARDS_SIGNUPGENIUS=1` for a
+  screenshot run.
 - Prefer pushing over re-running the suite locally; CI is the gate.
 
 ## Standing rules
