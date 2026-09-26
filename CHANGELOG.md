@@ -23,6 +23,18 @@ can no longer type `/admin` and read every adult's email and phone number.
 
 **The scheduler updates the moment someone signs in.** No polling.
 
+**The scheduler is a Mac window, not a grid of panels.** A sidebar lists the
+youth waiting, on boards and finished, the adults, and every room with its
+timer; the inspector follows the selected youth. The board proposed for a
+waiting youth is shown and changed there (add, remove, or drag adults onto it)
+instead of with checkboxes in a separate list, and a board drawn up by hand is
+kept per youth. One Next Step button, Command-Return and double-click take a
+youth to Seat Board, Start Review or Complete. Every action is in the Board,
+Adult and Room menus and in context menus. A waiting youth can be dragged onto
+a free room. Messages that used to vanish from the bottom of the window are
+now alerts that say what failed, or live in the inspector (who to fetch for a
+youth). Link and Disable no longer ask first; Unlink and Enable undo them.
+
 **Seat Board shows everything at once.** Every reason a board cannot be
 seated is listed together instead of one alert at a time, and each warning
 (same-unit member, a fourth member, a room of the other kind) takes its own

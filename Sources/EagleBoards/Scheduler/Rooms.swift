@@ -2,74 +2,77 @@ import EagleBoardsCore
 import SwiftUI
 
 /// One card per room: who is in it, and how long the board has been at it.
-struct RoomsPanel: View {
+/// Drop a waiting youth on a free room to seat their board there.
+struct RoomsGrid: View {
     @Environment(AppModel.self) private var model
     let night: EventNight
 
     var body: some View {
-        @Bindable var model = model
-
-        VStack(spacing: 0) {
-            PanelHeader(title: "Rooms", detail: "\(night.rooms.filter(\.isFree).count) of \(night.rooms.count) free") {
-                TextField("Filter by room or name", text: $model.roomFilter)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(width: 190)
-                Button {
-                    model.sheet = .addRoom
-                } label: {
-                    Label("Add Room", systemImage: "plus")
-                }
-                .help("Add a room for tonight")
-                Button {
-                    model.confirmRemoveSelectedRoom()
-                } label: {
-                    Label("Remove Room", systemImage: "minus")
-                }
-                .disabled(model.selectedRoom == nil)
-                .help("Remove the selected room")
-                Button("Rename…") {
-                    if let id = model.selectedRoomID { model.sheet = .renameRoom(roomID: id) }
-                }
-                .disabled(model.selectedRoom == nil)
-                .help("Rename the selected room; a board in it moves with it")
-                Button("Swap…") {
-                    if let id = model.selectedRoomID { model.sheet = .swapRooms(roomID: id) }
-                }
-                .disabled(model.selectedRoom == nil)
-                .help("Move the selected room's board to another room, or swap two boards")
-                CopyRoomsMenu(night: night)
-            }
-            .labelStyle(.iconOnly)
-
-            if night.rooms.isEmpty {
-                NoRoomsYet(night: night)
-            } else {
-                ScrollView {
-                    TimelineView(.periodic(from: .now, by: 20)) { timeline in
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 210), spacing: 8)], spacing: 8) {
-                            ForEach(visibleRooms) { room in
-                                RoomCard(room: room, night: night, now: timeline.date, isSelected: room.id == model.selectedRoomID)
-                                    .onTapGesture { model.selectRoom(room.id) }
-                                    .contextMenu {
-                                        Button("Rename…") { model.sheet = .renameRoom(roomID: room.id) }
-                                    }
-                            }
+        if night.rooms.isEmpty {
+            NoRoomsYet(night: night)
+        } else {
+            let rooms = visibleRooms
+            ScrollView {
+                TimelineView(.periodic(from: .now, by: 20)) { timeline in
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 10)], spacing: 10) {
+                        ForEach(rooms) { room in
+                            RoomCard(room: room, night: night, now: timeline.date, isSelected: room.id == model.selectedRoomID)
+                                .onTapGesture(count: 2) {
+                                    model.selectRoom(room.id)
+                                    model.performNextStep()
+                                }
+                                .onTapGesture { model.selectRoom(room.id) }
+                                .contextMenu { RoomActionButtons(model: model, night: night, roomID: room.id) }
+                                .youthDropDestination(room: room)
                         }
-                        .padding(8)
                     }
+                    .padding(12)
+                }
+            }
+            .overlay {
+                if rooms.isEmpty {
+                    ContentUnavailableView.search(text: model.searchText)
                 }
             }
         }
     }
 
     private var visibleRooms: [Room] {
-        let filter = model.roomFilter.trimmingCharacters(in: .whitespaces)
+        let filter = model.searchText.trimmingCharacters(in: .whitespaces)
         guard !filter.isEmpty else { return night.rooms }
         return night.rooms.filter {
             $0.name.localizedCaseInsensitiveContains(filter)
                 || $0.scoutName.localizedCaseInsensitiveContains(filter)
                 || $0.leaderNames.localizedCaseInsensitiveContains(filter)
         }
+    }
+}
+
+extension View {
+    /// Seat a waiting youth dropped here in this room. The room shows it will
+    /// take them while they hover, if it is free.
+    func youthDropDestination(room: Room) -> some View {
+        modifier(YouthDropTarget(room: room))
+    }
+}
+
+private struct YouthDropTarget: ViewModifier {
+    @Environment(AppModel.self) private var model
+    let room: Room
+    @State private var isTargeted = false
+
+    func body(content: Content) -> some View {
+        content
+            .overlay {
+                if isTargeted && room.isFree {
+                    RoundedRectangle(cornerRadius: 8).strokeBorder(Color.accentColor, lineWidth: 3)
+                }
+            }
+            .dropDestination(for: String.self) { items, _ in
+                guard let scoutID = DragPayload.youthIDs(in: items).first else { return false }
+                model.seat(scoutID: scoutID, inRoom: room.id)
+                return true
+            } isTargeted: { isTargeted = $0 }
     }
 }
 
@@ -118,8 +121,8 @@ struct RoomCard: View {
                     .lineLimit(2)
             }
         }
-        .padding(8)
-        .frame(maxWidth: .infinity, minHeight: 68, alignment: .topLeading)
+        .padding(10)
+        .frame(maxWidth: .infinity, minHeight: 72, alignment: .topLeading)
         .background(RoundedRectangle(cornerRadius: 8).fill(isSelected ? Color.accentColor.opacity(0.12) : Color(nsColor: .controlBackgroundColor)))
         .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(isSelected ? Color.accentColor : Color.secondary.opacity(0.25), lineWidth: isSelected ? 2 : 1))
         .contentShape(Rectangle())
@@ -170,11 +173,11 @@ struct NoRoomsYet: View {
 
     var body: some View {
         let earlierNights = night.folder.nights().filter { $0 < night.night }
-        VStack(spacing: 8) {
-            Text("No rooms yet").font(.headline)
+        ContentUnavailableView {
+            Label("No Rooms Yet", systemImage: "door.left.hand.closed")
+        } description: {
             Text("A board cannot be seated without a room. Mark each one Final or Project by what it is used for tonight.")
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+        } actions: {
             HStack {
                 Button("Add Room…") { model.sheet = .addRoom }
                 if !earlierNights.isEmpty {
@@ -182,8 +185,6 @@ struct NoRoomsYet: View {
                 }
             }
         }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
@@ -193,16 +194,67 @@ struct CopyRoomsMenu: View {
     let night: EventNight
 
     var body: some View {
+        CopyRoomsItems(model: model, night: night)
+    }
+}
+
+/// The Copy Rooms From menu, usable in the menu bar where there is no
+/// environment to read the model from.
+struct CopyRoomsItems: View {
+    let model: AppModel
+    let night: EventNight
+
+    var body: some View {
         let earlierNights = night.folder.nights().filter { $0 < night.night }
         Menu("Copy Rooms From") {
             ForEach(earlierNights.prefix(12), id: \.self) { earlier in
                 Button(earlier) {
-                    model.attempt { try night.copyRooms(fromNight: earlier) }
+                    model.attempt("Could not copy the rooms") { _ = try night.copyRooms(fromNight: earlier) }
                 }
             }
         }
         .fixedSize()
         .disabled(earlierNights.isEmpty)
         .help("Add the rooms from an earlier night, empty. Rooms already here are skipped.")
+    }
+}
+
+/// What can be done to a room: the Room menu, and the context menu on its
+/// card and sidebar row.
+struct RoomActionButtons: View {
+    let model: AppModel
+    let night: EventNight
+    /// Nil acts on the selected room.
+    var roomID: Room.ID?
+
+    var body: some View {
+        let room = (roomID ?? model.selectedRoomID).flatMap { night.room(id: $0) }
+
+        Button("Add Room…") { model.sheet = .addRoom }
+            .keyboardShortcut("n", modifiers: [.command, .shift])
+        CopyRoomsItems(model: model, night: night)
+        Divider()
+        Button("Rename…") { run(room) { model.sheet = .renameRoom(roomID: $0.id) } }
+            .disabled(room == nil)
+        Button("Move Board to Another Room…") { run(room) { model.sheet = .swapRooms(roomID: $0.id) } }
+            .disabled(room == nil)
+        Picker("Used For", selection: Binding(
+            get: { room?.boardType },
+            set: { newType in
+                if let room, let newType { model.setBoardType(newType, forRoom: room.id) }
+            }
+        )) {
+            ForEach(BoardType.allCases) { Text($0.label).tag(Optional($0)) }
+        }
+        .disabled(room == nil)
+        Divider()
+        Button("Remove Room…") { run(room) { _ in model.confirmRemoveSelectedRoom() } }
+            .disabled(room?.isFree != true)
+    }
+
+    private func run(_ room: Room?, _ action: (Room) -> Void) {
+        guard let room else { return }
+        model.selectedRoomID = room.id
+        action(room)
     }
 }

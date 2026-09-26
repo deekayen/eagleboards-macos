@@ -49,6 +49,35 @@ public enum BoardStatus: String, CaseIterable, Sendable {
     }
 }
 
+/// The step that moves a youth's board along from where it is: the one
+/// thing the operator does next. The scheduler's Next Step button and the
+/// Return key perform it.
+public enum BoardStep: Sendable, Equatable {
+    case seat
+    case startReview
+    case complete
+
+    public var title: String {
+        switch self {
+        case .seat: "Seat Board…"
+        case .startReview: "Start Review"
+        case .complete: "Complete…"
+        }
+    }
+}
+
+extension BoardStatus {
+    /// Nil once the board is finished: nothing moves it along from there.
+    public var nextStep: BoardStep? {
+        switch self {
+        case .registered, .verified: .seat
+        case .seated: .startReview
+        case .inProgress: .complete
+        case .completed, .postponed: nil
+        }
+    }
+}
+
 /// What kind of review a youth came for. Stored in `BoardType`, on scouts and
 /// on rooms, and it keys the room timers.
 public enum BoardType: String, CaseIterable, Sendable, Identifiable {

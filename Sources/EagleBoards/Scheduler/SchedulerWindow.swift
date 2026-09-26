@@ -14,7 +14,7 @@ struct SchedulerWindow: View {
                 WelcomeView()
             }
         }
-        .frame(minWidth: 1000, minHeight: 640)
+        .frame(minWidth: 900, minHeight: 560)
     }
 }
 

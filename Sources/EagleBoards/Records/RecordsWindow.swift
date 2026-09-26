@@ -56,11 +56,7 @@ struct RecordsWindow: View {
                 .disabled(model.night == nil)
             }
         }
-        .alert("Not done", isPresented: Binding(get: { model.problem != nil }, set: { if !$0 { model.problem = nil } })) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(model.problem ?? "")
-        }
+        .messageAlert()
     }
 
     private func export() {
@@ -81,7 +77,7 @@ struct RecordsWindow: View {
         do {
             try Data(text.utf8).write(to: url, options: .atomic)
         } catch {
-            model.problem = "Could not save: \(error.localizedDescription)"
+            model.message = AppModel.Message(title: "Could not save the list", text: error.localizedDescription)
         }
     }
 }
@@ -273,7 +269,7 @@ private struct RoomRecords: View {
             TableColumn("Used for") { room in
                 Picker("Used for", selection: Binding(
                     get: { room.boardType ?? .finalBoard },
-                    set: { newType in model.attempt { try night.setBoardType(newType, forRoom: room.id) } }
+                    set: { newType in model.attempt("Could not change the room") { try night.setBoardType(newType, forRoom: room.id) } }
                 )) {
                     ForEach(BoardType.allCases) { Text($0.label).tag($0) }
                 }
@@ -286,7 +282,7 @@ private struct RoomRecords: View {
             if let id = ids.first {
                 Button("Rename Room…") { renaming = RenamingRoom(id: id) }
                 Button("Remove Room", role: .destructive) {
-                    model.attempt { try night.removeRoom(id: id) }
+                    model.attempt("Could not remove the room") { try night.removeRoom(id: id) }
                 }
             }
         }

@@ -330,6 +330,13 @@ public struct Adult: PersonRecord {
     public var isOnBoard: Bool { !room.isEmpty && !isDisabledForTonight }
     /// Free to be put on a board.
     public var isAvailable: Bool { room.isEmpty }
+
+    /// Could be added to a board of this type right now: free, and did not
+    /// say "No thanks" to it. The same refusals `EventNight.seatBoard` makes
+    /// about a member, so the scheduler never offers someone it would refuse.
+    public func canJoin(_ boardType: BoardType) -> Bool {
+        isAvailable && role(for: boardType) != .unavailable
+    }
 }
 
 // MARK: - Rooms

@@ -147,14 +147,48 @@ final class AppModel {
 
     // MARK: - The operator's work in progress
 
+    /// What the scheduler window's sidebar has chosen to list.
+    enum Section: Hashable {
+        case waiting
+        case onBoards
+        case finished
+        case adults
+        case rooms
+        case room(Room.ID)
+
+        /// Does this youth belong in this list?
+        func lists(_ youth: Scout) -> Bool {
+            switch self {
+            case .waiting: youth.status?.isWaitingForBoard ?? true
+            case .onBoards: youth.status == .seated || youth.status == .inProgress
+            case .finished: youth.status?.isFinished ?? false
+            case .adults, .rooms, .room: false
+            }
+        }
+    }
+
+    var section: Section = .waiting
+    var searchText = ""
+    var showsInspector = true
+
     var selectedYouthID: Scout.ID?
-    /// The adults ticked for the next board, in the order they were ticked.
-    var checkedAdultIDs: [Adult.ID] = []
-    var selectedAdultID: Adult.ID?
+    var selectedAdultIDs: Set<Adult.ID> = []
     var selectedRoomID: Room.ID?
-    var showFinishedYouth = false
-    var showBusyAdults = false
-    var roomFilter = ""
+
+    /// A board being drawn up for a waiting youth: proposed when they are
+    /// selected, then changed by hand in the inspector.
+    struct BoardDraft: Equatable {
+        var roomID: Room.ID?
+        /// Chair first when the suggestion made it, then in the order added.
+        var memberIDs: [Adult.ID]
+        /// Why the suggestion could not propose a whole board.
+        var problems: [String]
+        /// Changed by hand. A hand-made board is the operator's work and is
+        /// kept while they look at other youth; a proposal is made afresh.
+        var isEdited = false
+    }
+
+    private(set) var drafts: [Scout.ID: BoardDraft] = [:]
 
     enum Sheet: Identifiable {
         case seatBoard(scoutID: String)
@@ -189,80 +223,152 @@ final class AppModel {
 
     var confirmation: Confirmation?
 
-    struct Notice: Identifiable, Equatable {
-        enum Kind { case success, info, problem }
+    /// Something the operator has to read and acknowledge: a refusal, a
+    /// failure, or the report of an import.
+    struct Message: Identifiable {
         let id = UUID()
         let title: String
-        let lines: [String]
-        let kind: Kind
+        let text: String
     }
 
-    /// A message that shows for a few seconds and goes away by itself.
-    var notice: Notice?
-    /// A refusal or failure the operator has to acknowledge.
-    var problem: String?
+    var message: Message?
 
     var selectedYouth: Scout? { selectedYouthID.flatMap { night?.scout(id: $0) } }
     var selectedRoom: Room? { selectedRoomID.flatMap { night?.room(id: $0) } }
-
-    /// Checked adults who can still be seated -- someone checked a moment ago
-    /// may have been put on another board since.
-    var checkedAdults: [Adult] {
+    var selectedAdults: [Adult] {
         guard let night else { return [] }
-        return checkedAdultIDs.compactMap { night.adult(id: $0) }
+        return night.adults.filter { selectedAdultIDs.contains($0.id) }
+    }
+
+    /// The board drawn up for the selected youth, if they are waiting.
+    var draft: BoardDraft? { selectedYouthID.flatMap { drafts[$0] } }
+
+    /// The draft's members, in its order. Someone put on another board since
+    /// is still listed, so the inspector can say why they cannot sit.
+    func draftMembers(for scoutID: Scout.ID) -> [Adult] {
+        guard let night, let draft = drafts[scoutID] else { return [] }
+        return draft.memberIDs.compactMap { night.adult(id: $0) }
     }
 
     func clearSchedulerSelection() {
         selectedYouthID = nil
-        checkedAdultIDs = []
-        selectedAdultID = nil
+        selectedAdultIDs = []
         selectedRoomID = nil
+        drafts = [:]
     }
 
-    func setChecked(_ checked: Bool, adultID: String) {
-        checkedAdultIDs.removeAll { $0 == adultID }
-        if checked {
-            checkedAdultIDs.append(adultID)
+    /// Show a list in the main window. A room shows every room with that one
+    /// selected, and the youth in it.
+    func show(_ newSection: Section) {
+        section = newSection
+        if case .room(let roomID) = newSection {
+            selectRoom(roomID)
         }
     }
 
-    /// Selecting a youth proposes a board, the way the Java scheduler did.
-    ///
-    /// Checked adults are the operator's work in progress -- they have decided
-    /// who is sitting this board -- so when anyone is already checked nothing
-    /// is changed. Only Clear throws that away.
+    /// Selecting a waiting youth proposes a board, the way the Java scheduler
+    /// did, unless the operator has already drawn one up for them by hand.
     func selectYouth(_ id: Scout.ID?) {
+        guard id != selectedYouthID || id.map({ drafts[$0] == nil }) == true else { return }
         selectedYouthID = id
-        guard let id, let night, let youth = night.scout(id: id), checkedAdultIDs.isEmpty else { return }
+        guard let id, let night, let youth = night.scout(id: id) else { return }
 
-        switch youth.status {
-        case .registered, .verified:
-            // The other waiting youth in queue order (pre-registered first), so
-            // the proposal keeps chairs and adults free for the boards to come.
-            let waiting = night.scouts
-                .filter { $0.id != youth.id && $0.status?.isWaitingForBoard == true }
-                .sorted { $0.queueOrder < $1.queueOrder }
-            let freeSince = BoardSuggestion.freeSinceTimes(adults: night.adults, scouts: night.scouts)
-            let suggestion = BoardSuggestion(
-                for: youth, adults: night.adults, rooms: night.rooms, waiting: waiting, freeSince: freeSince)
-            checkedAdultIDs = suggestion.memberIDs
-            selectedRoomID = suggestion.roomID
-            if suggestion.problems.isEmpty {
-                notice = Notice(title: "Ready to seat", lines: ["\(youth.fullName): check the adults ticked for the board, then press Seat Board."], kind: .success)
-            } else {
-                notice = Notice(title: "Could not propose a whole board", lines: suggestion.problems, kind: .problem)
+        if youth.status?.isWaitingForBoard == true {
+            if drafts[id]?.isEdited != true {
+                drafts[id] = proposedBoard(for: youth, in: night)
             }
-        default:
+        } else {
+            drafts[id] = nil
             selectedRoomID = night.room(named: youth.room)?.id
         }
     }
 
-    /// Clicking a room card selects the room, and the youth in it if any.
+    /// Throw away any changes and propose a board afresh.
+    func suggestBoard() {
+        guard let night, let youth = selectedYouth, youth.status?.isWaitingForBoard == true else { return }
+        drafts[youth.id] = proposedBoard(for: youth, in: night)
+    }
+
+    /// Something a proposal depends on has changed: a room was added or
+    /// freed, an adult signed in or left a board. Proposals are made afresh;
+    /// boards drawn up by hand are left alone.
+    func refreshProposals() {
+        drafts = drafts.filter(\.value.isEdited)
+        guard let night, let youth = selectedYouth, youth.status?.isWaitingForBoard == true,
+              drafts[youth.id] == nil else { return }
+        drafts[youth.id] = proposedBoard(for: youth, in: night)
+    }
+
+    /// Empty the board, keeping its room.
+    func clearDraft() {
+        guard let id = selectedYouthID, drafts[id] != nil else { return }
+        drafts[id]?.memberIDs = []
+        drafts[id]?.problems = []
+        drafts[id]?.isEdited = true
+    }
+
+    private func proposedBoard(for youth: Scout, in night: EventNight) -> BoardDraft {
+        // The other waiting youth in queue order (pre-registered first), so
+        // the proposal keeps chairs and adults free for the boards to come.
+        let waiting = night.scouts
+            .filter { $0.id != youth.id && $0.status?.isWaitingForBoard == true }
+            .sorted { $0.queueOrder < $1.queueOrder }
+        let freeSince = BoardSuggestion.freeSinceTimes(adults: night.adults, scouts: night.scouts)
+        let suggestion = BoardSuggestion(
+            for: youth, adults: night.adults, rooms: night.rooms, waiting: waiting, freeSince: freeSince)
+        return BoardDraft(roomID: suggestion.roomID, memberIDs: suggestion.memberIDs, problems: suggestion.problems)
+    }
+
+    /// Can the selected adults be added to the board being drawn up?
+    var canAddSelectedAdultsToDraft: Bool {
+        guard let id = selectedYouthID, let draft = drafts[id] else { return false }
+        return selectedAdultIDs.contains { !draft.memberIDs.contains($0) }
+    }
+
+    var canRemoveSelectedAdultsFromDraft: Bool {
+        guard let draft else { return false }
+        return selectedAdultIDs.contains { draft.memberIDs.contains($0) }
+    }
+
+    func addToDraft(_ adultIDs: [Adult.ID]) {
+        guard let night, let youth = selectedYouth, drafts[youth.id] != nil else {
+            message = Message(title: "No board is being drawn up",
+                              text: "Select a youth who is waiting, then add adults to their board.")
+            return
+        }
+        let newIDs = adultIDs.filter { night.adult(id: $0) != nil && drafts[youth.id]?.memberIDs.contains($0) == false }
+        guard !newIDs.isEmpty else { return }
+        drafts[youth.id]?.memberIDs += newIDs
+        // The proposal's complaints no longer describe it; the inspector
+        // checks the board as it now stands.
+        drafts[youth.id]?.problems = []
+        drafts[youth.id]?.isEdited = true
+    }
+
+    func removeFromDraft(_ adultIDs: Set<Adult.ID>) {
+        guard let id = selectedYouthID, drafts[id] != nil else { return }
+        drafts[id]?.memberIDs.removeAll { adultIDs.contains($0) }
+        // The proposal's complaints no longer describe it; the inspector
+        // checks the board as it now stands.
+        drafts[id]?.problems = []
+        drafts[id]?.isEdited = true
+    }
+
+    func setDraftRoom(_ roomID: Room.ID?) {
+        guard let id = selectedYouthID, drafts[id] != nil, drafts[id]?.roomID != roomID else { return }
+        drafts[id]?.roomID = roomID
+        // The proposal's complaints no longer describe it; the inspector
+        // checks the board as it now stands.
+        drafts[id]?.problems = []
+        drafts[id]?.isEdited = true
+    }
+
+    /// Clicking a room selects it, and the youth in it if any.
     func selectRoom(_ id: Room.ID) {
         selectedRoomID = id
         if let night, let room = night.room(id: id), !room.isFree,
            let youth = night.scouts.first(where: { $0.room == room.name && !($0.status?.isFinished ?? false) }) {
-            selectedYouthID = youth.id
+            selectYouth(youth.id)
         }
     }
 
@@ -271,33 +377,65 @@ final class AppModel {
     /// Run an event-night change, turning a refusal into a message rather
     /// than a silent failure.
     @discardableResult
-    func attempt(_ action: () throws -> Void) -> Bool {
+    func attempt(_ failure: String, _ action: () throws -> Void) -> Bool {
         do {
             try action()
             return true
         } catch {
-            problem = error.localizedDescription
+            message = Message(title: failure, text: error.localizedDescription)
             return false
         }
     }
 
+    /// The step that moves the selected youth's board along, if one can be
+    /// taken now.
+    var nextStep: BoardStep? {
+        guard sheet == nil else { return nil }
+        return selectedYouth?.status?.nextStep
+    }
+
+    func performNextStep() {
+        switch nextStep {
+        case .seat: beginSeating()
+        case .startReview: confirmStartReview()
+        case .complete: beginCompleting()
+        case nil: break
+        }
+    }
+
     func beginSeating() {
-        guard let youth = selectedYouth else { return }
+        guard let youth = selectedYouth, youth.status?.isWaitingForBoard == true else { return }
+        if drafts[youth.id] == nil { selectYouth(youth.id) }
         sheet = .seatBoard(scoutID: youth.id)
+    }
+
+    /// A youth dropped on a room: seat their board there.
+    func seat(scoutID: Scout.ID, inRoom roomID: Room.ID) {
+        guard let night, let youth = night.scout(id: scoutID), let room = night.room(id: roomID) else { return }
+        guard youth.status?.isWaitingForBoard == true else {
+            message = Message(title: "\(youth.fullName) is not waiting",
+                              text: "Only a youth who is waiting for a board can be seated in a room.")
+            return
+        }
+        guard room.isFree else {
+            message = Message(title: "Room \(room.name) is in use",
+                              text: "\(room.scoutName)'s board is in room \(room.name). Choose a free room.")
+            return
+        }
+        selectYouth(scoutID)
+        drafts[scoutID]?.roomID = roomID
+        drafts[scoutID]?.isEdited = true
+        beginSeating()
     }
 
     func seat(scoutID: String, roomID: String, chairID: String, memberIDs: [String]) -> Bool {
         guard let night else { return false }
-        let seated = attempt {
+        let seated = attempt("Could not seat the board") {
             try night.seatBoard(roomID: roomID, scoutID: scoutID, chairID: chairID, memberIDs: memberIDs)
         }
-        if seated, let youth = night.scout(id: scoutID) {
-            checkedAdultIDs = []
-            notice = Notice(
-                title: "Board seated in room \(youth.room)",
-                lines: ["The members have the paperwork. \(youth.fullName) waits outside until Start Review."],
-                kind: .success
-            )
+        if seated {
+            drafts[scoutID] = nil
+            selectedRoomID = roomID
         }
         return seated
     }
@@ -313,116 +451,100 @@ final class AppModel {
                 + "finished reading the application, references and project workbook.\(fetch)",
             actionTitle: "Start Review"
         ) { [weak self] in
-            guard let self else { return }
-            if self.attempt({ try night.startReview(scoutID: youth.id) }) {
-                self.notice = Notice(title: "Review started", lines: ["\(youth.fullName) in room \(youth.room)"], kind: .success)
-            }
+            self?.attempt("Could not start the review") { try night.startReview(scoutID: youth.id) }
         }
     }
 
     func beginCompleting() {
-        guard let youth = selectedYouth else { return }
+        guard let youth = selectedYouth, youth.status == .inProgress else { return }
         sheet = .completeBoard(scoutID: youth.id)
     }
 
     func complete(scoutID: String, result: BoardResult, notes: String) -> Bool {
         guard let night else { return false }
-        let completed = attempt { try night.completeBoard(scoutID: scoutID, result: result, notes: notes) }
-        if completed, let youth = night.scout(id: scoutID) {
-            var lines = ["\(youth.fullName): \(result.label). The room and the members are free again."]
-            let people = AdultLocator.locate(for: youth, among: night.adults)
-            if !people.isEmpty {
-                lines.append("Let them know:")
-                lines += people.map { "\($0.relation.rawValue): \($0.adult.fullName) (\($0.whereabouts))" }
-            }
-            notice = Notice(title: "Board completed", lines: lines, kind: .success)
+        return attempt("Could not complete the board") {
+            try night.completeBoard(scoutID: scoutID, result: result, notes: notes)
         }
-        return completed
     }
 
+    var canPostpone: Bool { selectedYouth?.status?.isWaitingForBoard == true }
+
     func confirmPostpone() {
-        guard let night, let youth = selectedYouth else { return }
+        guard let night, let youth = selectedYouth, canPostpone else { return }
         confirmation = Confirmation(
             title: "Postpone \(youth.fullName)'s board?",
             message: "Use this when the paperwork or preparation is not ready. They can come back another night.",
             actionTitle: "Postpone",
             isDestructive: true
         ) { [weak self] in
-            self?.attempt { try night.postponeBoard(scoutID: youth.id) }
+            if self?.attempt("Could not postpone the board", { try night.postponeBoard(scoutID: youth.id) }) == true {
+                self?.drafts[youth.id] = nil
+            }
         }
     }
 
+    var canReset: Bool {
+        let status = selectedYouth?.status
+        return status == .seated || status == .inProgress || status == .verified
+    }
+
     func confirmReset() {
-        guard let night, let youth = selectedYouth else { return }
+        guard let night, let youth = selectedYouth, canReset else { return }
         confirmation = Confirmation(
             title: "Reset \(youth.fullName)'s board?",
             message: "\(youth.fullName) goes back to waiting, and room \(youth.room) and its members are freed.",
             actionTitle: "Reset",
             isDestructive: true
         ) { [weak self] in
-            self?.attempt { try night.resetBoard(scoutID: youth.id) }
+            if self?.attempt("Could not reset the board", { try night.resetBoard(scoutID: youth.id) }) == true {
+                self?.selectYouth(youth.id)
+            }
         }
     }
 
+    /// The inspector lists who came with the youth and where they are.
     func locateSelectedYouth() {
-        guard let night, let youth = selectedYouth else { return }
-        let people = AdultLocator.locate(for: youth, among: night.adults)
-        if people.isEmpty {
-            notice = Notice(
-                title: "Could not locate",
-                lines: ["\(youth.fullName)'s leader '\(youth.leader)' has not signed in."],
-                kind: .problem
-            )
-        } else {
-            let place = youth.room.isEmpty || youth.room == disabledForTonightMarker ? "" : " [room \(youth.room)]"
-            notice = Notice(
-                title: "\(youth.fullName)\(place)",
-                lines: people.map { "\($0.relation.rawValue): \($0.adult.fullName) (\($0.whereabouts))" },
-                kind: .info
-            )
-        }
+        guard selectedYouth != nil else { return }
+        showsInspector = true
     }
 
     // MARK: - Adults
 
-    func confirmAvailability(_ available: Bool) {
-        guard let night, let id = selectedAdultID, let adult = night.adult(id: id) else { return }
-        confirmation = Confirmation(
-            title: available ? "Enable \(adult.fullName)?" : "Disable \(adult.fullName)?",
-            message: available
-                ? "They can be put on a board again."
-                : "They are taken out of the pool for tonight, for example because they have gone home.",
-            actionTitle: available ? "Enable" : "Disable"
-        ) { [weak self] in
-            guard let self else { return }
-            if self.attempt({ try night.setAvailable(available, adultID: id) }), !available {
-                self.setChecked(false, adultID: id)
+    /// Disable stands the selected adults down for the night; Enable brings
+    /// them back. Each undoes the other, so neither asks first.
+    func setAvailable(_ available: Bool) {
+        guard let night else { return }
+        for adult in selectedAdults where available ? adult.isDisabledForTonight : adult.isAvailable {
+            if attempt(available ? "Could not enable \(adult.fullName)" : "Could not disable \(adult.fullName)", {
+                try night.setAvailable(available, adultID: adult.id)
+            }), !available {
+                for scoutID in drafts.keys { drafts[scoutID]?.memberIDs.removeAll { $0 == adult.id } }
             }
         }
+    }
+
+    var canEnableSelectedAdults: Bool { selectedAdults.contains(where: \.isDisabledForTonight) }
+    var canDisableSelectedAdults: Bool { selectedAdults.contains(where: \.isAvailable) }
+
+    /// The one selected adult, for commands that take a single person.
+    var singleSelectedAdult: Adult? {
+        let adults = selectedAdults
+        return adults.count == 1 ? adults.first : nil
     }
 
     /// Link the selected adult to the selected youth as someone who came to
     /// support them, or unlink them -- for the adult who did not check the
     /// youth at sign-in. Start Review names them from then on. Works for an
     /// adult on a board too: a Scoutmaster often is by then.
-    func confirmSupportLink() {
-        guard let night, let adultID = selectedAdultID, let adult = night.adult(id: adultID),
-              let youth = selectedYouth else { return }
-        let linked = adult.supports(youth.id)
-        confirmation = Confirmation(
-            title: linked ? "Unlink \(adult.fullName)?" : "Link \(adult.fullName)?",
-            message: linked
-                ? "\(adult.fullName) is linked as supporting \(youth.fullName). Unlink them?"
-                : "\(adult.fullName) came to support \(youth.fullName)? Start Review will then say where to find them.",
-            actionTitle: linked ? "Unlink" : "Link"
-        ) { [weak self] in
-            guard let self else { return }
-            if self.attempt({ try night.setSupporting(!linked, adultID: adultID, scoutID: youth.id) }) {
-                self.notice = Notice(
-                    title: linked ? "Unlinked" : "Linked",
-                    lines: ["\(adult.fullName) \(linked ? "is no longer linked to" : "is linked to") \(youth.fullName)."],
-                    kind: .success)
-            }
+    func toggleSupportLink() {
+        guard let adult = singleSelectedAdult, let youth = selectedYouth else { return }
+        setSupporting(!adult.supports(youth.id), adultID: adult.id, scoutID: youth.id)
+    }
+
+    func setSupporting(_ linked: Bool, adultID: Adult.ID, scoutID: Scout.ID) {
+        guard let night else { return }
+        attempt(linked ? "Could not link" : "Could not unlink") {
+            try night.setSupporting(linked, adultID: adultID, scoutID: scoutID)
         }
     }
 
@@ -431,13 +553,33 @@ final class AppModel {
     func confirmRemoveSelectedRoom() {
         guard let night, let room = selectedRoom else { return }
         guard room.isFree else {
-            problem = "Room \(room.name) is in use by \(room.scoutName) and cannot be removed."
+            message = Message(title: "Room \(room.name) is in use",
+                              text: "\(room.scoutName)'s board is in room \(room.name). A room in use cannot be removed.")
             return
         }
         confirmation = Confirmation(title: "Remove room \(room.name)?", message: "It can be added again later.", actionTitle: "Remove", isDestructive: true) { [weak self] in
-            if self?.attempt({ try night.removeRoom(id: room.id) }) == true {
-                self?.selectedRoomID = nil
+            guard let self else { return }
+            if self.attempt("Could not remove the room", { try night.removeRoom(id: room.id) }) {
+                self.selectedRoomID = nil
+                if self.section == .room(room.id) { self.section = .rooms }
+                for scoutID in self.drafts.keys where self.drafts[scoutID]?.roomID == room.id {
+                    self.drafts[scoutID]?.roomID = nil
+                }
             }
+        }
+    }
+
+    func setBoardType(_ boardType: BoardType, forRoom roomID: Room.ID) {
+        guard let night else { return }
+        attempt("Could not change the room") { try night.setBoardType(boardType, forRoom: roomID) }
+    }
+
+    /// After a rename the room keeps its record but not necessarily its ID.
+    func roomRenamed(from oldID: Room.ID, to newID: Room.ID) {
+        if selectedRoomID == oldID { selectedRoomID = newID }
+        if section == .room(oldID) { section = .room(newID) }
+        for scoutID in drafts.keys where drafts[scoutID]?.roomID == oldID {
+            drafts[scoutID]?.roomID = newID
         }
     }
 
@@ -462,11 +604,12 @@ final class AppModel {
     func importSignUps() async {
         guard let night else { return }
         guard signUpGeniusAllowed else {
-            problem = "SignUpGenius is off while EAGLEBOARDS_DATA_FOLDER is set. Set EAGLEBOARDS_SIGNUPGENIUS=1 to use it."
+            message = Message(title: "SignUpGenius is off",
+                              text: "SignUpGenius is off while EAGLEBOARDS_DATA_FOLDER is set. Set EAGLEBOARDS_SIGNUPGENIUS=1 to use it.")
             return
         }
         guard let key = SignUpGeniusKeychain.read() else {
-            problem = "Add your SignUpGenius API key in Settings first."
+            message = Message(title: "No SignUpGenius key", text: "Add your SignUpGenius API key in Settings first.")
             return
         }
         isImporting = true
@@ -483,9 +626,9 @@ final class AppModel {
             if summary.skippedDuplicateAdults > 0 {
                 lines.append("\(summary.skippedDuplicateAdults) skipped: their email is on more than one history record.")
             }
-            notice = Notice(title: "Imported \(signup.title)", lines: lines, kind: .success)
+            message = Message(title: "Imported \(signup.title)", text: lines.joined(separator: "\n"))
         } catch {
-            problem = error.localizedDescription
+            message = Message(title: "Could not import sign-ups", text: error.localizedDescription)
         }
     }
 
@@ -501,7 +644,7 @@ final class AppModel {
         do {
             try Data(Reports.csv(night.scouts, columns: Reports.boardResultColumns).utf8).write(to: url, options: .atomic)
         } catch {
-            problem = "Could not save the report: \(error.localizedDescription)"
+            message = Message(title: "Could not save the report", text: error.localizedDescription)
         }
     }
 

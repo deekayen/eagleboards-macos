@@ -20,7 +20,7 @@ struct SeatBoardSheet: View {
 
     var body: some View {
         if let youth = night.scout(id: scoutID) {
-            let members = model.checkedAdults
+            let members = model.draftMembers(for: scoutID)
             let room = roomID.flatMap { night.room(id: $0) }
             let review = SeatingReview(scout: youth, members: members, room: room)
             let chairIsQualified = review.qualifiedChairs.contains { $0.id == chairID }
@@ -67,7 +67,7 @@ struct SeatBoardSheet: View {
                     } header: {
                         Text("Board members (\(members.count))")
                     } footer: {
-                        Text("Change who sits on the board with the checkboxes in the Adult Board Members list.")
+                        Text("Change who sits on the board in the inspector.")
                             .foregroundStyle(.secondary)
                     }
 
@@ -124,7 +124,6 @@ struct SeatBoardSheet: View {
                     Button("Seat Board") {
                         guard let roomID, let chairID else { return }
                         if model.seat(scoutID: youth.id, roomID: roomID, chairID: chairID, memberIDs: members.map(\.id)) {
-                            model.selectedRoomID = roomID
                             dismiss()
                         }
                     }
@@ -135,7 +134,7 @@ struct SeatBoardSheet: View {
             }
             .frame(width: 560, height: 640)
             .onAppear {
-                roomID = model.selectedRoomID
+                roomID = model.drafts[scoutID]?.roomID
                     ?? night.rooms.first { $0.isFree && $0.boardType == youth.boardType }?.id
                 chairID = review.qualifiedChairs.first?.id
             }
@@ -335,7 +334,7 @@ struct SwapRoomsSheet: View {
                     .keyboardShortcut(.cancelAction)
                 Button("Swap") {
                     guard let secondRoomID else { return }
-                    if model.attempt({ try night.swapRooms(firstRoomID, secondRoomID) }) {
+                    if model.attempt("Could not move the board", { try night.swapRooms(firstRoomID, secondRoomID) }) {
                         model.selectedRoomID = secondRoomID
                         dismiss()
                     }

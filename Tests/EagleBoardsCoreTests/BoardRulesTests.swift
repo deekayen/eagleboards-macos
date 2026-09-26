@@ -615,7 +615,7 @@ struct RoomTimerTests {
     }
 }
 
-/// The adult panel's Link button editing a Supporting list. The same cases
+/// Link and Unlink editing a Supporting list. The same cases
 /// are in the Java and Windows versions.
 @Suite("Linking an adult to a youth")
 struct SupportLinkTests {
@@ -629,5 +629,40 @@ struct SupportLinkTests {
     ])
     func linkingEditsTheSupportingList(supporting: String, scoutID: String, linked: Bool, expected: String) {
         #expect(Adult.withSupportLink(supporting, scoutID, linked: linked) == expected)
+    }
+}
+
+/// The scheduler's Next Step button and Return key follow the lifecycle.
+@Suite("The next step for a board")
+struct NextStepTests {
+    @Test(arguments: [
+        (BoardStatus.registered, BoardStep?.some(.seat)),
+        (.verified, .seat),
+        (.seated, .startReview),
+        (.inProgress, .complete),
+        (.completed, nil),
+        (.postponed, nil),
+    ])
+    func eachStatusHasOneNextStep(status: BoardStatus, step: BoardStep?) {
+        #expect(status.nextStep == step)
+    }
+}
+
+/// Who the board being drawn up offers: never someone Seat Board refuses.
+@Suite("Adults who can join a board")
+struct CanJoinTests {
+    @Test func aFreeMemberCanJoin() {
+        #expect(adult("Free", "Member", unitName: "Troop1").canJoin(.finalBoard))
+    }
+
+    @Test func noThanksToOneKindStillAllowsTheOther() {
+        let projectOnly = adult("Project", "Only", unitName: "Troop1", final: .unavailable)
+        #expect(!projectOnly.canJoin(.finalBoard))
+        #expect(projectOnly.canJoin(.projectReview))
+    }
+
+    @Test func someoneOnABoardOrGoneHomeCannotJoin() {
+        #expect(!adult("On", "Board", unitName: "Troop1", room: "201").canJoin(.finalBoard))
+        #expect(!adult("Gone", "Home", unitName: "Troop1", room: disabledForTonightMarker).canJoin(.finalBoard))
     }
 }

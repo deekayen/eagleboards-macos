@@ -124,7 +124,7 @@ private struct TimerSettings: View {
             set: { newValue in
                 var edited = night.config
                 edited[keyPath: keyPath] = newValue
-                model.attempt { try night.updateConfig(edited) }
+                model.attempt("Could not save the settings") { try night.updateConfig(edited) }
             }
         )
     }
@@ -160,7 +160,7 @@ private struct ColorSettings: View {
                                 edited.setColorHex(Config.standard.colorHex(for: status, highlighted: highlighted), for: status, highlighted: highlighted)
                             }
                         }
-                        model.attempt { try night.updateConfig(edited) }
+                        model.attempt("Could not save the settings") { try night.updateConfig(edited) }
                     }
                 }
             }
@@ -177,7 +177,7 @@ private struct ColorSettings: View {
             set: { color in
                 var edited = night.config
                 edited.setColorHex(color.hexString, for: status, highlighted: highlighted)
-                model.attempt { try night.updateConfig(edited) }
+                model.attempt("Could not save the settings") { try night.updateConfig(edited) }
             }
         )
     }

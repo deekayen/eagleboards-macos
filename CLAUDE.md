@@ -57,7 +57,12 @@ a native window. See `PROVENANCE.md`.
   role `Unavailable` (Seat Board refuses it). `WoodBadge` and `Supporting`
   (youth IDs, `|`-separated) are appended to the adult record, per night,
   never copied into the history; `/api/scout-choices` feeds the form's list.
-  Start Review and Locate name supporting adults first. The adult panel's Link
-  button (`EventNight.setSupporting`) links or unlinks them after sign-in.
+  Start Review and the inspector's With Them list name supporting adults
+  first. Link an Adult there, and the Adult menu, link or unlink them after
+  sign-in (`EventNight.setSupporting`).
+- **The scheduler follows the Mac layout**: sidebar, list, inspector. Every
+  action lives in the Board, Adult or Room menu (and the matching context
+  menu), not in buttons along a panel. Report outcomes as alerts titled with
+  what failed, or show them in the inspector; no self-dismissing toasts.
 - **No `var##` names**, even to match anything. CI fails on them.
 - **District-neutral branding**, settled: never add a district or council name.

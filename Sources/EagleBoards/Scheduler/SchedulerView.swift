@@ -1,8 +1,10 @@
 import EagleBoardsCore
 import SwiftUI
 
-/// The operator's screen for the evening: youth waiting, adults available,
-/// the rooms, and every board so far.
+/// The operator's screen for the evening. The sidebar picks a list -- youth
+/// waiting, on boards or finished, the adults, or the rooms -- and the
+/// inspector follows the selected youth: the board being drawn up for them,
+/// or how it went.
 ///
 /// Nothing here polls. The event night is observed directly, so a youth who
 /// signs in at the door appears the moment the tablet's request lands.
@@ -14,25 +16,30 @@ struct SchedulerView: View {
     var body: some View {
         @Bindable var model = model
 
-        VSplitView {
-            HSplitView {
-                YouthPanel(night: night)
-                    .frame(minWidth: 540, idealWidth: 700)
-                AdultPanel(night: night)
-                    .frame(minWidth: 420, idealWidth: 560)
-            }
-            .frame(minHeight: 280, idealHeight: 420)
-
-            RoomsPanel(night: night)
-                .frame(minHeight: 150, idealHeight: 210)
-
-            BoardsPanel(night: night)
-                .frame(minHeight: 120, idealHeight: 200)
+        NavigationSplitView {
+            SchedulerSidebar(night: night)
+                .navigationSplitViewColumnWidth(min: 190, ideal: 220, max: 300)
+        } detail: {
+            content
+                .navigationTitle(title)
+                .navigationSubtitle(nightSubtitle)
         }
-        .navigationTitle("Eagle Boards")
-        .navigationSubtitle(nightSubtitle)
+        .searchable(text: $model.searchText, placement: .toolbar, prompt: searchPrompt)
+        .inspector(isPresented: $model.showsInspector) {
+            YouthInspector(night: night)
+                .inspectorColumnWidth(min: 300, ideal: 340, max: 480)
+                .toolbar {
+                    ToolbarItem {
+                        Button {
+                            model.showsInspector.toggle()
+                        } label: {
+                            Label("Inspector", systemImage: "sidebar.trailing")
+                        }
+                        .help("Show or hide the selected youth's board")
+                    }
+                }
+        }
         .toolbar { toolbar }
-        .overlay(alignment: .bottom) { NoticeBanner() }
         .sheet(item: $model.sheet) { sheet in
             switch sheet {
             case .seatBoard(let scoutID): SeatBoardSheet(night: night, scoutID: scoutID)
@@ -41,7 +48,7 @@ struct SchedulerView: View {
             case .swapRooms(let roomID): SwapRoomsSheet(night: night, firstRoomID: roomID)
             case .renameRoom(let roomID):
                 RenameRoomSheet(night: night, roomID: roomID) { newID in
-                    if model.selectedRoomID == roomID { model.selectedRoomID = newID }
+                    model.roomRenamed(from: roomID, to: newID)
                 }
             case .openNight: OpenNightSheet()
             }
@@ -58,13 +65,45 @@ struct SchedulerView: View {
         } message: { confirmation in
             Text(confirmation.message)
         }
-        .alert(
-            "Not done",
-            isPresented: Binding(get: { model.problem != nil }, set: { if !$0 { model.problem = nil } })
-        ) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(model.problem ?? "")
+        .messageAlert()
+        .onChange(of: proposalInputs) { model.refreshProposals() }
+    }
+
+    /// What a proposed board is made from. When any of it changes, proposals
+    /// the operator has not touched are made again.
+    private var proposalInputs: [String] {
+        night.rooms.map { "\($0.id)|\($0.boardTypeText)|\($0.scoutName)" }
+            + night.adults.map { "\($0.id)|\($0.room)|\($0.finalBoardRoleText)|\($0.projectReviewRoleText)" }
+            + night.scouts.map { "\($0.id)|\($0.statusText)|\($0.boardTypeText)" }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch model.section {
+        case .waiting, .onBoards, .finished:
+            YouthList(night: night, section: model.section)
+        case .adults:
+            AdultList(night: night)
+        case .rooms, .room:
+            RoomsGrid(night: night)
+        }
+    }
+
+    private var title: String {
+        switch model.section {
+        case .waiting: "Waiting"
+        case .onBoards: "On Boards"
+        case .finished: "Finished"
+        case .adults: "Adults"
+        case .rooms, .room: "Rooms"
+        }
+    }
+
+    private var searchPrompt: String {
+        switch model.section {
+        case .adults: "Name, unit or room"
+        case .rooms, .room: "Room or name"
+        default: "Name, unit or leader"
         }
     }
 
@@ -77,7 +116,10 @@ struct SchedulerView: View {
         ToolbarItem(placement: .navigation) {
             CheckInStatusButton()
         }
-        ToolbarItemGroup(placement: .primaryAction) {
+        ToolbarItem(placement: .primaryAction) {
+            NextStepButton()
+        }
+        ToolbarItemGroup(placement: .secondaryAction) {
             Button {
                 Task { await model.importSignUps() }
             } label: {
@@ -85,6 +127,13 @@ struct SchedulerView: View {
             }
             .help("Import tonight's pre-registrations and adult sign-ups from SignUpGenius")
             .disabled(model.isImporting)
+
+            Button {
+                model.exportReport()
+            } label: {
+                Label("Export Results", systemImage: "square.and.arrow.up")
+            }
+            .help("Save every youth's board and result as a spreadsheet (CSV)")
 
             Button {
                 openWindow(id: WindowID.records)
@@ -96,92 +145,63 @@ struct SchedulerView: View {
     }
 }
 
-/// A short-lived message along the bottom of the window.
-struct NoticeBanner: View {
+/// The one thing to do next for the selected youth: Seat Board, Start
+/// Review or Complete. The same as Command-Return and double-clicking them.
+struct NextStepButton: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        if let notice = model.notice {
-            HStack(alignment: .top, spacing: 10) {
-                Image(systemName: symbol(for: notice.kind))
-                    .foregroundStyle(color(for: notice.kind))
-                    .font(.title3)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(notice.title).font(.headline)
-                    ForEach(Array(notice.lines.enumerated()), id: \.offset) { _, line in
-                        Text(line).font(.callout)
-                    }
-                }
-                Spacer(minLength: 0)
-                Button {
-                    model.notice = nil
-                } label: {
-                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-                .help("Dismiss")
-            }
-            .padding(12)
-            .frame(maxWidth: 560)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(color(for: notice.kind).opacity(0.5)))
-            .shadow(radius: 6, y: 2)
-            .padding(16)
-            .transition(.move(edge: .bottom).combined(with: .opacity))
-            .task(id: notice.id) {
-                // Problems and located adults stay up longer: they are read, not glanced at.
-                let seconds: Double = notice.kind == .success ? 5 : 20
-                try? await Task.sleep(for: .seconds(seconds))
-                if model.notice?.id == notice.id {
-                    withAnimation { model.notice = nil }
-                }
-            }
-        }
-    }
-
-    private func symbol(for kind: AppModel.Notice.Kind) -> String {
-        switch kind {
-        case .success: "checkmark.circle.fill"
-        case .info: "person.crop.circle.badge.questionmark"
-        case .problem: "exclamationmark.triangle.fill"
-        }
-    }
-
-    private func color(for kind: AppModel.Notice.Kind) -> Color {
-        switch kind {
-        case .success: .green
-        case .info: .blue
-        case .problem: .orange
-        }
-    }
-}
-
-/// A panel's title bar with its buttons, like the Java scheduler's toolbars.
-struct PanelHeader<Actions: View>: View {
-    let title: String
-    var detail: String = ""
-    @ViewBuilder var actions: Actions
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Text(title).font(.headline)
-            if !detail.isEmpty {
-                Text(detail).font(.callout).foregroundStyle(.secondary).lineLimit(1)
-            }
-            Spacer(minLength: 8)
-            HStack(spacing: 6) { actions }
+        let step = model.nextStep
+        Button {
+            model.performNextStep()
+        } label: {
+            Label(step?.title ?? "Next Step", systemImage: symbol(for: step))
+                .labelStyle(.titleAndIcon)
                 .fixedSize()
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(.bar)
+        .disabled(step == nil)
+        .help(help(for: step))
+    }
+
+    private func symbol(for step: BoardStep?) -> String {
+        switch step {
+        case .seat: "chair"
+        case .startReview: "door.left.hand.open"
+        case .complete: "checkmark.seal"
+        case nil: "arrow.right.circle"
+        }
+    }
+
+    private func help(for step: BoardStep?) -> String {
+        switch step {
+        case .seat: "Put the board members in a room to read the paperwork. The youth waits outside until Start Review."
+        case .startReview: "Bring the youth into the room and begin the review, once the members are done reading."
+        case .complete: "Finish the review and record the result."
+        case nil: "Select a youth who is waiting or on a board"
+        }
     }
 }
 
-/// A short vertical rule between groups of buttons. A bare Divider in an
-/// HStack stretches to the full height available, which inflates the header.
-struct ToolbarSeparator: View {
-    var body: some View {
-        Divider().frame(height: 16).padding(.horizontal, 2)
+extension View {
+    /// Shows the model's message, if any, as an alert titled with what
+    /// happened.
+    func messageAlert() -> some View {
+        modifier(MessageAlert())
+    }
+}
+
+private struct MessageAlert: ViewModifier {
+    @Environment(AppModel.self) private var model
+
+    func body(content: Content) -> some View {
+        content.alert(
+            model.message?.title ?? "",
+            isPresented: Binding(get: { model.message != nil }, set: { if !$0 { model.message = nil } }),
+            presenting: model.message
+        ) { _ in
+            Button("OK", role: .cancel) {}
+        } message: { message in
+            Text(message.text)
+        }
     }
 }

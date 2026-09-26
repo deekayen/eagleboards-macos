@@ -87,6 +87,33 @@ struct EagleBoardsCommands: Commands {
                 .keyboardShortcut("e")
                 .disabled(model.night == nil)
         }
+        SidebarCommands()
+        InspectorCommands()
+        CommandGroup(before: .sidebar) {
+            sectionButton("Waiting", .waiting, "1")
+            sectionButton("On Boards", .onBoards, "2")
+            sectionButton("Finished", .finished, "3")
+            sectionButton("Adults", .adults, "4")
+            sectionButton("Rooms", .rooms, "5")
+            Divider()
+        }
+        CommandMenu("Board") {
+            YouthActionButtons(model: model)
+                .disabled(model.night == nil)
+        }
+        CommandMenu("Adult") {
+            AdultActionButtons(model: model)
+                .disabled(model.night == nil)
+        }
+        CommandMenu("Room") {
+            if let night = model.night {
+                RoomActionButtons(model: model, night: night)
+            } else {
+                Button("Add Room…") {}
+                    .keyboardShortcut("n", modifiers: [.command, .shift])
+                    .disabled(true)
+            }
+        }
         CommandGroup(before: .windowList) {
             Button("Scheduler") { openWindow(id: WindowID.scheduler) }
                 .keyboardShortcut("1")
@@ -94,9 +121,23 @@ struct EagleBoardsCommands: Commands {
                 .keyboardShortcut("2")
             Divider()
         }
+        CommandGroup(replacing: .appInfo) {
+            Button("About Eagle Boards") { AboutPanel.show() }
+        }
         CommandGroup(replacing: .help) {
             Button("Eagle Boards Help") { openWindow(id: WindowID.help) }
                 .keyboardShortcut("?")
+            Divider()
+            DonateMenu()
         }
+    }
+
+    private func sectionButton(_ title: String, _ section: AppModel.Section, _ key: KeyEquivalent) -> some View {
+        Button(title) {
+            openWindow(id: WindowID.scheduler)
+            model.show(section)
+        }
+        .keyboardShortcut(key, modifiers: [.command, .option])
+        .disabled(model.night == nil)
     }
 }

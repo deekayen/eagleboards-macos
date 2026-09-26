@@ -51,9 +51,10 @@ settings stay on the Mac, so nobody at the door can look up anyone's details.
 
 Do this before anyone arrives. A board cannot be seated without a room.
 
-In the **Rooms** panel, click **+** and add each room, marking it **Final
-Board** or **Proposal Review** by what it is used for tonight. After the first
-night, **Copy Rooms From** brings back an earlier night's list.
+Click **Add Room** at the bottom of the sidebar (or choose **Room › Add
+Room…**) and add each room, marking it **Final Board** or **Proposal Review**
+by what it is used for tonight. After the first night, **Room › Copy Rooms
+From** brings back an earlier night's list.
 
 To hold two proposal reviews in one room, add it twice, e.g. `200A` and `200B`.
 
@@ -73,17 +74,25 @@ youth are listed ahead of walk-ins.
 ### 2. Check the paperwork
 
 Check each youth's paperwork as they sign in. If it is not in order, select
-them and press **Postpone**.
+them and choose **Board › Postpone…**.
 
 ### 3. Seat a board
 
-Select a youth. Eagle Boards proposes a board: a chair, enough members, and a
-free room of the right kind. It never picks adults from the youth's own unit.
+The window has three parts: the sidebar (youth **Waiting**, **On Boards** and
+**Finished**, the **Adults**, and every room), the list the sidebar chose, and
+the inspector on the right, which follows the selected youth.
 
-Change the board with the checkboxes in **Adult Board Members**. Checked adults
-stay checked while you click around. **Clear** empties the list.
+Select a waiting youth. Eagle Boards proposes a board in the inspector: a
+chair, enough members, and a free room of the right kind. It never picks adults
+from the youth's own unit.
 
-Press **Seat Board**. The sheet lists anything that stops the board, such as
+Change the board in the inspector: **+** adds an adult from the free list
+below it, **−** takes one off, and adults can be dragged onto it from the
+Adults list. A board you have changed is kept while you look at other youth.
+**Suggest Again** starts over.
+
+Press **Seat Board…** (or **⌘↩**, or double-click the youth). You can also drag
+a waiting youth onto a free room in the sidebar. The sheet lists anything that stops the board, such as
 too few members, no qualified chair, or someone already on another board. It
 also lists anything worth a second look, and each of those needs its own tick.
 Choose the chair and press **Seat Board**.
@@ -92,14 +101,15 @@ The members now have the room and the paperwork. The youth waits outside.
 
 ### 4. Start the review
 
-When the members have finished reading, press **Start Review**. The
-confirmation lists the youth's leader and parents, if they signed in, so they
-can be fetched too.
+When the members have finished reading, select the youth and press **Start
+Review** (**⌘↩** again). The confirmation lists who came with the youth, and
+their leader and parents if they signed in, so they can be fetched too. The
+inspector lists them all evening under **With Them**.
 
 ### 5. Complete
 
-When the board has finished, press **Complete**, choose the result, and add
-any notes. The room and the members are free for the next board.
+When the board has finished, press **Complete…** (**⌘↩**), choose the result,
+and add any notes. The room and the members are free for the next board.
 
 ## Rules the scheduler keeps
 
@@ -143,7 +153,12 @@ Everything is saved as it happens; there is nothing to save before quitting.
 | The tablet cannot open the address | Check both are on the same Wi-Fi. Click the sign-in address and try another address listed there. Check that Eagle Boards is allowed in System Settings › Network › Firewall. |
 | "Port 8080 is already in use" | Quit the other program (the Java Eagle Board Scheduler uses 8080 too), or change the port in Settings › General. |
 | "Not qualified to chair" | Promote someone: open Records › Adults, select them, and set their Final or Project role to Chair. |
-| A board was seated by mistake | Select the youth and press **Reset**. |
+| A board was seated by mistake | Select the youth and choose **Board › Reset Board…**. |
+
+## Donating
+
+Eagle Boards is free. If it helps your board nights, **Help › Donate** lists
+ways to support its development.
 
 ## For developers
 
