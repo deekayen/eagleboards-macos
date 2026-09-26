@@ -38,9 +38,7 @@ struct AdultList: View {
             // Volunteering toward a Wood Badge ticket item.
             TableColumn("WB", value: \.woodBadge) { adult in
                 if adult.woodBadge == "Y" {
-                    Image(systemName: "checkmark")
-                        .help("Volunteering toward a Wood Badge ticket item")
-                        .accessibilityLabel("Wood Badge")
+                    WoodBadgeIcon()
                 }
             }
             .width(min: 28, ideal: 34, max: 44)

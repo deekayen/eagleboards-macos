@@ -36,7 +36,7 @@ struct HelpView: View {
 
                 section("Start the review") {
                     step("When the members have finished reading, select the youth and press Start Review (Command-Return again). The confirmation lists who came to support the youth (they say so at sign-in) and where they are, even on another board, then the youth's leader and parents if they signed in, so they can be fetched too.")
-                    step("At sign-in, adults can say \"No thanks\" to one kind of board (they are never seated on it), whether today counts toward a Wood Badge ticket item (the WB column), and which youth they came with. Proposed boards favour those who came to serve on any board.")
+                    step("At sign-in, adults can say \"No thanks\" to one kind of board (they are never seated on it), whether today counts toward a Wood Badge ticket item (marked with two wooden beads next to their name), and which youth they came with. Proposed boards favour those who came to serve on any board.")
                     step("If an adult came with a youth but did not say so at sign-in, select the youth and use Link an Adult under With Them in the inspector. Right-click them there to unlink.")
                 }
 

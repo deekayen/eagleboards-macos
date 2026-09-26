@@ -62,11 +62,7 @@ struct SeatBoardSheet: View {
                         ForEach(members) { member in
                             HStack {
                                 Text(member.fullName)
-                                if !youth.unitName.isEmpty && member.unitName == youth.unitName {
-                                    Image(systemName: "exclamationmark.triangle.fill")
-                                        .foregroundStyle(.orange)
-                                        .help("Same unit as \(youth.fullName)")
-                                }
+                                AdultMarks(adult: member, youth: youth)
                                 Spacer()
                                 Text(member.unitLabel).foregroundStyle(.secondary)
                                 RoleText(role: youth.boardType.flatMap { member.role(for: $0)?.rawValue } ?? "")

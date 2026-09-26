@@ -174,17 +174,11 @@ private struct MemberRow: View {
     let remove: () -> Void
 
     var body: some View {
-        let sameUnit = !BoardRules.unitConflicts(scoutUnitName: youth.unitName, members: [member]).isEmpty
         HStack(spacing: 6) {
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 4) {
                     Text(member.fullName)
-                    if sameUnit {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
-                            .help("Same unit as \(youth.fullName)")
-                            .accessibilityLabel("Same unit")
-                    }
+                    AdultMarks(adult: member, youth: youth)
                 }
                 if let busy {
                     Text(busy).font(.caption).foregroundStyle(.red)
@@ -266,15 +260,9 @@ private struct FreeAdultsSection: View {
                     .foregroundStyle(.secondary)
             }
             ForEach(free) { adult in
-                let sameUnit = !BoardRules.unitConflicts(scoutUnitName: youth.unitName, members: [adult]).isEmpty
                 HStack(spacing: 6) {
                     Text(adult.fullName)
-                    if sameUnit {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
-                            .help("Same unit as \(youth.fullName)")
-                            .accessibilityLabel("Same unit")
-                    }
+                    AdultMarks(adult: adult, youth: youth)
                     Spacer()
                     Text(adult.unitLabel).font(.caption).foregroundStyle(.secondary)
                     RoleText(role: adult.role(for: boardType)?.rawValue ?? "")

@@ -17,11 +17,11 @@ struct RoomsGrid: View {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 10)], spacing: 10) {
                         ForEach(rooms) { room in
                             RoomCard(room: room, night: night, now: timeline.date, isSelected: room.id == model.selectedRoomID)
-                                .onTapGesture(count: 2) {
-                                    model.selectRoom(room.id)
-                                    model.performNextStep()
-                                }
+                                // A double click alongside the single one, not
+                                // before it: an exclusive double click makes
+                                // every single click wait to see if it is one.
                                 .onTapGesture { model.selectRoom(room.id) }
+                                .simultaneousGesture(TapGesture(count: 2).onEnded { model.performNextStep() })
                                 .contextMenu { RoomActionButtons(model: model, night: night, roomID: room.id) }
                                 .youthDropDestination(room: room)
                         }
