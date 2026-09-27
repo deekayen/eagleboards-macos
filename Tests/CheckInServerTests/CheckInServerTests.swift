@@ -83,6 +83,7 @@ struct CheckInServerTests {
         #expect(night.scouts.count == 1)
         #expect(night.scouts.first?.leader == "Lee Leader")
         #expect(night.scouts.first?.dateOfBirth == "", "a birthdate from an older cached page is not kept (D-7)")
+        #expect(night.scouts.first?.phone == "", "nor is a phone number (D-8)")
 
         let lists = try await send("/api/checked-in")
         #expect(lists.status == .ok)
@@ -105,6 +106,7 @@ struct CheckInServerTests {
         #expect(youth[0]["id"] == "SCOUT:Doe:Jan:1776")
         #expect(!reply.body.contains("jan@example.org"))
         #expect(!reply.body.contains("770-555-0100"))
+        #expect(night.scouts.first?.phone == "", "a phone number from an older cached page is not kept (D-8)")
     }
 
     @Test func aRefusalComesBackInWords() async throws {
@@ -132,15 +134,25 @@ struct CheckInServerTests {
         try night.registerAdult(["First": "Morgan", "Last": "Member", "Email": "morgan@example.org", "UnitType": "Troop", "Unit": "5"])
         var history = try #require(night.adultHistory.first)
         history.boardHistory = "(2019-05-28)(2026-08-25)"
+        history.phone = "770-555-0110"
         try night.updateAdult(history, history: true)
+        // A pre-registration from before D-7 and D-8 may still hold both.
+        var scheduled = try #require(night.scheduledYouth(matchingEmail: "jan@example.org"))
+        scheduled.phone = "770-555-0100"
+        scheduled.dateOfBirth = "1/2/2010"
+        try night.updateYouth(scheduled, scheduled: true)
 
         let youth = try await send("/api/youth-lookup", method: .post, form: "email=JAN%40example.org")
         #expect(youth.json["First"] as? String == "Jan")
         #expect(youth.json["Leader"] as? String == "Lee Leader")
         #expect(Set(youth.json.keys) == Set(CheckInServer.youthPrefillColumns))
+        #expect(youth.json["Phone"] == nil && youth.json["DOB"] == nil)
+        #expect(!youth.body.contains("770-555-0100"), "a youth's phone on file is not pre-filled (D-8)")
+        #expect(!youth.body.contains("1/2/2010"), "nor a birthdate (D-7)")
 
         let adult = try await send("/api/adult-lookup", method: .post, form: "email=morgan%40example.org")
         #expect(adult.json["Last"] as? String == "Member")
+        #expect(adult.json["Phone"] as? String == "770-555-0110", "an adult's phone still is")
         #expect(Set(adult.json.keys) == Set(CheckInServer.adultPrefillColumns))
         #expect(!adult.body.contains("2019-05-28"), "board history stays in the app")
 

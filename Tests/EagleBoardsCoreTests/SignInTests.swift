@@ -15,8 +15,10 @@ struct SignInTests {
         night = try EventNight(folder: scratch.dataFolder, night: "2026-09-22", clock: { clock.now })
     }
 
+    /// What an older cached sign-in page sends: a phone number and birthdate
+    /// too, neither of which is kept (SPEC.md D-7, D-8).
     private func youthForm(_ first: String, _ last: String, email: String, unit: String = "1776", boardType: String = "Final") -> [String: String] {
-        ["First": first, "Last": last, "Email": email, "UnitType": "Troop", "Unit": unit, "BoardType": boardType, "Phone": "555", "DOB": "1/1/2010"]
+        ["First": first, "Last": last, "Email": email, "UnitType": "Troop", "Unit": unit, "BoardType": boardType, "Phone": "770-555-0100", "DOB": "1/1/2010"]
     }
 
     @Test func walkInsAndPreRegisteredAreNumberedSeparately() throws {
@@ -37,20 +39,27 @@ struct SignInTests {
 
     @Test func signingInAgainChangesOnlyTheSignInFields() throws {
         let first = try night.registerYouth(youthForm("Jan", "Doe", email: "jan@example.org"))
+        #expect(first.phone == "" && first.dateOfBirth == "", "a new youth's are empty (D-7, D-8)")
         try night.addRoom(named: "101", boardType: .finalBoard)
         var seatedCopy = try #require(night.scout(id: first.id))
         seatedCopy.status = .seated
         seatedCopy.room = "101"
+        // A number on file from before D-8.
+        seatedCopy.phone = "770-555-0101"
         try night.updateYouth(seatedCopy)
 
         var again = youthForm("Jan", "Doe", email: "jan@example.org", boardType: "Project")
+        again["Leader"] = "Lee Leader"
         again["Phone"] = "770-555-0199"
         again["Status"] = "Completed"
         again["Result"] = "Approved"
         let updated = try night.registerYouth(again)
 
         #expect(night.scouts.count == 1)
-        #expect(updated.phone == "770-555-0199")
+        #expect(updated.leader == "Lee Leader")
+        #expect(updated.phone == "770-555-0101", "a phone number on file is left alone (D-8)")
+        let file = try scratch.text("2026-09-22/scouts.csv")
+        #expect(file.contains("770-555-0101") && !file.contains("770-555-0199"), "and carried through the rewrite")
         #expect(updated.status == .seated, "status is not a sign-in field")
         #expect(updated.room == "101")
         #expect(updated.result == "")
@@ -249,6 +258,7 @@ struct SignUpImportTests {
         #expect(jan.id == "SCOUT:Doe:Jan:1776")
         #expect(jan.boardType == .finalBoard)
         #expect(jan.leader == "Lee Leader")
+        #expect(jan.phone == "", "a youth's phone number is not imported (D-8)")
         #expect(night.scheduledYouth(matchingEmail: "sam@example.org")?.boardType == .projectReview)
         #expect(night.scheduledYouth(matchingEmail: "sam@example.org")?.unitName == "Post9")
 

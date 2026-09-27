@@ -150,9 +150,28 @@ struct ReportTests {
         youth.last = "Doe"
         youth.result = "Approved"
         youth.notes = "Calm, prepared"
+        // On file from before D-7 and D-8; neither is exported.
+        youth.dateOfBirth = "1/2/2010"
+        youth.phone = "770-555-0100"
         let report = Reports.csv([youth], columns: Reports.boardResultColumns)
         let lines = report.split(separator: "\n")
-        #expect(lines[0] == "RegNum,Last,First,Phone,Email,BoardType,UnitType,Unit,Leader,Status,Result,BoardChair,BoardMembers,Notes")
-        #expect(lines[1] == ",Doe,Jan,,,,,,,,Approved,,,Calm~ prepared")
+        #expect(lines[0] == "RegNum,Last,First,Email,BoardType,UnitType,Unit,Leader,Status,Result,BoardChair,BoardMembers,Notes")
+        #expect(lines[1] == ",Doe,Jan,,,,,,,Approved,,,Calm~ prepared")
+    }
+
+    /// The Records window's youth lists keep the data files' columns, with a
+    /// birthdate or phone number on file left blank (SPEC.md D-7, D-8).
+    @Test func anExportedYouthListWithholdsTheBirthdateAndPhone() {
+        var youth = Scout.blank(at: Date())
+        youth.first = "Jan"
+        youth.last = "Doe"
+        youth.email = "jan@example.org"
+        youth.dateOfBirth = "1/2/2010"
+        youth.phone = "770-555-0100"
+        let exported = CSVFile.render([youth.forExport])
+        #expect(exported.hasPrefix(CSVFile.render([Scout]())), "the same header")
+        #expect(exported.contains("jan@example.org"))
+        #expect(!exported.contains("1/2/2010") && !exported.contains("770-555-0100"))
+        #expect(youth.phone == "770-555-0100", "the record keeps it")
     }
 }

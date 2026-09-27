@@ -85,7 +85,9 @@ public enum CheckInServer {
 
     // MARK: - What the pages are given
 
-    static let youthPrefillColumns = ["ID", "Last", "First", "Phone", "UnitType", "Unit", "BoardType", "Leader"]
+    /// No DOB (SPEC.md D-7) and no Phone (D-8): one already on a
+    /// pre-registration stays in the file but is never sent to the tablet.
+    static let youthPrefillColumns = ["ID", "Last", "First", "UnitType", "Unit", "BoardType", "Leader"]
     static let adultPrefillColumns = ["ID", "Last", "First", "Phone", "UnitType", "Unit", "FinalBoard", "ProjectReview"]
 
     private static func pick<Record: EventRecord>(_ columns: [String], from record: Record) -> [String: String] {

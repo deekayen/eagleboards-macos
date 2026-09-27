@@ -183,9 +183,10 @@ public enum PropertiesFile {
 
 /// Exports for people to open in a spreadsheet.
 public enum Reports {
-    /// The board results report: the Java app's `Report.csv` columns.
+    /// The board results report: the Java app's `Report.csv` columns, less
+    /// DOB (SPEC.md D-7) and Phone (D-8).
     public static let boardResultColumns = [
-        "RegNum", "Last", "First", "Phone", "Email", "BoardType", "UnitType", "Unit",
+        "RegNum", "Last", "First", "Email", "BoardType", "UnitType", "Unit",
         "Leader", "Status", "Result", "BoardChair", "BoardMembers", "Notes",
     ]
 

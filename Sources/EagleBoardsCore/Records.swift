@@ -174,10 +174,16 @@ public struct Scout: PersonRecord {
     ]
 
     /// The columns a youth fills in at the sign-in station. Signing in again
-    /// updates these and nothing else. No DOB (SPEC.md D-7): a birthdate sent
-    /// by an older cached page is not copied, and one already on file is left
+    /// updates these and nothing else. No DOB (SPEC.md D-7) and no Phone
+    /// (D-8): a birthdate or phone number sent by an older cached page is not
+    /// copied, so a new youth's is empty, and one already on file is left
     /// alone (O-5).
-    public static let signInColumns = ["First", "Last", "Unit", "UnitType", "Email", "Phone", "Leader"]
+    public static let signInColumns = ["First", "Last", "Unit", "UnitType", "Email", "Leader"]
+
+    /// Columns kept in the data files but never shown, pre-filled or
+    /// exported: nothing uses a youth's birthdate (SPEC.md D-7) or phone
+    /// number (D-8). A value from before those rules stays on file (O-5).
+    public static let withheldColumns = ["DOB", "Phone"]
 
     public var fields: [String: String]
 
@@ -257,6 +263,17 @@ public struct Scout: PersonRecord {
 
     public var isPreRegistered: Bool { regNum.hasPrefix("P") }
     public var isWalkIn: Bool { regNum.hasPrefix("W") }
+
+    /// A copy for a file saved outside the data folder, with the withheld
+    /// columns blank. They stay as columns, so the file keeps the data files'
+    /// shape; the record itself is not changed.
+    public var forExport: Scout {
+        var copy = self
+        for column in Self.withheldColumns {
+            copy[column] = ""
+        }
+        return copy
+    }
 }
 
 // MARK: - Adults

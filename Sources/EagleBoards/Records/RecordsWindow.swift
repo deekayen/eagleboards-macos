@@ -109,8 +109,10 @@ struct RecordsWindow: View {
         guard let night = model.night else { return }
         let text: String
         switch kind {
-        case .youth: text = CSVFile.render(night.scouts)
-        case .scheduled: text = CSVFile.render(night.scheduledScouts)
+        // A youth's birthdate or phone number on file is not exported
+        // (SPEC.md D-7, D-8).
+        case .youth: text = CSVFile.render(night.scouts.map(\.forExport))
+        case .scheduled: text = CSVFile.render(night.scheduledScouts.map(\.forExport))
         case .adults: text = CSVFile.render(night.adults)
         case .history: text = CSVFile.render(night.adultHistory)
         case .rooms: text = CSVFile.render(night.rooms)
@@ -158,7 +160,6 @@ private struct YouthRecords: View {
                     TableColumn("Unit", value: \.unitName) { Text($0.unitDisplay) }
                     TableColumn("Board", value: \.boardTypeText) { Text($0.boardType?.label ?? $0.boardTypeText) }
                     TableColumn("Email", value: \.email)
-                    TableColumn("Phone", value: \.phone)
                     TableColumn("Leader", value: \.leader)
                 }
             } else {
@@ -170,7 +171,6 @@ private struct YouthRecords: View {
                     TableColumn("Status", value: \.statusRank) { StatusBadge(statusText: $0.statusText) }
                     TableColumn("Result", value: \.result)
                     TableColumn("Email", value: \.email)
-                    TableColumn("Phone", value: \.phone)
                     TableColumn("Leader", value: \.leader)
                 }
             }
@@ -198,7 +198,7 @@ private struct YouthRecords: View {
 
     static let youthFields: [FieldSpec] = [
         .init("First", "First name"), .init("Last", "Last name"),
-        .init("Email", "Email"), .init("Phone", "Phone"),
+        .init("Email", "Email"),
         .init("UnitType", "Unit type", .choice(unitTypes)), .init("Unit", "Unit #"),
         .init("Leader", "Leader"),
         .init("BoardType", "Board", .choice(boardTypes)),
@@ -214,7 +214,7 @@ private struct YouthRecords: View {
 
     static let scheduledFields: [FieldSpec] = [
         .init("First", "First name"), .init("Last", "Last name"),
-        .init("Email", "Email"), .init("Phone", "Phone"),
+        .init("Email", "Email"),
         .init("UnitType", "Unit type", .choice(unitTypes)), .init("Unit", "Unit #"),
         .init("Leader", "Leader"),
         .init("BoardType", "Board", .choice(boardTypes)),

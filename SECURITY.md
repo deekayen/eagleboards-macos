@@ -7,9 +7,13 @@ before your first commit.
 
 | Data | Where it lives | Why it matters |
 | --- | --- | --- |
-| Youth names, birthdates, units, contact details | the data folder's dated `YYYY-MM-DD/` folders, exported reports | Personal information about minors |
+| Youth names, units, emails | the data folder's dated `YYYY-MM-DD/` folders, exported reports | Personal information about minors |
 | Adult names, emails, phones, board history | `adults.csv`, `Master_AdultHistory.csv` | Personal information, cumulative across years |
 | SignUpGenius API key | the macOS keychain of the Mac running the app | Grants API access to the district's sign-ups |
+
+Eagle Boards no longer asks for, imports or keeps a youth's birthdate or phone
+number (SPEC.md D-7, D-8). Folders from earlier events may still hold them:
+they are left in place, and never shown, sent to a tablet or exported.
 
 The data folder is chosen by the operator and lives outside this repository.
 Nothing in the repository or in a built app contains participant data or a key.

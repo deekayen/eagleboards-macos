@@ -923,7 +923,7 @@ public final class EventNight {
                 youth.first = NameCleanup.name(entry.firstName)
                 youth.last = NameCleanup.name(entry.lastName)
                 youth.email = entry.email.trimmingCharacters(in: .whitespaces)
-                youth.phone = NameCleanup.phone(entry.phoneText)
+                // No phone number: nothing uses a youth's (SPEC.md D-8).
                 youth.unitType = unit.type.rawValue
                 youth.unit = unit.number
                 youth.leader = NameCleanup.leader(entry.leaderText)

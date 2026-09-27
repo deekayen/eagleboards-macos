@@ -2,6 +2,17 @@
 
 Versions are CalVer: the release date.
 
+## Unreleased
+
+**No youth phone numbers** (SPEC.md D-8). Nothing used one, so the youth
+sign-in no longer asks for it or keeps one sent by an older cached page, a
+SignUpGenius import no longer copies it, and the email lookup, the Records
+window and the board results report no longer show or export it. A number
+already on file stays there, unchanged by signing in again, and the `Phone`
+column stays in the youth data files. Adults' phone numbers are unchanged.
+A youth list saved from the Records window now leaves out a birthdate on file
+too (D-7).
+
 ## 2026.09.25
 
 The first version of Eagle Boards, the native Mac version of the Java Eagle
