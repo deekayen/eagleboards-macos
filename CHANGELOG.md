@@ -35,6 +35,11 @@ column stays in the youth data files. Adults' phone numbers are unchanged.
 A youth list saved from the Records window now leaves out a birthdate on file
 too (D-7).
 
+**Room cards work with VoiceOver.** A card said it was a button, but only a
+mouse click selected it. Pressing it (VO-Space) now selects the room and its
+youth, and the board's next step, Start Review or Complete, is in its
+actions (VO-Command-Space), as a double click takes it.
+
 ## 2026.09.25
 
 The first version of Eagle Boards, the native Mac version of the Java Eagle
