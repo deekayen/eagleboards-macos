@@ -21,7 +21,7 @@ is behavior and interface:
 - **The board rules.** Board size, the binding chair designation, one board
   per adult, and the same-unit rule, with the Guide to Advancement references
   the Java project documented. Its test cases are carried over in
-  `BoardRulesTests` and `BoardEveningTests`.
+  `BoardRulesTests` and `BoardEventTests`.
 - **The lifecycle.** Registered, Seated, InProgress, Completed or Postponed,
   including the legacy `Verified` status.
 - **The sign-in pages.** `Sources/CheckInServer/Resources/CheckIn` began as the

@@ -168,8 +168,8 @@ struct CheckInServerTests {
         #expect(try await send("/api/adult-lookup", method: .post, form: "email=NONE").body == "{}")
     }
 
-    /// Java evening section 24, the youth phone number (SPEC.md D-8), over
-    /// HTTP as the Java script does it. BoardEveningTests follows the same
+    /// Java event test section 24, the youth phone number (SPEC.md D-8), over
+    /// HTTP as the Java script does it. BoardEventTests follows the same
     /// youth through the data files, the report and the Records window.
     @Test func aYouthsPhoneNumberIsNotKeptButAnAdultsStillFillsTheirForm() async throws {
         let oldPage = "Last=Oldpage&First=Olive&Email=op%40example.org&Phone=555-0101&UnitType=Troop&Unit=4402&BoardType=Final&DOB=2011-02-03"

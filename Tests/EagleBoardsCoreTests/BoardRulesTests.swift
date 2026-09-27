@@ -420,11 +420,11 @@ struct WaitingLineSuggestionTests {
         #expect(pick.problems == ["Only 1 Final Board member is available."])
     }
 
-    /// The evening test's shape: 9 Final and 5 Project youth, 30 adults, five
+    /// The event test's shape: 9 Final and 5 Project youth, 30 adults, five
     /// of whom chair anything. Proposing boards down the queue must reach the
     /// chair cap of five at once; sign-in order stalled at three, because the
     /// first Final board took both project chairs as its members.
-    @Test func aWholeEveningSeatsFiveBoardsAtOnce() {
+    @Test func aWholeEventSeatsFiveBoardsAtOnce() {
         var adults = [
             pool("FC1", "Troop2001", "Chair", "Chair"),
             pool("FC2", "Troop2002", "Chair", "Member"),

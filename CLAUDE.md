@@ -23,7 +23,7 @@ a native window. See `PROVENANCE.md`.
 - Xcode is installed but may not be the selected developer directory. Use it
   without changing system settings:
   `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test`
-- `swift test` runs everything headless: the rules, a whole board evening,
+- `swift test` runs everything headless: the rules, a whole board event,
   the data-file dialect, and the check-in server (in memory, plus one test on
   a real socket).
 - `scripts/build-app.sh` builds `build/Eagle Boards.app`.
@@ -47,9 +47,9 @@ a native window. See `PROVENANCE.md`.
 - **The data files are the contract** with the Java app. Change their shape
   only with a test in `FileFormatTests` and a reason that survives the Java
   app reading the result.
-- **Add a test with every fix**, and a `BoardEveningTests` case when a change
+- **Add a test with every fix**, and a `BoardEventTests` case when a change
   touches seating, running or tearing down a board. Scenarios added to the Java
-  project's `test-board-evening.sh` are mirrored there too (and in the Windows
+  project's `test-board-event.sh` are mirrored there too (and in the Windows
   version); where one cannot arise here, the stand-in test says why.
 - **The check-in pages are shared** (SPEC.md D-18): the five files in
   `Sources/CheckInServer/Resources/CheckIn/` are copies of

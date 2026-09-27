@@ -2,14 +2,14 @@ import EagleBoardsCore
 import Foundation
 import Testing
 
-/// A whole board evening at the district's real shape, carried over from the
-/// Java project's scripts/test-board-evening.sh:
+/// A whole board event at the district's real shape, carried over from the
+/// Java project's scripts/test-board-event.sh:
 ///
 ///   14 youth (9 Final, 5 Project)     12 rooms (7 Final, 5 Project)
 ///   30 adults, of whom only FIVE may chair anything:
 ///       3 can chair a Final board, 3 a Project review, one of them both.
 ///
-/// So the evening is capped at five concurrent boards no matter how many rooms
+/// So the event is capped at five concurrent boards no matter how many rooms
 /// are free -- the constraint the scheduler actually has to survive. The rule
 /// tests pin down the rules as pure functions; this pins down what the event
 /// night does with them: boards convening and starting, adults committed to
@@ -18,8 +18,8 @@ import Testing
 ///
 /// Add a case here when you change how a board is seated, run or torn down.
 @MainActor
-@Suite("A board evening")
-struct BoardEveningTests {
+@Suite("A board event")
+struct BoardEventTests {
     let scratch: ScratchFolder
     let night: EventNight
 
@@ -45,7 +45,7 @@ struct BoardEveningTests {
         """.split(whereSeparator: \.isWhitespace).map(String.init)
 
     // The five who may chair. chairOfEither can chair either kind, so
-    // committing them to a Final board is what drops the evening to two Project chairs.
+    // committing them to a Final board is what drops the event to two Project chairs.
     var chairOfEither: String { adultID(1, unit: 2001) }
     var finalChair2: String { adultID(2, unit: 2002) }
     var finalChair3: String { adultID(3, unit: 2003) }
@@ -109,7 +109,7 @@ struct BoardEveningTests {
         ])
     }
 
-    // MARK: - Helpers that read the evening back
+    // MARK: - Helpers that read the event back
 
     private func seat(_ roomName: String, _ scoutID: String, chair: String, _ members: String...) throws {
         try night.seatBoard(roomID: "ROOM:\(roomName)", scoutID: scoutID, chairID: chair, memberIDs: [chair] + members)
@@ -131,9 +131,9 @@ struct BoardEveningTests {
         try night.completeBoard(scoutID: scoutID, result: .approved, notes: "")
     }
 
-    // MARK: - The evening
+    // MARK: - The event
 
-    @Test func theEveningAsSeeded() {
+    @Test func theEventAsSeeded() {
         #expect(night.rooms.count == 12)
         #expect(night.adults.count == 30)
         #expect(night.scouts.count == 14)
@@ -166,7 +166,7 @@ struct BoardEveningTests {
         #expect(busyAdults == 0)
     }
 
-    @Test func fiveChairsCapTheEveningAtFiveConcurrentBoards() throws {
+    @Test func fiveChairsCapTheEventAtFiveConcurrentBoards() throws {
         try seatFiveBoards()
         #expect(count(.seated) == 5)
         #expect(busyAdults == 13)
@@ -266,7 +266,7 @@ struct BoardEveningTests {
         #expect(night.scout(id: finalYouth(1))?.boardMemberIDs.split(separator: ",").count == 3)
     }
 
-    /// Java evening section 21, the cases the test above leaves out: the
+    /// Java event test section 21, the cases the test above leaves out: the
     /// chair leaving and another chair taking over, a plain member refused
     /// the chair, and Complete releasing whoever sits on the board by then.
     @Test func changeMembersHandsTheChairOnAndCompleteReleasesTheNewBoard() throws {
@@ -312,7 +312,7 @@ struct BoardEveningTests {
         refused("a waiting youth has nothing to reset") { try night.resetBoard(scoutID: finalYouth(2)) }
     }
 
-    @Test func theWholeEveningFiveChairsAtATime() throws {
+    @Test func theWholeEventFiveChairsAtATime() throws {
         try seatFiveBoards()
         try runBoard(finalYouth(1))
         try seat("104", finalYouth(4), chair: chairOfEither, member(1), member(2))
@@ -345,7 +345,7 @@ struct BoardEveningTests {
         #expect(emptyRooms == 12)
 
         // The record is what the district keeps, so a wrong chair on it is the
-        // failure that outlives the evening.
+        // failure that outlives the event.
         for youth in night.scouts where youth.status == .completed {
             let chair = night.adult(id: youth.boardChairID)
             #expect(chair != nil && youth.boardType.map { chair!.canChair($0) } == true, "\(youth.fullName) had a qualified chair")
@@ -361,7 +361,7 @@ struct BoardEveningTests {
     // MARK: - What goes wrong on the night
     //
     // Carried over from sections 9-18 of the Java project's
-    // test-board-evening.sh. Where a Java case cannot arise here, the test
+    // test-board-event.sh. Where a Java case cannot arise here, the test
     // that stands in for it says why.
 
     @discardableResult
@@ -559,7 +559,7 @@ struct BoardEveningTests {
     // counterpart: EventNight is @MainActor, so every change runs one at a time.
 
     // Java section 16.
-    @Test func theAppRestartsInTheMiddleOfTheEvening() throws {
+    @Test func theAppRestartsInTheMiddleOfTheEvent() throws {
         try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
         try night.startReview(scoutID: finalYouth(1))
         try seat("102", finalYouth(2), chair: finalChair2, member(3), member(4))
@@ -706,8 +706,8 @@ struct BoardEveningTests {
         try seat("101", rsvp, chair: chairOfEither, member(1), noProject)  // a Final board is fine
         try night.resetBoard(scoutID: rsvp)
 
-        // The sign-in list: RSVPs not yet here, and tonight's youth whose
-        // evening is not over.
+        // The sign-in list: RSVPs not yet here, and this event's youth who are
+        // not done yet.
         try CSVFile.write([Scout(fields: [
             "Type": "SCOUT", "ID": "SCOUT:Rsvp:Only:3999", "Last": "Rsvp", "First": "Only",
             "UnitType": "Troop", "Unit": "3999", "BoardType": "Final",
@@ -717,7 +717,7 @@ struct BoardEveningTests {
         let choices = reopened.scoutChoices().map(\.id)
         #expect(choices.contains("SCOUT:Rsvp:Only:3999"), "an RSVP not yet signed in can be chosen")
         #expect(choices.contains(rsvp), "so can someone signed in tonight")
-        #expect(!choices.contains(finalYouth(9)), "but not someone whose evening is over")
+        #expect(!choices.contains(finalYouth(9)), "but not someone done for the event")
     }
 
     // Java section 19, linking after both have signed in.
@@ -876,7 +876,7 @@ struct BoardEveningTests {
 
     /// Undo cannot put anyone on two boards: once the room or a member has
     /// been given to another board, the old board stays as it is.
-    @Test func undoIsRefusedOnceTheEveningHasMovedOn() throws {
+    @Test func undoIsRefusedOnceTheEventHasMovedOn() throws {
         try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
         let seated = try #require(night.scout(id: finalYouth(1)))
         try night.resetBoard(scoutID: finalYouth(1))

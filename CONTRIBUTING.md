@@ -83,7 +83,7 @@ below. Run things locally to debug what CI found, or to iterate.
 ## The rules this code keeps
 
 1. **CI is the acceptance gate.** Keep it green. Add a test when you fix a
-   bug, and a case in `BoardEveningTests` when you change how a board is
+   bug, and a case in `BoardEventTests` when you change how a board is
    seated, run or torn down -- a rule with no test is a rule that comes back.
 2. **Never commit participant data or secrets.** Data folders live outside
    the repository. `.gitignore` and `scripts/hooks/pre-commit` block CSVs,
