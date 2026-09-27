@@ -155,7 +155,7 @@ private struct YouthRecords: View {
                 Table(rows, selection: $selection, sortOrder: $sortOrder) {
                     TableColumn("Last", value: \.last)
                     TableColumn("First", value: \.first)
-                    TableColumn("Unit", value: \.unitName)
+                    TableColumn("Unit", value: \.unitName) { Text($0.unitDisplay) }
                     TableColumn("Board", value: \.boardTypeText) { Text($0.boardType?.label ?? $0.boardTypeText) }
                     TableColumn("Email", value: \.email)
                     TableColumn("Phone", value: \.phone)
@@ -165,7 +165,7 @@ private struct YouthRecords: View {
                 Table(rows, selection: $selection, sortOrder: $sortOrder) {
                     TableColumn("Last", value: \.last)
                     TableColumn("First", value: \.first)
-                    TableColumn("Unit", value: \.unitName)
+                    TableColumn("Unit", value: \.unitName) { Text($0.unitDisplay) }
                     TableColumn("Board", value: \.boardTypeText) { Text($0.boardType?.label ?? $0.boardTypeText) }
                     TableColumn("Status", value: \.statusRank) { StatusBadge(statusText: $0.statusText) }
                     TableColumn("Result", value: \.result)
@@ -239,7 +239,7 @@ private struct AdultRecords: View {
         Table(rows, selection: $selection, sortOrder: $sortOrder) {
             TableColumn("Last", value: \.last)
             TableColumn("First", value: \.first)
-            TableColumn("Unit", value: \.unitName)
+            TableColumn("Unit", value: \.unitName) { Text($0.unitDisplay) }
             TableColumn("Final", value: \.finalBoardRoleText) { RoleText(role: $0.finalBoardRoleText) }
             TableColumn("Project", value: \.projectReviewRoleText) { RoleText(role: $0.projectReviewRoleText) }
             // One column that means "Room" tonight and "Nights served" in the

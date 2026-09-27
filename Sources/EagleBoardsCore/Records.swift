@@ -109,6 +109,11 @@ extension PersonRecord {
     /// tellable apart.
     public var unitLabel: String { UnitLabel.short(unitName) }
 
+    /// `Troop1776` spaced out to `Troop 1776` for display, the normal way a
+    /// unit is written. `UnitName` itself stays unspaced: it is the data
+    /// file's contract with the Java and Windows versions.
+    public var unitDisplay: String { UnitLabel.spaced(unitName) }
+
     /// `SCOUT:Last:First:Unit`: the ID the Java app gave people. It keeps an ID
     /// it was handed unless that ID is empty, belongs to another record type,
     /// or is the placeholder a nameless record would get.
@@ -145,6 +150,16 @@ public enum UnitLabel {
               unitName[..<firstDigit].allSatisfy(\.isLetter)
         else { return unitName }
         return String(initial) + unitName[firstDigit...]
+    }
+
+    /// A unit type with no number (District, Council, Community) is returned
+    /// unchanged.
+    public static func spaced(_ unitName: String) -> String {
+        guard let firstDigit = unitName.firstIndex(where: \.isNumber),
+              unitName[firstDigit...].allSatisfy(\.isNumber),
+              unitName[..<firstDigit].allSatisfy(\.isLetter)
+        else { return unitName }
+        return unitName[..<firstDigit] + " " + unitName[firstDigit...]
     }
 }
 

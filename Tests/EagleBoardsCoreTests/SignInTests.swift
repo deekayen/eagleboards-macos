@@ -132,6 +132,13 @@ struct SignInTests {
         #expect(adult.unit == "")
         #expect(adult.unitName == "District")
         #expect(adult.unitLabel == "District")
+        #expect(adult.unitDisplay == "District")
+    }
+
+    @Test func unitDisplayAddsTheSpaceUnitNameLeavesOut() throws {
+        let adult = try night.registerAdult(["First": "Chris", "Last": "Chair", "UnitType": "Troop", "Unit": "7"])
+        #expect(adult.unitName == "Troop7")
+        #expect(adult.unitDisplay == "Troop 7")
     }
 
     @Test func blankOrNoneEmailsNeverMatch() throws {
