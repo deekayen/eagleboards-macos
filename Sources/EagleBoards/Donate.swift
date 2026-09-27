@@ -15,6 +15,10 @@ enum SupportLink: CaseIterable, Identifiable {
 
     var id: Self { self }
 
+    /// Venmo's Pay screen with the note filled in, for the popover's QR code
+    /// (SPEC.md D-17).
+    static let venmoPay = URL(string: "https://venmo.com/u/drdnorman?txn=pay&note=Eagle%20Boards")!
+
     var title: String {
         switch self {
         case .githubSponsors: "GitHub Sponsors"
@@ -70,6 +74,18 @@ struct DonateButton: View {
                     }
                 }
                 .padding(.top, 4)
+                // Dark on white whatever the appearance, so a phone camera can read it.
+                HStack(spacing: 12) {
+                    QRCodeImage(text: SupportLink.venmoPay.absoluteString)
+                        .frame(width: 116, height: 116)
+                        .padding(8)
+                        .background(Color.white, in: RoundedRectangle(cornerRadius: 8))
+                        .accessibilityLabel("QR code to pay with Venmo")
+                    Text("Or scan this with your phone to pay with Venmo.")
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.top, 8)
             }
             .padding(16)
             .frame(width: 320)
