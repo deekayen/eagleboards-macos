@@ -22,6 +22,18 @@ struct RoomsGrid: View {
                                 // every single click wait to see if it is one.
                                 .onTapGesture { model.selectRoom(room.id) }
                                 .simultaneousGesture(TapGesture(count: 2).onEnded { model.performNextStep() })
+                                // The same through VoiceOver: pressing the card
+                                // selects it, and its board's next step is an
+                                // action, as a double click would take it.
+                                .accessibilityAction { model.selectRoom(room.id) }
+                                .accessibilityActions {
+                                    if let step = night.occupant(of: room)?.status?.nextStep {
+                                        Button(step.title) {
+                                            model.selectRoom(room.id)
+                                            model.performNextStep()
+                                        }
+                                    }
+                                }
                                 .contextMenu { RoomActionButtons(model: model, night: night, roomID: room.id) }
                                 .youthDropDestination(room: room)
                         }
@@ -45,6 +57,14 @@ struct RoomsGrid: View {
                 || $0.scoutName.localizedCaseInsensitiveContains(filter)
                 || $0.leaderNames.localizedCaseInsensitiveContains(filter)
         }
+    }
+}
+
+extension EventNight {
+    /// The youth whose board is in this room right now.
+    func occupant(of room: Room) -> Scout? {
+        guard !room.isFree else { return nil }
+        return scouts.first { $0.room == room.name && ($0.status == .seated || $0.status == .inProgress) }
     }
 }
 
@@ -82,14 +102,8 @@ struct RoomCard: View {
     let now: Date
     let isSelected: Bool
 
-    /// The youth whose board is in this room right now.
-    private var occupant: Scout? {
-        guard !room.isFree else { return nil }
-        return night.scouts.first { $0.room == room.name && ($0.status == .seated || $0.status == .inProgress) }
-    }
-
     var body: some View {
-        let occupant = occupant
+        let occupant = night.occupant(of: room)
         let minutes = occupant?.minutesSinceLastUpdate(now: now)
         let timer = occupant.flatMap { youth in
             minutes.flatMap { RoomTimer.state(status: youth.status, boardType: youth.boardType, minutes: $0, config: night.config) }
