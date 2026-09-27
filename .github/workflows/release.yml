@@ -43,4 +43,4 @@ jobs:
           ditto -c -k --keepParent "build/Eagle Boards.app" "$zip"
           gh release create "$GITHUB_REF_NAME" "$zip" \
             --title "Eagle Boards $version" \
-            --notes "For Macs with Apple silicon, macOS 14 or later. Intel Macs are not supported. Signed ad hoc: the first time, right-click the app and choose Open. See CHANGELOG.md."
+            --notes "For Macs with Apple silicon, macOS 14 or later. Intel Macs are not supported. Signed ad hoc, not notarized, so macOS stops the app the first time: open it, close the warning, then click **Open Anyway** in System Settings › Privacy & Security and confirm. On macOS 14, right-clicking the app and choosing **Open** also works; macOS 15 and later dropped that. See CHANGELOG.md."

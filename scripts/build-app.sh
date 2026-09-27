@@ -10,8 +10,10 @@
 # supported.
 #
 # Without SIGNING_IDENTITY the app is signed ad hoc. That runs on the Mac that
-# built it; on another Mac, Gatekeeper asks for a right-click > Open the first
-# time. A Developer ID identity (and notarization) removes that step.
+# built it; on another Mac, Gatekeeper stops it the first time, until it is
+# allowed with Open Anyway in System Settings > Privacy & Security (right-click
+# > Open also works on macOS 14, not on 15 or later). A Developer ID identity
+# (and notarization) removes that step.
 #
 # Needs Xcode, or its command line tools, with Swift 6.
 # ------------------------------------------------------------------------

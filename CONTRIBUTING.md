@@ -136,6 +136,9 @@ Versions are CalVer: the release date, e.g. `2026.09.22`. Pushing a tag
 carries no data or key, and attaches `Eagle-Boards-2026.09.22.zip` to a
 GitHub release.
 
-The app is signed ad hoc, so on another Mac Gatekeeper asks for a
-right-click > **Open** the first time. Signing with a Developer ID identity
+The app is signed ad hoc, so on another Mac Gatekeeper stops it the first
+time. It opens once someone clicks **Open Anyway** in System Settings ›
+Privacy & Security after trying it. Right-click > **Open** does the same on
+macOS 14, but macOS 15 and later dropped it, so the release notes give Open
+Anyway. Signing with a Developer ID identity
 (`SIGNING_IDENTITY=... scripts/build-app.sh`) and notarizing removes that.
