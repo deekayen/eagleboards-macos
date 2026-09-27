@@ -43,6 +43,22 @@ struct FileFormatTests {
         #expect(CSVFile.render(youth) == javaFile)
     }
 
+    // SPEC.md D-13: the screen says Waiting and In review, as the Java and
+    // Windows versions do; the file keeps Registered and InProgress.
+    @Test func statusesShowTheSharedWordsButStoreTheJavaNames() {
+        let shown = Dictionary(uniqueKeysWithValues: BoardStatus.allCases.map { ($0.rawValue, $0.label) })
+        #expect(shown == [
+            "Registered": "Waiting", "Verified": "Waiting", "Seated": "Seated",
+            "InProgress": "In review", "Completed": "Completed", "Postponed": "Postponed",
+        ])
+        var youth = Scout.blank(at: Date())
+        youth.status = .inProgress
+        #expect(youth.statusLabel == "In review")
+        #expect(CSVFile.render([youth]).contains(",InProgress,"))
+        youth.statusText = "Mystery"
+        #expect(youth.statusLabel == "Mystery", "an unknown status shows as stored")
+    }
+
     @Test func commasAndLineBreaksCannotBreakARow() {
         var youth = Scout.blank(at: Date())
         youth.first = "Jan"

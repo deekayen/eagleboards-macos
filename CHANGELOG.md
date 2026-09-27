@@ -7,13 +7,20 @@ Versions are CalVer: the release date.
 **One status palette, and a clock per timer state** (SPEC.md D-13). The
 status badges and room timers take the colors all three versions now share,
 from Monokai Pro's hues, checked for contrast and color blindness in light and
-dark: Seated yellow, In Review cyan, Completed purple, Waiting and Postponed
+dark: Seated yellow, In review cyan, Completed purple, Waiting and Postponed
 gray. A room timer shows a stopwatch on time, a timer on an orange tint when it
 runs long, and an alarm clock on a solid pink-red fill when it is overdue.
 Running long and overdue used to share one warning symbol in orange and red,
 which look alike to many color-blind operators. Increase Contrast adds a border
 to each. Settings and Help say "running long" and "overdue" instead of yellow
 and red, and so does the notification.
+
+**Badges say Waiting and In review** (D-13), as the Java and Windows versions
+do, instead of Registered and In Progress. So do VoiceOver, the Records window
+and the alerts that name a status. The data files still store `Registered` and
+`InProgress`, so the Java app reads them as before. The Records window's Status
+menu no longer offers the legacy Verified, which nothing sets and which would
+have read Waiting a second time.
 
 **Status colors are not settings** (D-19). The twelve `*Color` keys are gone
 from `config.properties`; a file that still has them opens, and saving leaves

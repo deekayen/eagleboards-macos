@@ -424,7 +424,12 @@ struct BoardEventTests {
 
         try seat("102", finalYouth(2), chair: finalChair2, member(3), member(4))
         try night.startReview(scoutID: finalYouth(2))
-        refused("a review under way cannot be postponed") { try night.postponeBoard(scoutID: finalYouth(2)) }
+        do {
+            try night.postponeBoard(scoutID: finalYouth(2))
+            Issue.record("a review under way cannot be postponed")
+        } catch let refusal as EventError {
+            #expect(refusal.message.hasSuffix("is 'In review'."), "the alert says the badge's word, not the stored InProgress")
+        }
         try night.completeBoard(scoutID: finalYouth(2), result: .adjourned, notes: "")
         #expect(result(finalYouth(2)) == "Adjourned")
         try seat("200A", projectYouth(1), chair: projectChair1, member(7))
@@ -616,9 +621,11 @@ struct BoardEventTests {
     }
 
     // Java section 18. Corrections made in the Records window, whose Status
-    // and Result choices are BoardStatus.allCases and BoardResult.allCases.
+    // and Result choices are BoardStatus.recordsChoices and BoardResult.allCases.
     @Test func aResultCorrectedInTheRecordsWindow() throws {
-        #expect(BoardStatus.allCases.contains(.registered), "Registered is offered, to undo a result on the wrong youth")
+        #expect(BoardStatus.recordsChoices.contains(.registered), "Registered is offered, to undo a result on the wrong youth")
+        #expect(Set(BoardStatus.recordsChoices.map(\.label)).count == BoardStatus.recordsChoices.count,
+                "no two choices read alike: legacy Verified, which also reads Waiting, is not offered")
         #expect(BoardResult.allCases.map(\.rawValue) == ["Approved", "Adjourned", "NotApproved"],
                 "results are exactly the board's three decisions; Postponed is a status, not a result")
 

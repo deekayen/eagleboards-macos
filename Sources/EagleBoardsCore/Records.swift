@@ -219,6 +219,8 @@ public struct Scout: PersonRecord {
         get { BoardStatus(rawValue: statusText) }
         set { statusText = newValue?.rawValue ?? "" }
     }
+    /// The status as the screen says it; an unknown one as stored.
+    public var statusLabel: String { status?.label ?? statusText }
     public var result: String {
         get { self["Result"] }
         set { self["Result"] = newValue }

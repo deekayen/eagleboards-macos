@@ -283,7 +283,7 @@ public final class EventNight {
         }
         var scout = scouts[scoutIndex]
         guard scout.status?.isWaitingForBoard == true else {
-            throw EventError("\(scout.fullName) cannot be seated from status '\(scout.statusText)'.")
+            throw EventError("\(scout.fullName) cannot be seated from status '\(scout.statusLabel)'.")
         }
         // disabledForTonightMarker ("N/A") is what Complete leaves in a youth's
         // room. A Registered youth holding it had a result recorded against them
@@ -375,7 +375,7 @@ public final class EventNight {
         }
         var scout = scouts[scoutIndex]
         guard scout.status == .seated || scout.status == .inProgress else {
-            throw EventError("\(scout.fullName)'s board members can only be changed while seated or in review (status '\(scout.statusText)').")
+            throw EventError("\(scout.fullName)'s board members can only be changed while seated or in review (status '\(scout.statusLabel)').")
         }
         guard let roomIndex = rooms.firstIndex(where: { $0.name == scout.room }) else {
             throw EventError("Room \(scout.room) was not found.")
@@ -453,7 +453,7 @@ public final class EventNight {
             throw EventError("There is no youth '\(scoutID)'.")
         }
         guard scouts[index].status == .seated else {
-            throw EventError("\(scouts[index].fullName)'s board has not been seated (status '\(scouts[index].statusText)').")
+            throw EventError("\(scouts[index].fullName)'s board has not been seated (status '\(scouts[index].statusLabel)').")
         }
         scouts[index].status = .inProgress
         scouts[index].markUpdated(at: now)
@@ -470,7 +470,7 @@ public final class EventNight {
             throw EventError("There is no youth '\(scoutID)'.")
         }
         guard scouts[scoutIndex].status == .inProgress else {
-            throw EventError("\(scouts[scoutIndex].fullName)'s review has not started (status '\(scouts[scoutIndex].statusText)').")
+            throw EventError("\(scouts[scoutIndex].fullName)'s review has not started (status '\(scouts[scoutIndex].statusLabel)').")
         }
         let roomName = scouts[scoutIndex].room
         guard let roomIndex = rooms.firstIndex(where: { $0.name == roomName }) else {
@@ -491,7 +491,7 @@ public final class EventNight {
             throw EventError("There is no youth '\(scoutID)'.")
         }
         guard scouts[index].status?.isWaitingForBoard == true else {
-            throw EventError("Only a youth still waiting can be postponed; \(scouts[index].fullName) is '\(scouts[index].statusText)'.")
+            throw EventError("Only a youth still waiting can be postponed; \(scouts[index].fullName) is '\(scouts[index].statusLabel)'.")
         }
         scouts[index].status = .postponed
         scouts[index].markUpdated(at: now)
@@ -506,7 +506,7 @@ public final class EventNight {
         }
         let status = scouts[scoutIndex].status
         guard status == .seated || status == .inProgress || status == .verified else {
-            throw EventError("Only a seated board or a review in progress can be reset; \(scouts[scoutIndex].fullName) is '\(scouts[scoutIndex].statusText)'.")
+            throw EventError("Only a seated board or one in review can be reset; \(scouts[scoutIndex].fullName) is '\(scouts[scoutIndex].statusLabel)'.")
         }
         if let roomIndex = rooms.firstIndex(where: { $0.name == scouts[scoutIndex].room }) {
             releaseRoom(at: roomIndex)

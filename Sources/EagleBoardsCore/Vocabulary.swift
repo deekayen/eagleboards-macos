@@ -41,12 +41,23 @@ public enum BoardStatus: String, CaseIterable, Sendable {
         self == .completed || self == .postponed
     }
 
+    /// What the screen calls it, the same word in all three versions (SPEC.md
+    /// D-13): badges, their accessibility labels, the Records window and
+    /// alerts. The data files keep the raw value.
     public var label: String {
         switch self {
-        case .inProgress: "In Progress"
-        default: rawValue
+        case .registered, .verified: "Waiting"
+        case .seated: "Seated"
+        case .inProgress: "In review"
+        case .completed: "Completed"
+        case .postponed: "Postponed"
         }
     }
+
+    /// The statuses the Records window offers. Not Verified: nothing sets it,
+    /// and it reads Waiting like Registered, so the menu would offer Waiting
+    /// twice. A legacy Verified record still shows its stored value there.
+    public static let recordsChoices: [BoardStatus] = allCases.filter { $0 != .verified }
 }
 
 /// The step that moves a youth's board along from where it is: the one
