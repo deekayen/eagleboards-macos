@@ -266,6 +266,29 @@ struct BoardEveningTests {
         #expect(night.scout(id: finalYouth(1))?.boardMemberIDs.split(separator: ",").count == 3)
     }
 
+    /// Java evening section 21, the cases the test above leaves out: the
+    /// chair leaving and another chair taking over, a plain member refused
+    /// the chair, and Complete releasing whoever sits on the board by then.
+    @Test func changeMembersHandsTheChairOnAndCompleteReleasesTheNewBoard() throws {
+        try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
+
+        try night.changeMembers(scoutID: finalYouth(1), chairID: finalChair3, memberIDs: [finalChair3, member(1), member(3)])
+        #expect(adultRoom(chairOfEither) == "", "the chair who left is free")
+        #expect(adultRoom(member(2)) == "", "the member not kept is free")
+        #expect(adultRoom(finalChair3) == "101" && adultRoom(member(3)) == "101", "the new chair and member are in the room")
+        #expect(night.scout(id: finalYouth(1))?.boardChairID == finalChair3, "the new chair is recorded")
+
+        refused("a plain member may not take the chair") {
+            try night.changeMembers(scoutID: finalYouth(1), chairID: member(1), memberIDs: [finalChair3, member(1), member(3)])
+        }
+        #expect(night.scout(id: finalYouth(1))?.boardChairID == finalChair3, "the refusal changed nothing")
+
+        try runBoard(finalYouth(1))
+        #expect(adultRoom(finalChair3) == "" && adultRoom(member(1)) == "" && adultRoom(member(3)) == "",
+                "completing releases the board as changed")
+        #expect(busyAdults == 0)
+    }
+
     @Test func postponeAndReset() throws {
         try seatFiveBoards()
         try night.postponeBoard(scoutID: finalYouth(9))
