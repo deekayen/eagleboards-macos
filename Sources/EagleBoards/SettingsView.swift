@@ -108,16 +108,6 @@ private struct TimerSettings: View {
                     Text("District practice. A proposal review is not a board of review, so the Guide sets no length for it.")
                         .foregroundStyle(.secondary)
                 }
-                Section {
-                    Stepper(value: configBinding(\.refreshSeconds, night), in: 5...300, step: 5) {
-                        LabeledContent("Refresh every", value: "\(night.config.refreshSeconds) seconds")
-                    }
-                } header: {
-                    Text("Sign-in station")
-                } footer: {
-                    Text("How often the lists of who has signed in refresh on the tablet. The scheduler here updates immediately.")
-                        .foregroundStyle(.secondary)
-                }
             }
             .formStyle(.grouped)
         } else {
