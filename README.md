@@ -60,14 +60,18 @@ From** brings back an earlier event's list.
 
 To hold two proposal reviews in one room, add it twice, e.g. `200A` and `200B`.
 
+Right-click a room card to rename it, move its board to another room, or
+change what it is used for.
+
 ## The event, step by step
 
 ### 1. People sign in
 
-At the tablet, a youth taps **I am a Youth** and an adult taps **I am 21+**.
-Each fills in the form. Youth who pre-registered on SignUpGenius, and adults
-who have served before, are recognized by email, and the rest of the form
-fills itself in.
+At the tablet, a youth taps **I am a youth** and an adult taps **I am 21 or
+older**. Each fills in the form. Youth who pre-registered on SignUpGenius, and
+adults who have served before, are recognized by email, and the rest of the
+form fills itself in. A youth is never asked for a phone number or a
+birthdate.
 
 Each person appears on the Mac the moment they register. Youth are numbered
 `P1, P2…` if they pre-registered and `W1, W2…` if they walked in. Pre-registered
@@ -80,9 +84,12 @@ them and choose **Board › Postpone**. **Edit › Undo** brings them back.
 
 ### 3. Seat a board
 
-The window has three parts: the sidebar (youth **Waiting**, **On Boards** and
-**Finished**, the **Adults**, and every room), the list the sidebar chose, and
-the inspector on the right, which follows the selected youth.
+The window has three parts, all on screen at once: the sidebar, which
+chooses who the list shows (youth **Waiting**, **On Boards** or **Finished**,
+or the **Adults**); that list, with a card for every room beside it, so a
+room's timer is never out of sight; and the inspector on the right, which
+follows the selected youth. **View › Waiting**, **On Boards**, **Finished**
+and **Adults** (**⌥⌘1** to **⌥⌘4**) switch the list from the keyboard.
 
 Select a waiting youth. Eagle Boards proposes a board in the inspector: a
 chair, enough members, and a free room of the right kind. It never picks adults
@@ -100,7 +107,7 @@ waiting youth** to **Start with an empty board**. Selecting a youth then picks
 only a free room.
 
 Press **Seat Board…** (or **⌘↩**, or double-click the youth). You can also drag
-a waiting youth onto a free room in the sidebar. The sheet lists anything that stops the board, such as
+a waiting youth onto a free room card. The sheet lists anything that stops the board, such as
 too few members, no qualified chair, or someone already on another board. It
 also lists anything worth a second look, and each of those needs its own tick.
 Choose the chair and press **Seat Board**.
@@ -115,6 +122,11 @@ their leader and parents if they signed in, so they can be fetched too. The
 inspector lists them throughout the event under **With Them**.
 
 ### 5. Complete
+
+If someone has to leave mid-board, select the youth and press **Change
+Members…** in the inspector. It adds or removes members, or hands the chair to
+another member qualified to chair, under the same rules as seating. The room's
+timer keeps running; it does not restart.
 
 When the board has finished, press **Complete…** (**⌘↩**), choose the result,
 and add any notes. The room and the members are free for the next board.
@@ -157,8 +169,8 @@ the sign-up: youth become pre-registrations and adults join the history. Use
 Everything is saved as it happens; there is nothing to save before quitting.
 
 Made a mistake? **Edit › Undo** takes back the last step, whether seating,
-starting, completing, postponing or resetting a board, disabling an adult, or
-a change to the rooms. It is refused once the room or a member has been given
+starting, completing, postponing or resetting a board, changing its members,
+disabling an adult, or a change to the rooms. It is refused once the room or a member has been given
 to another board.
 
 The Dock icon shows how many youth are waiting, and a notification tells you
@@ -175,8 +187,9 @@ when a room goes overdue while you are in another app.
 
 ## Donating
 
-Eagle Boards is free. If it helps your board events, **Help › Donate** lists
-ways to support its development.
+Eagle Boards is free. If it helps your board events, **Donate** at the foot of
+the sidebar lists ways to support its development, with a Venmo QR code a
+phone can scan. **Help › Donate** has the same list.
 
 ## For developers
 
