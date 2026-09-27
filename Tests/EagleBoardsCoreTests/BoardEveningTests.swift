@@ -753,6 +753,81 @@ struct BoardEveningTests {
         #expect(first.whereabouts == "Room 102", "so someone can fetch them from their board")
     }
 
+    // Java section 24, the youth phone number (SPEC.md D-8), which goes the
+    // way the birthdate did (D-7, O-5): not kept from a sign-in or an import,
+    // but one already on file stays there, never shown or exported. An
+    // adult's number is kept as before.
+    //
+    // What the tablet is sent belongs to the check-in server, a module these
+    // tests do not link: CheckInServerTests signs the same youth and adult in
+    // over HTTP and reads the lookups back
+    // (aYouthsPhoneNumberIsNotKeptButAnAdultsStillFillsTheirForm,
+    // lookupsFillTheFormAndNothingMore). The Java grid, CSV, filter and
+    // autofill reads (the -cells endpoints, /youth-autofill) cannot arise:
+    // this server has none, and operatorPagesAndRecordsAreNotReachable
+    // asserts each is a 404. Their counterparts here are the Records window's
+    // saved lists and the board results report, checked below. The Records
+    // window's search matches names, emails and units only, so it has no
+    // filter that could say whose number it is.
+    @Test func aYouthsPhoneNumberIsNotKeptButOneOnFileStays() throws {
+        // A pre-registration, given a birthdate and a phone number in the
+        // Records window, as a file from before D-7 and D-8 would have them.
+        try night.mergeSignUps([
+            SignUpEntry(startDate: "2026-09-22 19:00", firstName: "lena", lastName: "lookup", item: "Eagle Board of Review",
+                        email: "Lena.Lookup@Example.org", customAnswers: ["Troop 4401", "555-0100", ""]),
+        ], month: "2026-09")
+        var lena = try #require(night.scheduledYouth(matchingEmail: "  lena.lookup@EXAMPLE.org "))
+        #expect(lena.phone == "", "SignUpGenius puts no phone number on a youth")
+        lena.dateOfBirth = "2010-05-06"
+        lena.phone = "555-0100"
+        try night.updateYouth(lena, scheduled: true)
+        let scheduledFile = try scratch.text("2026-09-22/scouts_scheduled.csv")
+        #expect(scheduledFile.contains("555-0100") && scheduledFile.contains("2010-05-06"), "both stay on file")
+        let scheduledList = CSVFile.render(night.scheduledScouts.map(\.forExport))
+        #expect(!scheduledList.contains("555-0100") && !scheduledList.contains("2010-05-06"),
+                "but the pre-registrations saved from the Records window leave them out")
+
+        // A new sign-in from an old cached page.
+        var form = [
+            "Last": "Oldpage", "First": "Olive", "Email": "op@example.org", "Phone": "555-0101",
+            "UnitType": "Troop", "Unit": "4402", "BoardType": "Final", "DOB": "2011-02-03",
+        ]
+        try night.registerYouth(form)
+        let olive = "SCOUT:Oldpage:Olive:4402"
+        func onFile() throws -> String {
+            let youth = try #require(CSVFile.read(Scout.self, from: scratch.dataFolder.youthURL(night: "2026-09-22"))
+                .first(where: { $0.id == olive }))
+            return "\(youth.dateOfBirth)|\(youth.phone)"
+        }
+        #expect(try onFile() == "|", "neither a birthdate nor a phone number from an old cached page is kept")
+
+        try editYouth(olive) {
+            $0.dateOfBirth = "2011-02-03"
+            $0.phone = "555-0101"
+        }
+        #expect(try onFile() == "2011-02-03|555-0101", "one already on file stays on file")
+        let report = Reports.csv(night.scouts, columns: Reports.boardResultColumns)
+        #expect(!report.contains("2011-02-03") && !report.contains("555-0101"), "but the board results report never shows it")
+        let youthList = CSVFile.render(night.scouts.map(\.forExport))
+        #expect(!youthList.contains("2011-02-03") && !youthList.contains("555-0101"), "nor a youth list saved from the Records window")
+        #expect(CSVFile.parse(Scout.self, text: youthList).first(where: { $0.id == olive })?.first == "Olive",
+                "which keeps the columns, so they still line up")
+
+        form["Phone"] = "555-0199"
+        form["DOB"] = "2012-12-12"
+        try night.registerYouth(form)
+        #expect(try onFile() == "2011-02-03|555-0101", "and signing in again neither changes nor blanks it")
+
+        // An adult's number is kept, tonight and in the history the adult
+        // lookup reads.
+        try night.registerAdult([
+            "Last": "Phoneon", "First": "Adele", "Email": "adele@example.org", "Phone": "555-0102",
+            "UnitType": "Troop", "Unit": "4403", "ProjectReview": "Member", "FinalBoard": "Member",
+        ])
+        #expect(night.adult(id: "ADULT:Phoneon:Adele:4403")?.phone == "555-0102")
+        #expect(night.knownAdult(matchingEmail: "adele@example.org")?.phone == "555-0102")
+    }
+
     // MARK: - Undo
 
     /// Undo of each step is restoreBoard with the record from before it.

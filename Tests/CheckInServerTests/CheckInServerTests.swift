@@ -57,18 +57,26 @@ struct CheckInServerTests {
 
     /// The operator's screens are windows in the Mac app. None of the Java
     /// app's operator pages or record endpoints exist here, so nobody at the
-    /// door can read the adult history or move a board.
+    /// door can read the adult history or move a board. Nothing here reads a
+    /// query string either, so there is no filter that could match a youth's
+    /// phone number or birthdate and say whose it is (SPEC.md D-7, D-8).
     @Test(arguments: [
         "/scheduler", "/admin", "/configure", "/help",
         "/youth-cells?cols=Email,Phone,DOB", "/adult-cells", "/adult-history-cells", "/room-cells",
+        "/youth-cells?cols=Last&filter=Phone~555-0101", "/youth-cells?cols=Last&filter=DOB~2011-02-03",
+        "/youth-scheduled-cells?cols=Last,Phone", "/youth-scheduled-cells?cols=Last,Phone&fmt=csv&filename=Youth.csv",
         "/adult-autofill?op=list", "/youth-autofill?op=list", "/config-autofill?Name=DEFAULT",
+        "/youth-autofill?Email=Lena.Lookup@Example.org&fmt=json",
         "/../Package.swift", "/checkin.js/../../Package.swift", "/index.html",
     ])
     func operatorPagesAndRecordsAreNotReachable(path: String) async throws {
         #expect(try await send(path).status == .notFound)
     }
 
-    @Test(arguments: ["/seat-board", "/complete-board", "/reset-board", "/adult-update", "/room-update", "/update-config"])
+    @Test(arguments: [
+        "/seat-board", "/complete-board", "/reset-board", "/adult-update", "/room-update", "/update-config",
+        "/youth-update", "/youth-scheduled-update",
+    ])
     func boardActionsAreNotReachable(path: String) async throws {
         #expect(try await send(path, method: .post, form: "ScoutID=x").status == .notFound)
     }
@@ -158,6 +166,36 @@ struct CheckInServerTests {
 
         #expect(try await send("/api/adult-lookup", method: .post, form: "email=nobody%40example.org").body == "{}")
         #expect(try await send("/api/adult-lookup", method: .post, form: "email=NONE").body == "{}")
+    }
+
+    /// Java evening section 24, the youth phone number (SPEC.md D-8), over
+    /// HTTP as the Java script does it. BoardEveningTests follows the same
+    /// youth through the data files, the report and the Records window.
+    @Test func aYouthsPhoneNumberIsNotKeptButAnAdultsStillFillsTheirForm() async throws {
+        let oldPage = "Last=Oldpage&First=Olive&Email=op%40example.org&Phone=555-0101&UnitType=Troop&Unit=4402&BoardType=Final&DOB=2011-02-03"
+        #expect(try await send("/register-youth", method: .post, form: oldPage).body == "OK.")
+        var olive = try #require(night.scout(id: "SCOUT:Oldpage:Olive:4402"))
+        #expect(olive.phone == "" && olive.dateOfBirth == "", "neither is kept from an old cached page")
+
+        // One on file from before D-7 and D-8, put there in the Records window.
+        olive.phone = "555-0101"
+        olive.dateOfBirth = "2011-02-03"
+        try night.updateYouth(olive)
+        let again = oldPage
+            .replacingOccurrences(of: "555-0101", with: "555-0199")
+            .replacingOccurrences(of: "2011-02-03", with: "2012-12-12")
+        #expect(try await send("/register-youth", method: .post, form: again).body == "OK.")
+        #expect(night.scout(id: olive.id)?.phone == "555-0101", "signing in again neither changes nor blanks it")
+        #expect(night.scout(id: olive.id)?.dateOfBirth == "2011-02-03")
+        let lists = try await send("/api/checked-in").body + send("/api/scout-choices").body
+        #expect(!lists.contains("555-0101") && !lists.contains("2011-02-03"), "and the lists at the door never carry it")
+
+        _ = try await send(
+            "/register-adult", method: .post,
+            form: "Last=Phoneon&First=Adele&Email=adele%40example.org&Phone=555-0102&UnitType=Troop&Unit=4403&ProjectReview=Member&FinalBoard=Member"
+        )
+        let adult = try await send("/api/adult-lookup", method: .post, form: "email=adele%40example.org")
+        #expect(adult.json["Phone"] as? String == "555-0102", "an adult's phone number still fills in their form")
     }
 
     @Test func anOversizedBodyIsRefused() async throws {
