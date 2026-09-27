@@ -15,9 +15,8 @@
 #
 # Fine engraving turns to noise when small, so the images of 64 px and less
 # use a plainer cut of the same SVG, chosen by a stylesheet added to it: bold
-# feather splits instead of the fine texture, and no letters, which can't be
-# read that small. From 128 px up, where the Dock and Finder draw it, it's
-# the full drawing.
+# feather splits instead of the fine texture. From 128 px up, where the Dock
+# and Finder draw it, it's the full drawing.
 # ------------------------------------------------------------------------
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -27,7 +26,7 @@ command -v rsvg-convert >/dev/null || { echo "needs rsvg-convert: brew install l
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
-small='.fine,.letters{display:none}.bold{display:inline}.relief{filter:url(#cast-small)}'
+small='.fine{display:none}.bold{display:inline}.relief{filter:url(#cast-small)}'
 
 # compose STYLE OUT: the tile, then the eagle as a nested <svg> on it. Line 1
 # of EagleBoards.svg is its opening <svg> tag, which gains a position, a size
