@@ -1,491 +1,371 @@
 /* ========================================================================
- * checkin.css -- the sign-in station's pages.
- *
- * PALETTE -- BSA Brand Guidelines (July 2019) p.54, Scouts BSA sub-brand:
- * "projects specific to Scouts BSA should use a similarly neutral palette
- * composed mainly of tan, gray, and olive hues ... Scouting Red should be
- * used as an accent or action color."
- *
- * TYPE -- p.46 digital typefaces. Trebuchet MS (primary, for type >=16px).
- * It ships with macOS, Windows and iPadOS, so nothing is fetched; the
- * sign-in station runs on a venue network with no internet.
- *
- * CONTRAST -- every pairing below was measured against WCAG 2.2 SC 1.4.3
- * (4.5:1 body, 3:1 large/UI). The measured ratio is in the comment.
- *
- * THE ONE HARD RULE: Scouting Red and Scouts BSA Olive must never touch.
- * They measure 2.07:1 against each other -- both are strong on white, but
- * their luminances are nearly identical. Red goes on white or tan only.
- * ===================================================================== */
+   checkin.css -- the check-in pages the tablets at the door load, shared by
+   every version of Eagle Boards (see README.md in this folder).
+
+   Built to WCAG 2.2 AA. Every text and control color below is a pair that
+   scripts/check-contrast.js measures, in light and in dark; do not add a
+   color without adding its pair there. In brief:
+
+     1.4.3  text        4.5:1 or better (all pairs here are 4.5:1+,
+                         including the large text that only needs 3:1)
+     1.4.11 controls     field borders and the focus ring 3:1 or better
+     1.4.1  color        errors and states also say so in words
+     1.4.4, 1.4.10, 1.4.12  sizes in rem, one column at 320px, no fixed
+                         heights on text, so zoom and text spacing reflow
+     2.4.7  focus        a 3px ring on every control, never removed
+     2.5.8  targets      every control at least 44px tall
+
+   The system's accent color is deliberately not used: a tablet whose owner
+   chose yellow would put yellow text on white. The colors are fixed and
+   measured instead. Light or dark follows the device (prefers-color-scheme),
+   and Windows High Contrast (forced-colors) gets system colors throughout.
+   ======================================================================== */
 
 :root {
-   /* Scouts BSA palette, verbatim from p.54 + corporate neutrals from p.51-52 */
-   --eb-olive:      #243E2C;   /* Scouts BSA Olive   -- luminance 0.04 */
-   --eb-tan:        #D6CEBD;   /* Scouting Tan */
-   --eb-light-tan:  #E9E9E4;   /* Scouting Light Tan */
-   --eb-red:        #CE1126;   /* Scouting Red -- action only, never tinted (p.52) */
-   --eb-warm-gray:  #515354;   /* Scouting Warm Gray */
-   --eb-dark-gray:  #232528;   /* Scouting Dark Gray */
-   --eb-line:       #b6b0a4;
-   /* Scouting Blue is a corporate primary, not part of the Scouts BSA trio --
-      but p.51 explicitly allows it: "These five colors may be used by any of
-      the sub-brands, especially the red and blue colors, whose use throughout
-      will serve to unify disparate brands."
-      ADJACENCY: blue, olive and red are all dark and sit within a whisker of
-      each other in luminance -- blue/olive measures 1.14:1 and blue/red
-      1.81:1, both below the 2.07:1 that already bars red from touching olive.
-      Treat all three as mutually non-adjacent: each one goes on white, tan or
-      light tan, never directly against another. */
-   --eb-blue:       #003F87;   /* Scouting Blue */
+   color-scheme: light dark;
 
-   /* WCAG 2.5.8 (AA) pointer target minimum. */
-   --eb-target: 24px;
-   /* WCAG 2.5.5 (AAA); Apple HIG 44pt and Material 48dp agree. */
-   --eb-target-touch: 44px;
+   --font: system-ui, -apple-system, "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+
+   --bg: #f3f3f3;
+   --surface: #ffffff;
+   --surface-alt: #f7f7f7;
+   --text: #1b1b1b;
+   --text-2: #595959;
+   --divider: #d9d9d9;
+   --control-border: #757575;
+   --accent: #005fb8;
+   --accent-text: #ffffff;
+   --accent-fg: #005fb8;
+   --focus: #005fb8;
+   --error-fg: #a4221c;
+   --error-bg: #fdecea;
+   --ok-fg: #0d5c19;
+   --ok-bg: #e3f5e1;
+   --disabled-fg: #6b6b6b;
+   --disabled-bg: #ebebeb;
+   --backdrop: rgba(0, 0, 0, 0.45);
 }
 
-/* ---------------------------------------------------------------- shared */
+@media (prefers-color-scheme: dark) {
+   :root {
+      --bg: #1c1c1c;
+      --surface: #272727;
+      --surface-alt: #2e2e2e;
+      --text: #f2f2f2;
+      --text-2: #bdbdbd;
+      --divider: #3d3d3d;
+      --control-border: #9a9a9a;
+      --accent: #4cc2ff;
+      --accent-text: #000000;
+      --accent-fg: #7fd4ff;
+      --focus: #7fd4ff;
+      --error-fg: #ffb4ab;
+      --error-bg: #3f2422;
+      --ok-fg: #a6e3aa;
+      --ok-bg: #1c3520;
+      --disabled-fg: #a3a3a3;
+      --disabled-bg: #333333;
+      --backdrop: rgba(0, 0, 0, 0.65);
+   }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { font-size: 100%; }
 
 body {
-   color: var(--eb-dark-gray);          /* 15.37:1 on white */
-   background: #ffffff;
-}
-
-h1, h2, h3 {
-   color: var(--eb-olive);              /* 11.66:1 on white */
-   font-weight: normal;
-   text-align: center;
-}
-
-
-/* ========================= PUBLIC SIGN-IN PAGES ========================
- * index, youth_register, adult_register. Touched once per person, by
- * someone standing, in a hurry, often a Scout who has never seen it.
- * Density is worthless here; legibility and hit area are everything.
- *
- * ONE design, not a kiosk one and a desktop one. The same markup has to work
- * on the 1080p check-in display at the door, on the laptop the coordinator
- * carries, and on a phone a parent pulls out in the hallway -- so the layout
- * is driven by the viewport it lands in rather than by a second stylesheet
- * somebody would have to remember to keep in step.
- *
- * The floor is WCAG 2.2 SC 1.4.10 Reflow: no two-dimensional scrolling at
- * 320 CSS px wide (equivalently, 400% zoom on a 1280px screen). Data tables
- * are 1.4.10's own stated exception, so the registered-people lists scroll
- * inside their own panel; the page itself never scrolls sideways.
- *
- * Every clamp() below carries a rem term as well as a vw term. A middle
- * value made only of vw is pinned to the viewport and would ignore browser
- * zoom, breaking SC 1.4.4 Resize Text; the rem term is what keeps zoom
- * working.
- *
- * Breakpoints come from where THIS content breaks, measured, not from a
- * table of device widths -- and they are in em so a raised default font
- * size moves them too:
- *    ~48em  two list panels stop fitting side by side (each needs ~340px)
- *    ~34em  a paired form row stops fitting (2 x 200px + 20px gap + chrome)
- * ==================================================================== */
-
-body.eb-public {
-   font-family: "Trebuchet MS", Tahoma, sans-serif;   /* primary face, >=16px */
-   font-size: 18px;
-}
-
-/* p.47 hierarchy: H1/H2 at 36-48px on a big screen, easing down to a size
-   that still reads as a heading at 320px rather than wrapping to four lines. */
-body.eb-public h1 {
-   font-size: clamp(26px, 1.3rem + 1.4vw, 42px);
-   color: var(--eb-olive);
-   margin: 12px 0 6px;
-   padding: 0 12px;
-}
-body.eb-public h2 {
-   font-size: clamp(20px, 1rem + 0.7vw, 26px);
-   color: var(--eb-warm-gray);
-   font-weight: 400;
-}
-
-/* Sign-in buttons: 44px is the AAA floor; these are far past it so a hurried
-   thumb cannot miss them. White on olive = 11.66:1, white on red = 5.63:1.
-   240px of flex-basis is what holds "I am a Youth" -- the longer of the two
-   labels -- on one line at the top of the font range; two of those plus the
-   gap no longer fit under ~34em, and the pair stacks there instead of
-   shrinking below the touch target. */
-body.eb-public .signin-buttons {
-   width: auto;
-   max-width: 800px;
-   margin: 0 auto;
-   display: flex;
-   flex-wrap: wrap;
-   justify-content: center;
-   gap: clamp(16px, 4vw, 60px);
-   padding: 10px clamp(12px, 4vw, 50px) 24px;
-   box-sizing: border-box;
-}
-body.eb-public .signin-buttons input[type=button] {
-   flex: 1 1 240px;
-   max-width: 300px;
-   height: clamp(64px, 9vh, 92px);
-   min-height: var(--eb-target-touch);
-   cursor: pointer;
-   font-family: "Trebuchet MS", Tahoma, sans-serif;
-   font-size: clamp(18px, 0.9rem + 0.6vw, 26px);
-   font-weight: 700;
-   color: #ffffff;
-   background-image: none !important;   /* text label instead of a bitmap */
-   background-color: var(--eb-olive);
-   border: 3px solid var(--eb-olive);
-   border-radius: 8px;
-}
-body.eb-public .signin-buttons input[name="Adult"] {
-   background-color: var(--eb-red);
-   border-color: var(--eb-red);
-}
-
-/* Registered lists: Scouting Blue band, white on it = 10.19:1. Side by side while both fit, stacked when they
-   don't. min-width:0 is the part that is easy to miss -- without it a flex
-   item refuses to shrink below its content width, and a table of names would
-   push the page wider than the screen. */
-body.eb-public .reg-panels {
-   width: auto;
-   max-width: 1100px;
-   margin: 10px auto 0 auto;
-   display: flex;
-   flex-wrap: wrap;
-   gap: 10px;
-   padding: 0 clamp(8px, 2vw, 16px);
-   box-sizing: border-box;
-}
-/* 440px is measured, not chosen: the five scout columns at their natural
-   widths, with a 17-character surname in the Last column, come to 445px.
-   A smaller basis let the two panels sit side by side while each was too
-   narrow for its own table, which put a scrollbar under a list that had
-   plenty of room to simply stack instead. */
-body.eb-public .reg-panel {
-   flex: 1 1 440px;
-   min-width: 0;
    margin: 0;
-   border: 1px solid var(--eb-line);
-   background: #ffffff;
+   min-height: 100vh;
+   font: 1rem/1.5 var(--font);
+   color: var(--text);
+   background: var(--bg);
+   accent-color: var(--accent);
+   -webkit-text-size-adjust: 100%;
 }
-body.eb-public .reg-panel-title {
-   background: var(--eb-blue);
-   color: #ffffff;
-   border-bottom: none;
-   font-family: "Trebuchet MS", Tahoma, sans-serif;
-   font-size: clamp(18px, 0.9rem + 0.4vw, 22px);
-   font-weight: bold;
-   padding: 12px 16px;
-}
-/* Height follows the screen instead of sitting at a fixed 340px: that number
-   left most of a 1080p display empty and overflowed a laptop in landscape.
-   The clamp keeps at least three rows visible on a phone and stops the list
-   from running away on a very tall display. */
-body.eb-public .reg-panel-body {
-   height: clamp(200px, 40vh, 520px);
-   overflow: auto;
-}
-/* 19px in 56px rows. The brand guide puts body copy at 9-12px (p.47), which
-   is written for marketing pages read at a desk; at 12px this list was set
-   smaller than a desk-bound data grid, which is backwards for who reads
-   it. Colours and typefaces are unchanged -- only the size deviates, and the
-   guide's own rule that the primary face is for type >=16px agrees. */
-body.eb-public .reg-panel table {
-   width: 100%;
-   border-collapse: collapse;
-   font-family: "Trebuchet MS", Tahoma, sans-serif;
-   font-size: clamp(16px, 0.85rem + 0.25vw, 19px);
-   color: var(--eb-dark-gray);
-}
-/* Padding alone sets the row height. A td is content-box, so specifying both
-   height:56px and 16px padding stacks them into an 89px row. 17px vertical
-   around a 19px line lands on ~56px, the target between Carbon "default" 48
-   and "tall" 64. Names are not wrapped mid-word; if the columns outrun a
-   narrow screen the panel scrolls, which is 1.4.10's table exception. */
-body.eb-public .reg-panel td {
-   padding: 17px 18px;
-   border-bottom: 1px solid #e6e2da;
-   text-align: left;
+
+a { color: var(--accent-fg); text-underline-offset: 0.15em; }
+
+[hidden] { display: none !important; }
+
+.visually-hidden {
+   position: absolute;
+   width: 1px; height: 1px;
+   margin: -1px; padding: 0;
+   overflow: hidden;
+   clip: rect(0 0 0 0);
    white-space: nowrap;
-   color: var(--eb-dark-gray);
-}
-body.eb-public .reg-panel td.c { text-align: center; }
-/* Zebra: Scouting Light Tan, a 1.22:1 tint against white -- NN/g's "5-10% is
-   enough" -- with Dark Gray on it still at 12.61:1. */
-body.eb-public .reg-panel tr:nth-child(even) td { background: var(--eb-light-tan); }
-
-/* ---- registration forms ------------------------------------------------
- * Layout follows two well-replicated findings. Baymard: multi-column forms
- * draw attention in several directions at once, so people skip required
- * fields -- side-by-side is reserved for fields that read as ONE item (a
- * name, a unit). Penzo's eye-tracking, replicated by Wroblewski: top-aligned
- * labels are completed markedly faster, because the label and its field land
- * in a single fixation rather than a horizontal scan.
- *
- * Type scale is monotonic, which is what was off before: the section legend
- * was 13px sitting above 18px fields, so the heading was smaller than the
- * content it introduced. Now 40 / 22 / 18 / 17 -- page title, section legend,
- * field text, label.
- * --------------------------------------------------------------------- */
-
-/* The page title on each sign-in form. */
-body.eb-public .page-subheader {
-   display: block;
-   font-family: "Trebuchet MS", Tahoma, sans-serif;
-   font-style: normal;
-   font-weight: bold;
-   font-size: clamp(26px, 1.3rem + 1.2vw, 40px);
-   color: var(--eb-olive);              /* 11.66:1 */
-   margin-top: 2px;
+   border: 0;
 }
 
-body.eb-public .reg-head {
-   text-align: center;
-   padding-top: 20px;
+/* 2.4.7: one visible focus ring for everything, 3px, offset so it never sits
+   on the same color as a filled button. */
+:focus-visible {
+   outline: 3px solid var(--focus);
+   outline-offset: 2px;
 }
 
-/* A form line that runs the full width of a 1080p screen is harder to scan,
-   not easier, so a single column stays capped. Below the cap it is simply the
-   width of the screen less its side padding -- the old fixed 640px is what
-   forced the fields to overflow on a narrow one. Wide screens get a second
-   COLUMN OF SECTIONS instead of longer lines; see the grid rule further down. */
-body.eb-public .reg-wrap {
-   width: auto;
-   max-width: 760px;
-   margin: clamp(14px, 3vh, 26px) auto 0 auto;
-   padding: 0 clamp(12px, 3vw, 20px);
-   box-sizing: border-box;
-   font-family: "Trebuchet MS", Tahoma, sans-serif;
-}
-body.eb-public .reg-wrap fieldset {
-   border: 1px solid var(--eb-line);
-   border-radius: 4px;
-   padding: 18px clamp(12px, 3vw, 22px) 22px;
-   margin: 0 0 20px 0;
-   background: #ffffff;
-   /* A fieldset's min-width is auto by default, so it inflates to its widest
-      child and drags the page sideways on a narrow screen. */
-   min-width: 0;
-}
-body.eb-public .reg-wrap legend {
-   font-family: "Trebuchet MS", Tahoma, sans-serif;
-   font-size: clamp(19px, 1rem + 0.3vw, 22px);
-   font-weight: bold;
-   color: var(--eb-olive);
-   padding: 0 8px;
+.page {
+   max-width: 60rem;
+   margin: 0 auto;
+   padding: 2rem 1.25rem 3rem;
 }
 
-/* One field per row, label above input. */
-body.eb-public .reg-field {
+.form-page { max-width: 40rem; }
+
+h1 {
+   margin: 0.5rem 0 0.25rem;
+   font-size: clamp(1.75rem, 5vw, 2.75rem);
+   line-height: 1.2;
+}
+.welcome h1, .welcome .lead { text-align: center; }
+h2 { margin: 0; font-size: 1.25rem; line-height: 1.3; }
+h3 { margin: 0; font-size: 1.125rem; line-height: 1.3; }
+
+.lead {
+   margin: 0 0 1.75rem;
+   font-size: clamp(1.0625rem, 2.4vw, 1.25rem);
+   color: var(--text-2);
+}
+
+.hint { margin: 0.25rem 0 0; font-size: 0.9375rem; color: var(--text-2); }
+
+/* ---------------------------------------------------------- welcome page */
+.choices {
+   display: grid;
+   grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+   gap: 1rem;
+   margin: 0 0 2rem;
+}
+
+/* The two ways in are links (they go to another page), drawn as big tiles. */
+.choice {
    display: flex;
    flex-direction: column;
-   margin-bottom: 18px;
-   min-width: 0;
-}
-body.eb-public .reg-field label {
-   margin-bottom: 6px;
-   font-size: 17px;
-   font-weight: 600;
-   color: var(--eb-dark-gray);
-   text-align: left;
-   width: auto;
-}
-body.eb-public .reg-field input,
-body.eb-public .reg-field select {
-   width: 100%;
-   box-sizing: border-box;
-}
-/* The documented exception: fields that read as a single item. They stay
-   side by side only while both can hold a real value -- 200px is about where
-   a surname starts being clipped -- and drop to one per row below that
-   rather than squeezing into boxes too small to read what was typed. */
-body.eb-public .reg-pair {
-   display: flex;
-   flex-wrap: wrap;
-   gap: 20px;
-}
-body.eb-public .reg-pair > .reg-field { flex: 1 1 200px; }
-/* Width as an affordance -- a unit number is short, so its box says so. */
-body.eb-public .reg-pair > .reg-field.reg-narrow { flex: 0 1 150px; }
-body.eb-public .reg-pair > .reg-field.reg-grow   { flex: 3 1 200px; }
-
-/* A checkbox with its text beside it, the whole row tappable at the touch
-   target height. The .reg-field label rule above would stack it; this undoes
-   that for the adult form's "Today" answers. */
-body.eb-public .reg-check,
-body.eb-public .reg-field label.reg-check {
-   display: flex;
-   flex-direction: row;
-   align-items: center;
-   gap: 10px;
-   min-height: var(--eb-target-touch);
-   margin: 0 0 8px;
-   font-size: 17px;
-   font-weight: 400;
-   color: var(--eb-dark-gray);
-}
-body.eb-public .reg-check input[type="checkbox"],
-body.eb-public .reg-field .reg-check input[type="checkbox"] {
-   width: 22px;
-   height: 22px;
-   flex: 0 0 auto;
-}
-body.eb-public .reg-hint {
-   margin: 0 0 8px;
-   font-size: 15px;
-   color: var(--eb-warm-gray);
-}
-/* The scout checklist scrolls inside itself, so a long RSVP list does not
-   push the Register button off the tablet's screen. */
-body.eb-public .reg-scouts {
-   margin-top: 8px;
-   max-height: 14em;
-   overflow-y: auto;
-   border: 1px solid var(--eb-line);
-   border-radius: 4px;
-   padding: 4px 10px;
-}
-body.eb-public .reg-scouts .reg-check { margin: 0; }
-
-body.eb-public .reg-buttons {
-   display: flex;
-   flex-wrap: wrap;
    justify-content: center;
-   gap: clamp(14px, 3vw, 28px);
-   padding: 6px 0 10px 0;
+   gap: 0.25rem;
+   min-height: 7.5rem;
+   padding: 1.25rem 1.5rem;
+   border: 2px solid var(--control-border);
+   border-radius: 0.75rem;
+   background: var(--surface);
+   color: var(--text);
+   text-decoration: none;
 }
-body.eb-public .reg-buttons button { flex: 0 1 200px; }
-/* Register is the primary action. Cancel only navigates away -- it destroys
-   nothing -- so it is white, not the red used for destructive actions. */
-body.eb-public .reg-buttons button#cancelBtn {
-   color: var(--eb-olive);
-   background: #ffffff;
-   border-color: var(--eb-olive);
-}
-body.eb-public #statusMsg {
-   text-align: center;
-   font-size: 18px;
-   min-height: 26px;
-   padding: 4px;
-}
-body.eb-public #statusMsg.ok  { color: #1d6b2b; font-weight: bold; }   /* 5.685:1 */
-body.eb-public #statusMsg.err { color: var(--eb-red); font-weight: bold; }  /* 5.63:1 */
+.choice-title { font-size: 1.625rem; font-weight: 700; line-height: 1.2; }
+.choice-detail { font-size: 1rem; color: var(--text-2); }
+.choice:hover { background: var(--surface-alt); }
+.choice.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.choice.primary .choice-detail { color: var(--accent-text); }
+.choice.primary:hover { background: var(--accent); text-decoration: underline; }
 
-/* Registration forms: every field a 44px touch target. 16px is the floor on
-   the inputs specifically -- iOS Safari zooms the whole page in on focus for
-   anything smaller, which throws the layout off mid-form. */
-body.eb-public input[type=text],
-body.eb-public input[type=email],
-body.eb-public input[type=tel],
-body.eb-public input[type=date],
-body.eb-public select {
-   min-height: var(--eb-target-touch);
-   font-family: "Trebuchet MS", Tahoma, sans-serif;
-   font-size: 18px;
-   padding: 6px 10px;
-   color: var(--eb-dark-gray);
-   border: 1px solid var(--eb-line);
-   border-radius: 4px;
-   max-width: 100%;
+.lists {
+   display: grid;
+   grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+   gap: 1rem;
 }
-/* Disabled field: the Unit # box when the adult serves from a district,
-   council or community role rather than a numbered unit. WCAG exempts
-   disabled controls from the 1.4.3 contrast minimum, but it still has to look
-   unmistakably inactive rather than merely empty -- filled with Light Tan and
-   greyed, and the label greys with it so the pair reads as one switched-off
-   thing instead of a live label over a dead box. */
-body.eb-public input:disabled,
-body.eb-public select:disabled {
-   background: var(--eb-light-tan);
-   color: var(--eb-warm-gray);
-   border-color: var(--eb-line);
-   cursor: not-allowed;
-}
-body.eb-public .reg-field.is-disabled label { color: var(--eb-warm-gray); }
 
-body.eb-public button,
-body.eb-public input[type=submit] {
-   min-height: var(--eb-target-touch);
-   font-family: "Trebuchet MS", Tahoma, sans-serif;
-   font-size: 20px;
+.card {
+   background: var(--surface);
+   border: 1px solid var(--divider);
+   border-radius: 0.75rem;
+   padding: 1rem 1.25rem 1.25rem;
+}
+.card-head {
+   display: flex;
+   flex-wrap: wrap;
+   align-items: center;
+   justify-content: space-between;
+   gap: 0.5rem;
+   margin-bottom: 0.5rem;
+}
+
+.list-scroll { max-height: 22rem; overflow-y: auto; }
+
+table { width: 100%; border-collapse: collapse; font-size: 1rem; }
+th {
+   text-align: left;
+   font-size: 0.875rem;
+   font-weight: 600;
+   color: var(--text-2);
+   padding: 0.25rem 0.5rem 0.375rem 0;
+   border-bottom: 1px solid var(--divider);
+}
+td { padding: 0.5rem 0.5rem 0.5rem 0; border-bottom: 1px solid var(--divider); vertical-align: top; }
+td.time { color: var(--text-2); white-space: nowrap; }
+.empty { margin: 0.5rem 0 0; color: var(--text-2); }
+
+.list-controls {
+   display: flex;
+   flex-wrap: wrap;
+   align-items: center;
+   justify-content: space-between;
+   gap: 0.75rem;
+   margin: 1.5rem 0 0.75rem;
+}
+
+/* ------------------------------------------------------------------ forms */
+form { margin: 0; }
+
+fieldset {
+   margin: 0 0 1.25rem;
+   padding: 1rem 1.25rem 1.25rem;
+   background: var(--surface);
+   border: 1px solid var(--divider);
+   border-radius: 0.75rem;
+}
+legend {
+   padding: 0 0.375rem;
+   font-size: 1.125rem;
    font-weight: 700;
-   padding: 8px 28px;
-   color: #ffffff;
-   background: var(--eb-olive);
-   border: 2px solid var(--eb-olive);
-   border-radius: 6px;
+}
+
+fieldset.nested {
+   margin: 1rem 0 0;
+   padding: 0;
+   background: none;
+   border: 0;
+   border-radius: 0;
+}
+fieldset.nested > legend { padding: 0; font-size: 1rem; font-weight: 600; }
+
+.field { margin: 0 0 1rem; }
+.field:last-child { margin-bottom: 0; }
+.field > label, .field-label {
+   display: block;
+   margin: 0 0 0.25rem;
+   font-weight: 600;
+}
+.optional { font-weight: 400; color: var(--text-2); }
+
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1rem; }
+.pair.unit { grid-template-columns: 2fr 1fr; }
+@media (max-width: 30rem) {
+   .pair, .pair.unit { grid-template-columns: 1fr; }
+}
+
+input[type=text], input[type=tel], input[type=email], input[type=search], select {
+   display: block;
+   width: 100%;
+   min-height: 2.75rem;
+   padding: 0.5rem 0.75rem;
+   font: inherit;
+   color: var(--text);
+   background: var(--surface);
+   border: 1px solid var(--control-border);
+   border-radius: 0.375rem;
+}
+input:disabled, select:disabled {
+   color: var(--disabled-fg);
+   background: var(--disabled-bg);
+   border-style: dashed;
+}
+input[aria-invalid=true], select[aria-invalid=true] {
+   border: 2px solid var(--error-fg);
+}
+
+.field-error {
+   display: flex;
+   gap: 0.375rem;
+   margin: 0.375rem 0 0;
+   font-weight: 600;
+   color: var(--error-fg);
+}
+.field-error::before { content: "\26A0\FE0E"; } /* warning sign, as text */
+
+.check {
+   display: flex;
+   align-items: flex-start;
+   gap: 0.625rem;
+   min-height: 2.75rem;
+   padding: 0.5rem 0;
    cursor: pointer;
 }
-body.eb-public label { font-size: 18px; color: var(--eb-dark-gray); }
+.check input { flex: 0 0 auto; width: 1.375rem; height: 1.375rem; margin: 0.125rem 0 0; }
 
-/* ---- narrow screens ----------------------------------------------------
- * Everything above already reflows on its own; this only reclaims the
- * padding that a phone cannot spare. Nothing is hidden and nothing shrinks
- * below a touch target -- SC 1.4.10 requires the same content, not less of
- * it. Measured at the 320px floor: no horizontal page scroll.
- * --------------------------------------------------------------------- */
-@media (max-width: 34em) {
-   body.eb-public { margin: 0; }
-   body.eb-public h1 { margin: 8px 0 4px; }
-   body.eb-public .reg-panel td { padding: 12px 10px; }
-   body.eb-public .reg-panel-title { padding: 10px 12px; }
-   body.eb-public .reg-buttons button { flex: 1 1 100%; }
-   body.eb-public .signin-buttons input[type=button] { max-width: none; }
+.choice-list {
+   max-height: 18rem;
+   overflow-y: auto;
+   margin-top: 0.5rem;
+   padding: 0 0.75rem;
+   border: 1px solid var(--control-border);
+   border-radius: 0.375rem;
+}
+.choice-list .check + .check { border-top: 1px solid var(--divider); }
+
+/* ---------------------------------------------------------------- buttons */
+button, .button {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   min-height: 2.75rem;
+   padding: 0.5rem 1.25rem;
+   font: inherit;
+   font-weight: 600;
+   color: var(--text);
+   background: var(--surface);
+   border: 1px solid var(--control-border);
+   border-radius: 0.5rem;
+   text-decoration: none;
+   cursor: pointer;
+}
+button:hover, .button:hover { background: var(--surface-alt); }
+button.primary, .button.primary {
+   color: var(--accent-text);
+   background: var(--accent);
+   border-color: var(--accent);
+}
+button.primary:hover, .button.primary:hover { background: var(--accent); text-decoration: underline; }
+button:disabled { color: var(--disabled-fg); background: var(--disabled-bg); border-color: var(--disabled-bg); cursor: default; text-decoration: none; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 1.5rem 0 0; }
+
+/* --------------------------------------------------- messages (4.1.3) */
+/* Live regions stay in the page when empty (only collapsed), so a screen
+   reader is already listening when a message arrives. */
+.status {
+   margin: 1rem 0 0;
+   padding: 0.75rem 1rem;
+   border-radius: 0.5rem;
+   border: 1px solid var(--divider);
+   background: var(--surface);
+}
+.status.error { color: var(--error-fg); background: var(--error-bg); border-color: var(--error-fg); font-weight: 600; }
+.status.ok { color: var(--ok-fg); background: var(--ok-bg); border-color: var(--ok-fg); }
+.status:empty { margin: 0; padding: 0; border: 0; }
+.status ul { margin: 0.5rem 0 0; padding-left: 1.25rem; }
+.status p { margin: 0; }
+.status a { color: inherit; }
+
+.done {
+   padding: 1.5rem;
+   background: var(--ok-bg);
+   color: var(--ok-fg);
+   border: 1px solid var(--ok-fg);
+   border-radius: 0.75rem;
+}
+.done h2 { font-size: 1.5rem; }
+.done p { margin: 0.5rem 0 0; }
+
+/* ------------------------------------------------------------------ dialog */
+dialog {
+   max-width: min(30rem, calc(100vw - 2rem));
+   padding: 1.5rem;
+   color: var(--text);
+   background: var(--surface);
+   border: 1px solid var(--control-border);
+   border-radius: 0.75rem;
+}
+dialog::backdrop { background: var(--backdrop); }
+dialog h2 { font-size: 1.25rem; }
+dialog p { margin: 0.5rem 0 0; }
+
+/* ------------------------------------------- Windows High Contrast (forced) */
+@media (forced-colors: active) {
+   .choice, .card, fieldset, button, .button, dialog, .status, .done { border: 1px solid CanvasText; }
+   .choice.primary, button.primary, .button.primary { border: 3px solid Highlight; }
+   :focus-visible { outline-color: Highlight; }
 }
 
-/* A projected or wall-mounted check-in display is watched from across the
-   room, so give the list the height the screen actually has. */
-@media (min-width: 75em) and (min-height: 60em) {
-   body.eb-public .reg-panel-body { height: clamp(360px, 48vh, 620px); }
-}
-
-/* ---- registration form: sections side by side on a wide screen ---------
- * Measured before this rule existed, at 1920x940: the adult form ran 947px
- * tall and the youth form 1041px, both overflowing -- while 1160px of the
- * screen's width sat empty. A form that has to be scrolled is the worse
- * failure of the two, and on a kiosk it is a real one: someone standing at a
- * table does not discover a field that is below the fold.
- *
- * So the extra width buys a second column of SECTIONS, not longer lines and
- * not a second column of fields. Baymard's multi-column finding is about
- * fields inside one group -- the eye path forks and people skip inputs -- and
- * that is preserved here: each fieldset stays a single top-labelled column,
- * capped in width, with only the documented single-item pairs beside each
- * other. What sits side by side is two separately bordered, separately
- * titled groups, which is how the eye reads them anyway.
- *
- * 64em is where two 380px columns plus the gap and page padding fit.
- * --------------------------------------------------------------------- */
-@media (min-width: 64em) {
-   body.eb-public .reg-wrap { max-width: 1180px; }
-   body.eb-public .reg-wrap form {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      column-gap: 28px;
-      /* Groups are different heights; the shorter one must not stretch to
-         match, or its border promises fields that are not there. */
-      align-items: start;
-   }
-   body.eb-public .reg-wrap fieldset { margin-bottom: 0; }
-   /* The status line and the buttons belong to the whole form, not a column. */
-   body.eb-public #statusMsg,
-   body.eb-public .reg-buttons { grid-column: 1 / -1; }
-}
-
-/* ---- short screens -----------------------------------------------------
- * A 1366x768 laptop has roughly 630px of usable height once browser chrome
- * is taken out, which two columns alone do not fit. This reclaims vertical
- * rhythm only: the 44px touch target on every input and button is untouched,
- * because that is an accessibility commitment (SC 2.5.5) and not spacing.
- * What shrinks is padding, margins and the size of the page title.
- * --------------------------------------------------------------------- */
-@media (max-height: 53em) {
-   body.eb-public .reg-head { padding-top: 6px; }
-   body.eb-public .page-subheader { font-size: clamp(24px, 1.1rem + 0.8vw, 32px); }
-   body.eb-public .reg-wrap { margin-top: 10px; }
-   body.eb-public .reg-wrap fieldset { padding: 10px clamp(12px, 3vw, 22px) 14px; }
-   body.eb-public .reg-field { margin-bottom: 11px; }
-   body.eb-public .reg-pair { gap: 16px; }
-   body.eb-public #statusMsg { min-height: 20px; padding: 2px; }
-   body.eb-public .reg-buttons { padding: 2px 0 6px; }
+@media (prefers-reduced-motion: reduce) {
+   * { scroll-behavior: auto !important; }
 }

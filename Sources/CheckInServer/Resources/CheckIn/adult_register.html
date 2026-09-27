@@ -1,48 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
    <head>
-      <title>Adult Sign-In</title>
       <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <link rel="stylesheet" type="text/css" href="checkin.css"/>
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="color-scheme" content="light dark">
+      <title>Adult sign-in: Eagle Boards</title>
+      <link rel="stylesheet" href="checkin.css">
       <script src="checkin.js"></script>
    </head>
-   <body class="eb-public">
-      <div class="reg-head">
-         <span class="page-subheader">Adult Sign-In</span>
-      </div>
+   <!-- Shared by every version of Eagle Boards (eagleboards-shared/checkin).
+        Edit it there, not in a version's copy. Same one-column layout as the
+        youth form. -->
+   <body>
+      <main class="page form-page">
+         <h1>Adult sign-in</h1>
+         <p class="lead">For board members, leaders and parents. Every field is needed unless it says optional.</p>
 
-      <!-- Same single-column, top-label structure as the youth form; see the
-           note there for the research behind it. -->
-      <div class="reg-wrap">
-         <form id="regForm" autocomplete="off">
+         <div id="errorSummary" class="status error" role="alert"></div>
+
+         <form id="signInForm">
+            <input type="hidden" name="ID" value="">
+
             <fieldset>
-               <legend>Adult registration</legend>
-               <div class="reg-field">
+               <legend>About you</legend>
+               <div class="field">
                   <label for="Email">Email</label>
-                  <!-- type="text", not type="email": NONE is a legal value and
-                       type="email" would reject it. -->
+                  <!-- type="text", not "email": NONE is a legal answer. -->
                   <input type="text" id="Email" name="Email" required
-                         inputmode="email" autocapitalize="off" autocorrect="off" spellcheck="false"
-                         title="Enter Email. If none, enter NONE.">
+                         inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false"
+                         aria-describedby="Email-hint"
+                         data-required="Enter your email, or NONE if you don't have one.">
+                  <p class="hint" id="Email-hint">If you've been to Eagle Boards before, we'll fill in the rest. No email? Type NONE.</p>
                </div>
-               <input type="hidden" name="ID" value="">
-               <div class="reg-pair">
-                  <div class="reg-field">
+               <div class="pair">
+                  <div class="field">
                      <label for="First">First name</label>
-                     <input type="text" id="First" name="First" required>
+                     <input type="text" id="First" name="First" required autocomplete="given-name">
                   </div>
-                  <div class="reg-field">
+                  <div class="field">
                      <label for="Last">Last name</label>
-                     <input type="text" id="Last" name="Last" required>
+                     <input type="text" id="Last" name="Last" required autocomplete="family-name">
                   </div>
                </div>
-               <div class="reg-field">
+               <div class="field">
                   <label for="Phone">Phone</label>
-                  <input type="tel" id="Phone" name="Phone" required inputmode="tel">
+                  <input type="tel" id="Phone" name="Phone" required autocomplete="tel"
+                         data-required="Enter a phone number we can reach you at.">
                </div>
-               <div class="reg-pair">
-                  <div class="reg-field reg-grow">
+               <div class="pair unit">
+                  <div class="field">
                      <label for="UnitType">Unit type</label>
                      <select id="UnitType" name="UnitType" required>
                         <option value="Troop">Troop</option>
@@ -50,36 +56,38 @@
                         <option value="Crew">Crew</option>
                         <option value="Ship">Ship</option>
                         <option value="Pack">Pack</option>
-                        <!-- Adults can serve from a district, council or
-                             community role rather than a numbered unit. Unit #
-                             is disabled for these three. -->
                         <option value="District">District</option>
                         <option value="Council">Council</option>
                         <option value="Community">Community</option>
                      </select>
                   </div>
-                  <div class="reg-field reg-narrow" id="unitField">
-                     <label for="Unit">Unit #</label>
-                     <input type="text" id="Unit" name="Unit" required pattern="[0-9]+"
-                            inputmode="numeric" title="Unit # must be a whole number.">
+                  <div class="field">
+                     <label for="Unit">Unit number</label>
+                     <input type="text" id="Unit" name="Unit" required inputmode="numeric" pattern="[0-9]+"
+                            aria-describedby="Unit-hint"
+                            data-required="Enter your unit number."
+                            data-pattern="Unit number takes digits only, like 1776.">
+                     <p class="hint" id="Unit-hint">Digits only, like 1776.</p>
                   </div>
                </div>
             </fieldset>
-            <fieldset>
-               <legend>I can serve as</legend>
-               <div class="reg-pair">
-                  <div class="reg-field">
-                     <label for="FinalBoard">Final Board</label>
+
+            <fieldset aria-describedby="roles-hint">
+               <legend>Boards I can serve on</legend>
+               <p class="hint" id="roles-hint">Choose Member or Chair for at least one.</p>
+               <div class="pair">
+                  <div class="field">
+                     <label for="FinalBoard">Eagle boards of review</label>
+                     <!-- "No thanks" is stored as the role Unavailable, which
+                          keeps them off that kind of board. -->
                      <select id="FinalBoard" name="FinalBoard" required>
                         <option value="Member">Member</option>
                         <option value="Chair">Chair</option>
-                        <!-- Stored as the role "Unavailable", which the
-                             scheduler and Seat Board keep off that kind of board. -->
                         <option value="Unavailable">No thanks</option>
                      </select>
                   </div>
-                  <div class="reg-field">
-                     <label for="ProjectReview">Proposal Review</label>
+                  <div class="field">
+                     <label for="ProjectReview">Project proposal reviews</label>
                      <select id="ProjectReview" name="ProjectReview" required>
                         <option value="Member">Member</option>
                         <option value="Chair">Chair</option>
@@ -89,109 +97,80 @@
                </div>
             </fieldset>
 
-            <!-- This event only: neither answer is kept in the adult history, so
-                 next month's form does not pre-fill last month's. -->
+            <!-- Today only: neither answer is kept for next time, so a later
+                 event's form does not fill them in. -->
             <fieldset>
-               <legend>Today</legend>
-               <label class="reg-check">
+               <legend>Today <span class="optional">(optional)</span></legend>
+               <label class="check">
                   <input type="checkbox" id="WoodBadge">
-                  I'm volunteering toward a Wood Badge ticket item
+                  <span>I'm volunteering toward a Wood Badge ticket item</span>
                </label>
-               <div class="reg-field">
-                  <label for="scoutFilter">I'm here supporting a scout</label>
-                  <p class="reg-hint">Their Scoutmaster, coach or parent? Check each scout you came
-                     with, so we can find you when their review starts. Leave it empty if
-                     you're here to serve on any board.</p>
-                  <input type="text" id="scoutFilter" placeholder="Type a name to narrow the list">
-                  <div id="scoutList" class="reg-scouts" role="group" aria-label="Scouts">
-                     <span class="reg-hint">Loading scouts...</span>
+               <fieldset class="nested" aria-describedby="support-hint">
+                  <legend>I'm here supporting a youth</legend>
+                  <p class="hint" id="support-hint">Their Scoutmaster, coach or parent? Check each youth you came with,
+                     so we can find you when their review starts. Leave them all unchecked if you're here to serve on
+                     any board.</p>
+                  <div class="field">
+                     <label for="supportFind">Find a youth <span class="optional">(optional)</span></label>
+                     <input type="search" id="supportFind" autocomplete="off" aria-describedby="supportCount">
+                     <p class="hint" id="supportCount" aria-live="polite"></p>
                   </div>
-               </div>
+                  <div id="supportList" class="choice-list">
+                     <p class="empty">Loading the youth…</p>
+                  </div>
+               </fieldset>
             </fieldset>
-            <div id="statusMsg" role="status"></div>
-            <div class="reg-buttons">
-               <button type="submit" id="registerBtn"><b>Register</b></button>
-               <button type="button" id="cancelBtn"><b>Cancel</b></button>
+
+            <p id="formStatus" class="status" role="status"></p>
+            <div class="actions">
+               <button type="submit" class="primary" id="submitButton">Sign in</button>
+               <button type="button" id="cancelButton">Cancel</button>
             </div>
          </form>
-      </div>
 
+         <section id="done" class="done" hidden aria-labelledby="doneHeading">
+            <h2 id="doneHeading">You're signed in. Thank you!</h2>
+            <p>Please wait nearby. Someone will come for you when a board needs you.</p>
+            <p id="returnNote"></p>
+            <div class="actions">
+               <a class="button primary" href="/">Back to the start</a>
+               <button type="button" id="stayButton">Stay on this page</button>
+            </div>
+         </section>
+
+         <dialog id="leaveDialog" aria-labelledby="leaveHeading">
+            <h2 id="leaveHeading">Leave without signing in?</h2>
+            <p>What you've typed here will be cleared.</p>
+            <div class="actions">
+               <button type="button" class="primary" id="keepButton">Keep signing in</button>
+               <button type="button" id="leaveButton">Leave</button>
+            </div>
+         </dialog>
+      </main>
       <script>
-         var form = document.getElementById("regForm");
-
-         // Someone serving from a district, council or community role has no
-         // unit number, so the box is disabled and cleared rather than left to
-         // be filled with a placeholder like 0 or N/A.
-         var UNITLESS_TYPES = ["District", "Council", "Community"];
-         var unitField = document.getElementById("unitField");
-         function syncUnitField() {
-            var unitless = UNITLESS_TYPES.indexOf(form.elements["UnitType"].value) >= 0;
-            var unit = form.elements["Unit"];
-            if (unitless) {
-               unit.value = "";
-            }
-            // Dropping `required` is what lets the form submit with the box
-            // the person was never allowed to fill in.
-            unit.disabled = unitless;
-            unit.required = !unitless;
-            unitField.className = unitless ? "reg-field reg-narrow is-disabled" : "reg-field reg-narrow";
-         }
-         form.elements["UnitType"].addEventListener("change", syncUnitField);
-         syncUnitField();
-
-         ebWireEmailPrefill(form, "/api/adult-lookup",
-            ["ID", "Last", "First", "Phone", "UnitType", "Unit", "FinalBoard", "ProjectReview"]);
-         // The youth an adult may say they came to support: RSVPs and
-         // today's walk-ins whose event is not over, names and units only.
-         var scoutList = document.getElementById("scoutList");
-         var scoutFilter = document.getElementById("scoutFilter");
-         ebScoutChoices().then(function (scouts) {
-            scoutList.textContent = "";
-            if (scouts.length === 0) {
-               var none = document.createElement("span");
-               none.className = "reg-hint";
-               none.textContent = "No scouts are signed up yet.";
-               scoutList.appendChild(none);
-               return;
-            }
-            scouts.forEach(function (s) {
-               var label = document.createElement("label");
-               label.className = "reg-check";
-               var box = document.createElement("input");
-               box.type = "checkbox";
-               box.value = s.id;
-               label.appendChild(box);
-               var unit = s.unitType + (s.unit ? " " + s.unit : "");
-               label.appendChild(document.createTextNode(
-                  " " + s.first + " " + s.last + (unit.trim() ? " (" + unit.trim() + ")" : "")));
-               scoutList.appendChild(label);
-            });
-         }).catch(function () {
-            scoutList.textContent = "Could not load the scouts. You can still sign in.";
-         });
-
-         scoutFilter.addEventListener("input", function () {
-            var needle = scoutFilter.value.trim().toLowerCase();
-            Array.prototype.forEach.call(scoutList.querySelectorAll("label"), function (label) {
-               var box = label.querySelector("input");
-               // A checked scout stays visible, so narrowing never hides a choice.
-               label.style.display = (!needle || box.checked
-                  || label.textContent.toLowerCase().indexOf(needle) >= 0) ? "" : "none";
-            });
-         });
-
-         ebWireRegistration(form, "/register-adult",
-            ["Email", "ID", "Last", "First", "Phone", "UnitType", "Unit", "FinalBoard", "ProjectReview"],
-            function (values) {
-               if (values.FinalBoard === "Unavailable" && values.ProjectReview === "Unavailable") {
-                  return "Please choose at least one kind of board you can serve on.";
+         (function () {
+            var form = document.getElementById("signInForm");
+            var syncUnit = ebUnitlessTypes(form, ["District", "Council", "Community"]);
+            var supportingIds = ebSupportList(form);
+            ebSignInForm(form, {
+               registerPath: "/register-adult",
+               lookupPath: "/api/adult-lookup",
+               prefill: ["ID", "Last", "First", "Phone", "UnitType", "Unit", "FinalBoard", "ProjectReview"],
+               send: ["Email", "ID", "Last", "First", "Phone", "UnitType", "Unit", "FinalBoard", "ProjectReview"],
+               afterPrefill: syncUnit,
+               check: function (values) {
+                  if (values.FinalBoard === "Unavailable" && values.ProjectReview === "Unavailable") {
+                     return [{ field: "FinalBoard", message: "Choose Member or Chair for at least one kind of board." }];
+                  }
+                  return [];
+               },
+               prepare: function (values) {
+                  values.WoodBadge = document.getElementById("WoodBadge").checked ? "Y" : "";
+                  // "|" rather than ",": the data files turn commas into "~".
+                  values.Supporting = supportingIds().join("|");
                }
-               values.WoodBadge = document.getElementById("WoodBadge").checked ? "Y" : "";
-               // "|" rather than ",": the data files turn commas into "~".
-               values.Supporting = Array.prototype.map.call(
-                  scoutList.querySelectorAll("input:checked"), function (box) { return box.value; }).join("|");
-               return null;
             });
+         })();
       </script>
    </body>
 </html>

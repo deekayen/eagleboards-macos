@@ -51,6 +51,15 @@ a native window. See `PROVENANCE.md`.
   touches seating, running or tearing down a board. Scenarios added to the Java
   project's `test-board-evening.sh` are mirrored there too (and in the Windows
   version); where one cannot arise here, the stand-in test says why.
+- **The check-in pages are shared** (SPEC.md D-18): the five files in
+  `Sources/CheckInServer/Resources/CheckIn/` are copies of
+  `eagleboards-shared/checkin`, pinned by `checkin-pages.lock`. **Never edit
+  them here**; CI fails if they differ from the pinned commit. Change them in
+  the shared repo (WCAG 2.2 AA: its `check-contrast.js` and an axe scan),
+  then copy all five and update the lock.
+- **No birthdate** (SPEC.md D-7, O-5): nothing asks for, keeps, pre-fills,
+  shows or exports one; `DOB` stays a column in the data files, empty for
+  new youth, and one already on file is left alone.
 - **Board suggestions** (`BoardSuggestion`) weigh the whole waiting line;
   the same algorithm and test cases are in the Java (`proposeBoard`) and
   Windows (`SchedulerLogic.AutoSelect`) versions. Change all three together.

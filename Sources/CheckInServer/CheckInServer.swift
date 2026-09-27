@@ -85,7 +85,7 @@ public enum CheckInServer {
 
     // MARK: - What the pages are given
 
-    static let youthPrefillColumns = ["ID", "Last", "First", "Phone", "DOB", "UnitType", "Unit", "BoardType", "Leader"]
+    static let youthPrefillColumns = ["ID", "Last", "First", "Phone", "UnitType", "Unit", "BoardType", "Leader"]
     static let adultPrefillColumns = ["ID", "Last", "First", "Phone", "UnitType", "Unit", "FinalBoard", "ProjectReview"]
 
     private static func pick<Record: EventRecord>(_ columns: [String], from record: Record) -> [String: String] {

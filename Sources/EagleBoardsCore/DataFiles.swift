@@ -185,7 +185,7 @@ public enum PropertiesFile {
 public enum Reports {
     /// The board results report: the Java app's `Report.csv` columns.
     public static let boardResultColumns = [
-        "RegNum", "Last", "First", "Phone", "Email", "BoardType", "DOB", "UnitType", "Unit",
+        "RegNum", "Last", "First", "Phone", "Email", "BoardType", "UnitType", "Unit",
         "Leader", "Status", "Result", "BoardChair", "BoardMembers", "Notes",
     ]
 

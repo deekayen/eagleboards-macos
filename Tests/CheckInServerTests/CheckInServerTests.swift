@@ -40,11 +40,11 @@ struct CheckInServerTests {
     }
 
     @Test(arguments: [
-        ("/", "text/html", "Please Sign In"),
-        ("/youth_register", "text/html", "Youth Sign-In"),
-        ("/adult_register", "text/html", "Adult Sign-In"),
-        ("/checkin.css", "text/css", "eb-public"),
-        ("/checkin.js", "text/javascript", "ebWireRegistration"),
+        ("/", "text/html", "Please sign in"),
+        ("/youth_register", "text/html", "Youth sign-in"),
+        ("/adult_register", "text/html", "Adult sign-in"),
+        ("/checkin.css", "text/css", "WCAG 2.2 AA"),
+        ("/checkin.js", "text/javascript", "ebSignInForm"),
     ])
     func theSignInPagesAreServed(path: String, contentType: String, marker: String) async throws {
         let reply = try await send(path)
@@ -82,7 +82,7 @@ struct CheckInServerTests {
         #expect(reply.body == "OK.")
         #expect(night.scouts.count == 1)
         #expect(night.scouts.first?.leader == "Lee Leader")
-        #expect(night.scouts.first?.dateOfBirth == "1/2/2010")
+        #expect(night.scouts.first?.dateOfBirth == "", "a birthdate from an older cached page is not kept (D-7)")
 
         let lists = try await send("/api/checked-in")
         #expect(lists.status == .ok)
@@ -169,7 +169,7 @@ struct CheckInServerTests {
 
         let (data, response) = try await URLSession.shared.data(from: URL(string: "http://127.0.0.1:\(port)/")!)
         #expect((response as? HTTPURLResponse)?.statusCode == 200)
-        #expect(String(decoding: data, as: UTF8.self).contains("Please Sign In"))
+        #expect(String(decoding: data, as: UTF8.self).contains("Please sign in"))
 
         server.cancel()
         _ = await server.result

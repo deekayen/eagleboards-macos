@@ -198,7 +198,7 @@ private struct YouthRecords: View {
 
     static let youthFields: [FieldSpec] = [
         .init("First", "First name"), .init("Last", "Last name"),
-        .init("Email", "Email"), .init("Phone", "Phone"), .init("DOB", "Birthdate"),
+        .init("Email", "Email"), .init("Phone", "Phone"),
         .init("UnitType", "Unit type", .choice(unitTypes)), .init("Unit", "Unit #"),
         .init("Leader", "Leader"),
         .init("BoardType", "Board", .choice(boardTypes)),
@@ -214,7 +214,7 @@ private struct YouthRecords: View {
 
     static let scheduledFields: [FieldSpec] = [
         .init("First", "First name"), .init("Last", "Last name"),
-        .init("Email", "Email"), .init("Phone", "Phone"), .init("DOB", "Birthdate"),
+        .init("Email", "Email"), .init("Phone", "Phone"),
         .init("UnitType", "Unit type", .choice(unitTypes)), .init("Unit", "Unit #"),
         .init("Leader", "Leader"),
         .init("BoardType", "Board", .choice(boardTypes)),

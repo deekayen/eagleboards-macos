@@ -174,8 +174,10 @@ public struct Scout: PersonRecord {
     ]
 
     /// The columns a youth fills in at the sign-in station. Signing in again
-    /// updates these and nothing else.
-    public static let signInColumns = ["First", "Last", "DOB", "Unit", "UnitType", "Email", "Phone", "Leader"]
+    /// updates these and nothing else. No DOB (SPEC.md D-7): a birthdate sent
+    /// by an older cached page is not copied, and one already on file is left
+    /// alone (O-5).
+    public static let signInColumns = ["First", "Last", "Unit", "UnitType", "Email", "Phone", "Leader"]
 
     public var fields: [String: String]
 

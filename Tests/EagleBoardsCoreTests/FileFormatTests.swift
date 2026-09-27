@@ -152,7 +152,7 @@ struct ReportTests {
         youth.notes = "Calm, prepared"
         let report = Reports.csv([youth], columns: Reports.boardResultColumns)
         let lines = report.split(separator: "\n")
-        #expect(lines[0] == "RegNum,Last,First,Phone,Email,BoardType,DOB,UnitType,Unit,Leader,Status,Result,BoardChair,BoardMembers,Notes")
-        #expect(lines[1] == ",Doe,Jan,,,,,,,,,Approved,,,Calm~ prepared")
+        #expect(lines[0] == "RegNum,Last,First,Phone,Email,BoardType,UnitType,Unit,Leader,Status,Result,BoardChair,BoardMembers,Notes")
+        #expect(lines[1] == ",Doe,Jan,,,,,,,,Approved,,,Calm~ prepared")
     }
 }
