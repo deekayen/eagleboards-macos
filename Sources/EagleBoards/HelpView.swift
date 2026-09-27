@@ -13,7 +13,7 @@ struct HelpView: View {
                     step("For a second display or a projector by the door, choose Window › Sign-In Code (Command-3) and make it as large as you like.")
                     step("Add today's rooms with Add Room at the bottom of the sidebar, or Room › Add Room…, marking each Final or Project by what it is used for today. After the first event, Room › Copy Rooms From brings back last month's rooms.")
                     step("To hold two proposal reviews in one room, add it twice, e.g. 200A and 200B.")
-                    step("To rename a room, right-click it in the sidebar or on its card and choose Rename…. A board already in it moves with it; nobody is reseated.")
+                    step("To rename a room, right-click its card and choose Rename…. A board already in it moves with it; nobody is reseated.")
                     step("If macOS asks whether Eagle Boards may accept incoming network connections, click Allow. Otherwise the tablet cannot reach it.")
                 }
 
@@ -25,13 +25,14 @@ struct HelpView: View {
                 }
 
                 section("Seat a board") {
-                    step("The sidebar lists the youth Waiting, On Boards and Finished, the Adults, and every room. The inspector on the right follows the selected youth; View › Show Inspector brings it back if it is hidden.")
+                    step("The sidebar lists the youth Waiting, On Boards and Finished, and the Adults. The room cards sit beside whichever list you choose, so every room and its timer stay in view. The inspector on the right follows the selected youth; View › Show Inspector brings it back if it is hidden.")
                     step("Select a waiting youth. The inspector proposes a board: a chair, enough members, and a free room of the right kind. It never picks adults from the youth's own unit. It picks with the whole waiting line in mind: it keeps adults who can chair free for the boards still to come, and uses adults whose troop rules them out for youth still waiting. If there aren't enough adults to do that it still proposes the best board it can.")
                     step("Change who sits on the board in the inspector: click someone in the free adults listed below the board to add them (type in Find an adult to narrow the list), and − takes them off. In the Adults list you can also Command-click several adults and choose Adult › Add to Board (Command-B), or drag them onto the board. A board you have changed is kept while you look at other youth; Suggest a Board replaces it with a proposal.")
                     step("To choose every board yourself, set Settings › General › When you select a waiting youth to Start with an empty board. Selecting a youth then picks only a free room.")
-                    step("Press Seat Board… in the inspector or the toolbar, press Command-Return, or double-click the youth. You can also drag a waiting youth onto a free room in the sidebar. The sheet lists anything that stops the board -- too few or too many members, no qualified chair, someone already on another board -- and anything worth a second look, each of which needs its own tick.")
+                    step("Press Seat Board… in the inspector or the toolbar, press Command-Return, or double-click the youth. You can also drag a waiting youth onto a free room's card. The sheet lists anything that stops the board -- too few or too many members, no qualified chair, someone already on another board -- and anything worth a second look, each of which needs its own tick.")
                     step("Choose the chair. Only members whose role for this kind of board is Chair are offered. If none is free, promote someone in the Records window by changing their role.")
                     step("Seating gives the members the room and the paperwork. The youth waits outside.")
+                    step("To change who sits on a seated board, before or after the review starts, select the youth and press Change Members… in the inspector, or choose Board › Change Members…. The sheet checks the board the same way Seat Board… does. The room's timer keeps running.")
                 }
 
                 section("Start the review") {
@@ -59,12 +60,12 @@ struct HelpView: View {
 
                 section("Menus") {
                     bullet("Every action is in the Board, Adult and Room menus, and on the right-click menu of a youth, an adult or a room.")
-                    bullet("Edit › Undo (Command-Z) takes back the last step: seating, starting, completing, postponing or resetting a board, disabling or enabling an adult, linking, and adding, removing, renaming or swapping rooms. It is refused if the room or a member has been given to another board since.")
+                    bullet("Edit › Undo (Command-Z) takes back the last step: seating, starting, completing, postponing or resetting a board, changing its members, disabling or enabling an adult, linking, and adding, removing, renaming or swapping rooms. It is refused if the room or a member has been given to another board since.")
                     bullet("Board › Locate Leader and Parents (Command-L) shows who came with the selected youth, and where they are, in the inspector.")
                     bullet("Board › Reset Board undoes seating: the youth waits again and the room and members are freed.")
                     bullet("Adult › Disable for Today takes adults out of the pool, for example when they have gone home. Enable for Today brings them back.")
                     bullet("Room › Move Board to Another Room… moves a board, or swaps two boards.")
-                    bullet("View › Waiting, On Boards, Finished, Adults and Rooms (Option-Command-1 to 5) switch lists.")
+                    bullet("View › Waiting, On Boards, Finished and Adults (Option-Command-1 to 4) choose the list shown beside the rooms.")
                     bullet("File › Export Board Results saves the event as a spreadsheet.")
                 }
 

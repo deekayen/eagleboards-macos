@@ -259,7 +259,7 @@ struct CopyRoomsItems: View {
 }
 
 /// What can be done to a room: the Room menu, and the context menu on its
-/// card and sidebar row.
+/// card.
 struct RoomActionButtons: View {
     let model: AppModel
     let night: EventNight
