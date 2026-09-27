@@ -131,37 +131,76 @@ struct RoomCard: View {
     }
 }
 
-/// Minutes since the board's last step, turning yellow then red at the
-/// limits set in Settings.
+/// Minutes since the board's last step, with a clock per state (SPEC.md
+/// D-13): a stopwatch on time, a timer on the orange tint running long, an
+/// alarm clock on the solid fill overdue, at the limits set in Settings. The
+/// three differ in outline and the last two in lightness, so the state reads
+/// with color blindness; VoiceOver says it in words.
 struct TimerBadge: View {
     let minutes: Int
     let state: RoomTimer.State
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         HStack(spacing: 3) {
-            if state != .okay {
-                Image(systemName: "exclamationmark.triangle.fill")
-            }
+            Image(systemName: symbol)
             Text("\(minutes)m").monospacedDigit()
         }
         .font(.callout.weight(state == .okay ? .regular : .bold))
-        .foregroundStyle(color)
+        .foregroundStyle(foreground)
+        .padding(.horizontal, fill == nil ? 0 : 5)
+        .background {
+            if let fill {
+                Capsule().fill(fill)
+            }
+        }
+        .overlay {
+            if fill != nil && contrast == .increased {
+                Capsule().strokeBorder(foreground)
+            }
+        }
         .help(help)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(spoken)
     }
 
-    private var color: Color {
+    private var symbol: String {
+        switch state {
+        case .okay: "stopwatch"
+        case .warning: "timer"
+        case .overdue: "alarm"
+        }
+    }
+
+    private var foreground: Color {
         switch state {
         case .okay: .secondary
-        case .warning: .orange
-        case .overdue: .red
+        case .warning: StatusPalette.long.foreground
+        case .overdue: StatusPalette.overdue.foreground
+        }
+    }
+
+    private var fill: Color? {
+        switch state {
+        case .okay: nil
+        case .warning: StatusPalette.long.background
+        case .overdue: StatusPalette.overdue.background
         }
     }
 
     private var help: String {
         switch state {
         case .okay: "\(minutes) minutes since the last step"
-        case .warning: "\(minutes) minutes: past the yellow time. Worth checking on."
-        case .overdue: "\(minutes) minutes: past the red time."
+        case .warning: "\(minutes) minutes: running long, past the time in Settings. Worth checking on."
+        case .overdue: "\(minutes) minutes: overdue, past the time in Settings."
+        }
+    }
+
+    private var spoken: String {
+        switch state {
+        case .okay: "\(minutes) minutes"
+        case .warning: "\(minutes) minutes, running long"
+        case .overdue: "\(minutes) minutes, overdue"
         }
     }
 }

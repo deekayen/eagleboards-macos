@@ -52,8 +52,8 @@ struct HelpView: View {
                 }
 
                 section("Room timers") {
-                    bullet("The Dock icon shows how many youth are waiting. If a room passes its red time while you are in another app, a notification says so; macOS asks once whether to allow them, after the first board is seated.")
-                    bullet("Each busy room shows the minutes since its last step. While a board convenes the card turns red after 30 minutes. Once the review starts, a final board turns yellow at 30 and red at 45; a proposal review at 25 and 40.")
+                    bullet("The Dock icon shows how many youth are waiting. If a room goes overdue while you are in another app, a notification says so; macOS asks once whether to allow them, after the first board is seated.")
+                    bullet("Each busy room shows the minutes since its last step, with a stopwatch. While a board convenes it goes overdue after 30 minutes. Once the review starts, a final board runs long at 30 and is overdue at 45; a proposal review at 25 and 40. Running long is a timer on an orange tint and overdue an alarm clock on a solid pink-red fill, so they differ in shape and lightness, not only color.")
                     bullet("They are prompts, not limits. Change them in Settings › Timers.")
                 }
 

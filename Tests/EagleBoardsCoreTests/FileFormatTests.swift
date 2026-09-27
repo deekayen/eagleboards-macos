@@ -83,18 +83,19 @@ struct FileFormatTests {
         let config = Config(fields: PropertiesFile.parse(text))
         #expect(config.refreshSeconds == 15)
         #expect(config.finalRedMinutes == 50)
-        #expect(config.colorHex(for: .registered) == "#ff0000")
         #expect(config.projectYellowMinutes == 25, "a blank value keeps the default")
         #expect(config.conveneRedMinutes == 30, "a missing value keeps the default")
+        #expect(!PropertiesFile.render(config).contains("Color"),
+                "a retired status color loads but is not written back (SPEC.md D-19)")
     }
 
     @Test func configRoundTrips() {
         var config = Config.standard
         config.finalYellowMinutes = 35
-        config.setColorHex("#123456", for: .seated, highlighted: true)
         let reread = Config(fields: PropertiesFile.parse(PropertiesFile.render(config)))
         #expect(reread == config)
-        #expect(PropertiesFile.render(config).contains("SeatedHiColor=#123456\n"))
+        #expect(PropertiesFile.render(config).contains("FinalYellowMins=35\n"))
+        #expect(!Config.columns.contains { $0.hasSuffix("Color") }, "status colors are not settings (SPEC.md D-19)")
     }
 
     @MainActor

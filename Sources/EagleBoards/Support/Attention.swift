@@ -3,8 +3,8 @@ import EagleBoardsCore
 import UserNotifications
 
 /// Getting the operator's attention when the window is not in front: the
-/// number waiting on the Dock icon, and a notification when a room passes its
-/// red time.
+/// number waiting on the Dock icon, and a notification when a room goes
+/// overdue.
 @MainActor
 final class Attention {
     /// Boards already notified about, by youth and step, so each one is
@@ -27,9 +27,9 @@ final class Attention {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }
 
-    /// Announce each board that has just gone past its red time, if the
-    /// operator is working in another app. One in front of them already
-    /// shows red in the sidebar.
+    /// Announce each board that has just gone overdue, if the operator is
+    /// working in another app. One in front of them already shows its alarm
+    /// clock on the room.
     func checkRooms(in night: EventNight, now: Date) {
         for youth in night.scouts where youth.status == .seated || youth.status == .inProgress {
             guard let minutes = youth.minutesSinceLastUpdate(now: now),
@@ -39,7 +39,7 @@ final class Attention {
             guard announced.insert(key).inserted, canNotify, !NSApplication.shared.isActive else { continue }
 
             let content = UNMutableNotificationContent()
-            content.title = "Room \(youth.room) is past its red time"
+            content.title = "Room \(youth.room) is overdue"
             content.body = youth.status == .seated
                 ? "\(youth.fullName)'s board has been convening for \(minutes) minutes."
                 : "\(youth.fullName)'s review has run \(minutes) minutes."

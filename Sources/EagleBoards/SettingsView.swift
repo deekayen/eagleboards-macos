@@ -71,7 +71,7 @@ private struct GeneralSettings: View {
     }
 }
 
-/// Room-card timers. They are guidance, not limits: the colors prompt
+/// Room-card timers. They are guidance, not limits: the timers prompt
 /// someone to check on the room, and nothing stops a board that needs longer.
 private struct TimerSettings: View {
     @Environment(AppModel.self) private var model
@@ -80,18 +80,18 @@ private struct TimerSettings: View {
         if let night = model.night {
             Form {
                 Section {
-                    minutes("Convening, red after", \.conveneRedMinutes, night)
+                    minutes("Convening, overdue after", \.conveneRedMinutes, night)
                 } header: {
                     Text("Board convening (Seat Board to Start Review)")
                 } footer: {
                     Text("Guide to Advancement 8.0.3.0 #8: members convene at least 30 minutes before the board to go over the "
                         + "application, references and project workbook. Used here as a cap: past it the youth is being kept "
-                        + "waiting. There is no yellow, because it is a limit rather than a target.")
+                        + "waiting. It is never just running long, because it is a limit rather than a target.")
                         .foregroundStyle(.secondary)
                 }
                 Section {
-                    minutes("Yellow after", \.finalYellowMinutes, night)
-                    minutes("Red after", \.finalRedMinutes, night)
+                    minutes("Running long after", \.finalYellowMinutes, night)
+                    minutes("Overdue after", \.finalRedMinutes, night)
                 } header: {
                     Text("Final board review (from Start Review)")
                 } footer: {
@@ -100,8 +100,8 @@ private struct TimerSettings: View {
                         .foregroundStyle(.secondary)
                 }
                 Section {
-                    minutes("Yellow after", \.projectYellowMinutes, night)
-                    minutes("Red after", \.projectRedMinutes, night)
+                    minutes("Running long after", \.projectYellowMinutes, night)
+                    minutes("Overdue after", \.projectRedMinutes, night)
                 } header: {
                     Text("Proposal review (from Start Review)")
                 } footer: {

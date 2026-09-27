@@ -422,9 +422,10 @@ public struct Config: EventRecord {
     public static let columns = [
         "Type", "ID", "Name", "RefreshTimeSecs", "ConveneRedMins",
         "ProjectYellowMins", "ProjectRedMins", "FinalYellowMins", "FinalRedMins",
-        "RegisteredColor", "VerifiedColor", "SeatedColor", "InProgressColor", "CompletedColor", "PostponedColor",
-        "RegisteredHiColor", "VerifiedHiColor", "SeatedHiColor", "InProgressHiColor", "CompletedHiColor", "PostponedHiColor",
     ]
+    // RegisteredColor..PostponedHiColor followed here once. They are retired
+    // (SPEC.md D-19): a file that still has them loads, and rendering it
+    // leaves them out, because only these columns are written.
 
     /// Values used for any setting the file leaves out.
     ///
@@ -438,10 +439,6 @@ public struct Config: EventRecord {
         "ConveneRedMins": "30",
         "ProjectYellowMins": "25", "ProjectRedMins": "40",
         "FinalYellowMins": "30", "FinalRedMins": "45",
-        "RegisteredColor": "#ffcccc", "VerifiedColor": "#ffffcc", "SeatedColor": "#ccffff",
-        "InProgressColor": "#ccffcc", "CompletedColor": "#ffffff", "PostponedColor": "#909090",
-        "RegisteredHiColor": "#ff6666", "VerifiedHiColor": "#ffff66", "SeatedHiColor": "#66ffff",
-        "InProgressHiColor": "#66ff66", "CompletedHiColor": "#eeeeee", "PostponedHiColor": "#9f7f7f",
     ]
 
     public var fields: [String: String]
@@ -469,8 +466,8 @@ public struct Config: EventRecord {
         get { max(1, minutes("RefreshTimeSecs")) }
         set { self["RefreshTimeSecs"] = String(max(1, newValue)) }
     }
-    /// How long a board may convene before the room card turns red. One limit,
-    /// no yellow: past it the youth is being kept waiting.
+    /// How long a board may convene before the room card shows overdue. One
+    /// limit, never just running long: past it the youth is being kept waiting.
     public var conveneRedMinutes: Int {
         get { minutes("ConveneRedMins") }
         set { setMinutes("ConveneRedMins", newValue) }
@@ -490,15 +487,5 @@ public struct Config: EventRecord {
     public var finalRedMinutes: Int {
         get { minutes("FinalRedMins") }
         set { setMinutes("FinalRedMins", newValue) }
-    }
-
-    /// Hex color for a status, e.g. `#ccffcc`; `highlighted` picks the
-    /// selected-row variant.
-    public func colorHex(for status: BoardStatus, highlighted: Bool = false) -> String {
-        self["\(status.rawValue)\(highlighted ? "Hi" : "")Color"]
-    }
-
-    public mutating func setColorHex(_ hex: String, for status: BoardStatus, highlighted: Bool = false) {
-        self["\(status.rawValue)\(highlighted ? "Hi" : "")Color"] = hex
     }
 }

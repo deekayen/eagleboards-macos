@@ -497,13 +497,14 @@ public enum AdultLocator {
     }
 }
 
-/// The yellow/red warning on a room card.
+/// The running-long and overdue warnings on a room card. The settings keep
+/// their old names: running long is the "Yellow" time, overdue the "Red".
 public enum RoomTimer {
     public enum State: Sendable, Equatable {
         case okay
-        /// Past the yellow time.
+        /// Running long: past the yellow time.
         case warning
-        /// Past the red time.
+        /// Overdue: past the red time.
         case overdue
     }
 

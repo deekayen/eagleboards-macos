@@ -136,11 +136,13 @@ and add any notes. The room and the members are free for the next board.
 
 ## Room timers
 
-Each busy room shows the minutes since its last step. While a board convenes,
-the card turns red after 30 minutes. Once the review starts, a final board
-turns yellow at 30 minutes and red at 45. A proposal review turns yellow at 25
-and red at 40. They are prompts, not limits. Change them in **Settings ›
-Timers**.
+Each busy room shows the minutes since its last step, with a stopwatch. While
+a board convenes, it goes overdue after 30 minutes. Once the review starts, a
+final board runs long at 30 minutes and is overdue at 45. A proposal review
+runs long at 25 and is overdue at 40. Running long is a timer on an orange tint;
+overdue is an alarm clock on a solid pink-red fill, so the two differ in shape
+and lightness and read with color blindness. They are prompts, not limits.
+Change them in **Settings › Timers**.
 
 ## SignUpGenius
 
@@ -160,7 +162,7 @@ a change to the rooms. It is refused once the room or a member has been given
 to another board.
 
 The Dock icon shows how many youth are waiting, and a notification tells you
-when a room passes its red time while you are in another app.
+when a room goes overdue while you are in another app.
 
 ## If something goes wrong
 

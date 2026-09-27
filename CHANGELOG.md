@@ -4,6 +4,21 @@ Versions are CalVer: the release date.
 
 ## Unreleased
 
+**One status palette, and a clock per timer state** (SPEC.md D-13). The
+status badges and room timers take the colors all three versions now share,
+from Monokai Pro's hues, checked for contrast and color blindness in light and
+dark: Seated yellow, In Review cyan, Completed purple, Waiting and Postponed
+gray. A room timer shows a stopwatch on time, a timer on an orange tint when it
+runs long, and an alarm clock on a solid pink-red fill when it is overdue.
+Running long and overdue used to share one warning symbol in orange and red,
+which look alike to many color-blind operators. Increase Contrast adds a border
+to each. Settings and Help say "running long" and "overdue" instead of yellow
+and red, and so does the notification.
+
+**Status colors are not settings** (D-19). The twelve `*Color` keys are gone
+from `config.properties`; a file that still has them opens, and saving leaves
+them out.
+
 **No youth phone numbers** (SPEC.md D-8). Nothing used one, so the youth
 sign-in no longer asks for it or keeps one sent by an older cached page, a
 SignUpGenius import no longer copies it, and the email lookup, the Records
@@ -59,6 +74,7 @@ the sign-in QR code large, for a second display or a projector.
 **Status colors follow the system.** Badges use a symbol and a system color
 that reads in dark mode. The Java app's status colors stay in
 `config.properties`, unchanged, but the Mac app no longer offers to edit them.
+(Superseded by the shared palette; see Unreleased.)
 
 **Boards can be picked by hand.** Settings › General can start each waiting
 youth with an empty board instead of a proposal. The inspector's free adults
