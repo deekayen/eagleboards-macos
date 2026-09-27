@@ -76,7 +76,7 @@ struct HelpView: View {
                 }
 
                 section("Donating") {
-                    bullet("Eagle Boards is free. If it helps your board events, Help › Donate lists ways to support its development.")
+                    bullet("Eagle Boards is free. If it helps your board events, Donate at the foot of the sidebar, or Help › Donate, lists ways to support its development.")
                 }
             }
             .padding(28)

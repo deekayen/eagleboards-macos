@@ -2,8 +2,9 @@ import AppKit
 import SwiftUI
 
 /// Ways to support the app's author, the same list as the author's GitHub
-/// FUNDING.yml. Offered in the Help menu and the About window, never on the
-/// operator's screens.
+/// FUNDING.yml. Offered in the Help menu, the About window and the Donate
+/// button at the foot of the scheduler's sidebar (SPEC.md D-17); never in the
+/// queue, the rooms or the inspector.
 enum SupportLink: CaseIterable, Identifiable {
     case githubSponsors
     case koFi
@@ -33,6 +34,45 @@ enum SupportLink: CaseIterable, Identifiable {
         case .payPal: URL(string: "https://paypal.me/deekayen")!
         case .venmo: URL(string: "https://venmo.com/drdnorman")!
         case .buyMeACoffee: URL(string: "https://buymeacoff.ee/deekayen")!
+        }
+    }
+}
+
+/// The Donate button at the foot of the scheduler's sidebar (SPEC.md D-17):
+/// a popover with the links, like the Support card in the other versions'
+/// Settings.
+struct DonateButton: View {
+    @State private var showsLinks = false
+
+    var body: some View {
+        Button {
+            showsLinks.toggle()
+        } label: {
+            Label("Donate", systemImage: "heart")
+        }
+        .buttonStyle(.borderless)
+        .help("Ways to support Eagle Boards")
+        .popover(isPresented: $showsLinks, arrowEdge: .top) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Support this project")
+                    .font(.headline)
+                Text("Eagle Boards is free, and built and kept up by a volunteer. If it helps your board events, you can chip in through any of these.")
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                    ForEach(SupportLink.allCases) { link in
+                        Button {
+                            NSWorkspace.shared.open(link.url)
+                        } label: {
+                            Text(link.title).frame(maxWidth: .infinity)
+                        }
+                        .help(link.url.absoluteString)
+                    }
+                }
+                .padding(.top, 4)
+            }
+            .padding(16)
+            .frame(width: 320)
         }
     }
 }

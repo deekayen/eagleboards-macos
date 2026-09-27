@@ -39,6 +39,7 @@ struct SchedulerSidebar: View {
                 .buttonStyle(.borderless)
                 .help("Add a room for today")
                 Spacer()
+                DonateButton()
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
