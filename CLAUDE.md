@@ -60,6 +60,10 @@ a native window. See `PROVENANCE.md`.
 - **No birthdate** (SPEC.md D-7, O-5): nothing asks for, keeps, pre-fills,
   shows or exports one; `DOB` stays a column in the data files, empty for
   new youth, and one already on file is left alone.
+- **No youth phone number** (SPEC.md D-8): the same for a youth's `Phone`,
+  which `Scout.signInColumns` and the SignUpGenius import no longer copy.
+  Anything saved outside the data folder goes through `Scout.forExport`,
+  which blanks `Scout.withheldColumns`. Adults keep their numbers everywhere.
 - **Board suggestions** (`BoardSuggestion`) weigh the whole waiting line;
   the same algorithm and test cases are in the Java (`proposeBoard`) and
   Windows (`SchedulerLogic.AutoSelect`) versions. Change all three together.
