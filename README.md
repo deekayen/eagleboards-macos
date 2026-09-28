@@ -86,8 +86,9 @@ them and choose **Board › Postpone**. **Edit › Undo** brings them back.
 The window has three pages, chosen in the **View** menu; there is no
 sidebar. **Event** is where you work: every youth in one list, stacked
 **Waiting** (in sign-in order), **On a Board** (by room) and **Finished** (the
-most recent first), each with its count, and a card for every room beside it,
-so a room's timer is never out of sight. The search looks
+most recent first), each with its count, and a card for every room filling the
+rest of the window, so a room's timer is never out of sight. Drag the line
+between them to widen the list. The search looks
 through all three groups. **Results** lists every board and its result;
 double-click one to see it on the Event page. **People** lists the adults who
 signed in. The inspector on the right follows the selected youth on every

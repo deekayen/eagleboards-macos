@@ -16,7 +16,9 @@ correct it in Records. People is the adults list that used to be a queue
 filter.
 
 **No sidebar** (P-1, P-6, D-17), as in the Java and Windows versions: the page
-has the window's whole width. View › Event, Results and People
+has the window's whole width. On the Event page the youth list is a 320-point
+column, as on Windows, and the room cards take the rest; drag the line between
+them to widen the list, and it stays that wide. View › Event, Results and People
 (Option-Command-1 to 3) choose the page, with a check on the one shown. Add
 Room is in the Room menu (Shift-Command-N) and on a room card's right-click
 menu. Help › Donate… opens the ways to support the project, with the Venmo QR

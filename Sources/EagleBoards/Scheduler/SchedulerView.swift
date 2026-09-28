@@ -15,6 +15,8 @@ struct SchedulerView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.openWindow) private var openWindow
     @Environment(\.undoManager) private var undoManager
+    /// The youth list's width on the Event page, as the operator last left it.
+    @AppStorage("youthListWidth") private var youthListWidth = 320.0
     let night: EventNight
 
     var body: some View {
@@ -85,16 +87,19 @@ struct SchedulerView: View {
     }
 
     /// On the Event page, every youth beside the rooms -- both always on
-    /// screen together (O-3).
+    /// screen together (O-3). As on Windows, the youth list is a narrow
+    /// column and the room cards take the rest of the width, so every room's
+    /// board and timer is in view; the divider between them widens the list.
     @ViewBuilder
     private var content: some View {
         switch model.page {
         case .event:
-            HSplitView {
+            HStack(spacing: 0) {
                 YouthList(night: night)
-                    .frame(minWidth: 280, idealWidth: 360)
+                    .frame(width: youthListWidth)
+                ColumnResizer(width: $youthListWidth, range: 260...520, label: "Youth list width")
                 RoomsGrid(night: night)
-                    .frame(minWidth: 280)
+                    .frame(minWidth: 240, maxWidth: .infinity, maxHeight: .infinity)
             }
         case .results:
             ResultsList(night: night)
@@ -154,6 +159,53 @@ struct SchedulerView: View {
             }
             .help("View and edit every record: youth, adults, the adult history and rooms")
         }
+    }
+}
+
+/// The line between two columns, dragged to resize the one before it. The
+/// grab area is wider than the line, and VoiceOver can adjust it too.
+private struct ColumnResizer: View {
+    @Binding var width: Double
+    let range: ClosedRange<Double>
+    let label: String
+    @State private var widthAtDragStart: Double?
+
+    var body: some View {
+        Divider()
+            .overlay {
+                Color.clear
+                    .frame(width: 9)
+                    .contentShape(Rectangle())
+                    .onHover { inside in
+                        if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
+                    }
+                    // Global coordinates: the divider moves under the pointer
+                    // as it drags, which would skew a local translation.
+                    .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global)
+                        .onChanged { drag in
+                            let start = widthAtDragStart ?? width
+                            widthAtDragStart = start
+                            width = (start + drag.translation.width).clamped(to: range)
+                        }
+                        .onEnded { _ in widthAtDragStart = nil }
+                    )
+            }
+            .accessibilityElement()
+            .accessibilityLabel(label)
+            .accessibilityValue("\(Int(width)) points")
+            .accessibilityAdjustableAction { direction in
+                switch direction {
+                case .increment: width = (width + 40).clamped(to: range)
+                case .decrement: width = (width - 40).clamped(to: range)
+                @unknown default: break
+                }
+            }
+    }
+}
+
+private extension Double {
+    func clamped(to range: ClosedRange<Double>) -> Double {
+        Swift.min(Swift.max(self, range.lowerBound), range.upperBound)
     }
 }
 
