@@ -122,13 +122,18 @@ private struct YouthRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(youth.fullName)
                     .fontWeight(.medium)
+                    .lineLimit(1)
                 Text(detail)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
                     .help(youth.regNumHelp)
             }
             Spacer(minLength: 0)
+            // The status pill and timer keep their size in a narrow list; the
+            // name gives way instead, rather than the pill wrapping to two lines.
             trailing
+                .fixedSize()
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .combine)
