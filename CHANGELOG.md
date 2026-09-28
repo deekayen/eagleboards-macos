@@ -10,11 +10,18 @@ room cards, instead of a sidebar entry per group that had to be picked before a
 youth could be found. The search looks through all three groups. A waiting
 youth still drags onto a free room.
 
-**Event, Results and People** (P-6), as on Windows. The sidebar holds pages now.
-Results lists every board and its result, read-only; double-click one to see it
-on the Event page, and correct it in Records. People is the adults list that
-used to be a queue filter. View › Event, Results and People are Option-Command-1
-to 3.
+**Event, Results and People** (P-6), as on Windows. Results lists every board
+and its result, read-only; double-click one to see it on the Event page, and
+correct it in Records. People is the adults list that used to be a queue
+filter.
+
+**No sidebar** (P-1, P-6, D-17), as in the Java and Windows versions: the page
+has the window's whole width. View › Event, Results and People
+(Option-Command-1 to 3) choose the page, with a check on the one shown. Add
+Room is in the Room menu (Shift-Command-N) and on a room card's right-click
+menu. Help › Donate… opens the ways to support the project, with the Venmo QR
+code, in a window of its own; it replaces the Donate button at the sidebar's
+foot and the Help menu's list of links.
 
 **One status palette, and a clock per timer state** (SPEC.md D-13). The
 status badges and room timers take the colors all three versions now share,

@@ -33,6 +33,12 @@ struct EagleBoardsApp: App {
         }
         .defaultSize(width: 720, height: 760)
 
+        Window("Donate", id: WindowID.donate) {
+            DonateView()
+        }
+        .windowResizability(.contentSize)
+        .defaultPosition(.center)
+
         Settings {
             SettingsView()
                 .environment(model)
@@ -45,6 +51,7 @@ enum WindowID {
     static let records = "records"
     static let help = "help"
     static let signInCode = "signInCode"
+    static let donate = "donate"
 }
 
 /// Keeps the app a regular app when launched straight from `swift run`, and
@@ -103,13 +110,13 @@ struct EagleBoardsCommands: Commands {
                 .keyboardShortcut("e")
                 .disabled(model.night == nil)
         }
-        SidebarCommands()
         InspectorCommands()
-        CommandGroup(before: .sidebar) {
+        // The pages (SPEC.md P-1, P-6). There is no sidebar to choose them in,
+        // as in the Java and Windows versions; the page shown has a check.
+        CommandGroup(before: .toolbar) {
             pageButton("Event", .event, "1")
             pageButton("Results", .results, "2")
             pageButton("People", .people, "3")
-            Divider()
         }
         CommandMenu("Board") {
             YouthActionButtons(model: model)
@@ -144,7 +151,12 @@ struct EagleBoardsCommands: Commands {
             Button("Eagle Boards Help") { openWindow(id: WindowID.help) }
                 .keyboardShortcut("?")
             Divider()
-            DonateMenu()
+            // SPEC.md D-17: the one Donate link, with a heart.
+            Button {
+                openWindow(id: WindowID.donate)
+            } label: {
+                Label("Donate…", systemImage: "heart")
+            }
         }
     }
 
@@ -157,10 +169,13 @@ struct EagleBoardsCommands: Commands {
     }
 
     private func pageButton(_ title: String, _ page: AppModel.Page, _ key: KeyEquivalent) -> some View {
-        Button(title) {
-            openWindow(id: WindowID.scheduler)
-            model.show(page)
-        }
+        Toggle(title, isOn: Binding(
+            get: { model.night != nil && model.page == page },
+            set: { _ in
+                openWindow(id: WindowID.scheduler)
+                model.show(page)
+            }
+        ))
         .keyboardShortcut(key, modifiers: [.command, .option])
         .disabled(model.night == nil)
     }

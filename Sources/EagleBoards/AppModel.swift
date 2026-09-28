@@ -160,7 +160,7 @@ final class AppModel {
 
     // MARK: - The operator's work in progress
 
-    /// The main window's pages, chosen in the sidebar (SPEC.md P-6). Event
+    /// The main window's pages, chosen in the View menu (SPEC.md P-1, P-6). Event
     /// holds every youth, the rooms and the inspector together (O-3); Results
     /// and People are lists of their own. The inspector stays beside each.
     enum Page: Hashable {

@@ -1,11 +1,13 @@
 import EagleBoardsCore
 import SwiftUI
 
-/// The operator's screen for the evening. The sidebar chooses the page
-/// (SPEC.md P-6): Event, with every youth in one list beside the rooms, so a
-/// room's timer is never out of sight while working the queue (O-3);
-/// Results; or People. The inspector follows the selected youth on every
-/// page: the board being drawn up for them, or how it went.
+/// The operator's screen for the evening. The View menu chooses the page
+/// (SPEC.md P-1, P-6): Event, with every youth in one list beside the rooms,
+/// so a room's timer is never out of sight while working the queue (O-3);
+/// Results; or People. There is no sidebar, as in the Java and Windows
+/// versions, so the page has the window's whole width. The inspector follows
+/// the selected youth on every page: the board being drawn up for them, or
+/// how it went.
 ///
 /// Nothing here polls. The event night is observed directly, so a youth who
 /// signs in at the door appears the moment the tablet's request lands.
@@ -18,65 +20,60 @@ struct SchedulerView: View {
     var body: some View {
         @Bindable var model = model
 
-        NavigationSplitView {
-            SchedulerSidebar(night: night)
-                .navigationSplitViewColumnWidth(min: 190, ideal: 220, max: 300)
-        } detail: {
-            content
-                .navigationTitle(title)
-                .navigationSubtitle(nightSubtitle)
-        }
-        .searchable(text: $model.searchText, placement: .toolbar, prompt: searchPrompt)
-        .inspector(isPresented: $model.showsInspector) {
-            YouthInspector(night: night)
-                .inspectorColumnWidth(min: 300, ideal: 340, max: 480)
-                .toolbar {
-                    ToolbarItem {
-                        Button {
-                            model.showsInspector.toggle()
-                        } label: {
-                            Label("Inspector", systemImage: "sidebar.trailing")
+        content
+            .navigationTitle(title)
+            .navigationSubtitle(nightSubtitle)
+            .searchable(text: $model.searchText, placement: .toolbar, prompt: searchPrompt)
+            .inspector(isPresented: $model.showsInspector) {
+                YouthInspector(night: night)
+                    .inspectorColumnWidth(min: 300, ideal: 340, max: 480)
+                    .toolbar {
+                        ToolbarItem {
+                            Button {
+                                model.showsInspector.toggle()
+                            } label: {
+                                Label("Inspector", systemImage: "sidebar.trailing")
+                            }
+                            .help("Show or hide the selected youth's board")
                         }
-                        .help("Show or hide the selected youth's board")
                     }
+            }
+            .toolbar { toolbar }
+            .sheet(item: $model.sheet) { sheet in
+                switch sheet {
+                case .seatBoard(let scoutID): SeatBoardSheet(night: night, scoutID: scoutID)
+                case .changeMembers(let scoutID): ChangeMembersSheet(night: night, scoutID: scoutID)
+                case .completeBoard(let scoutID): CompleteBoardSheet(night: night, scoutID: scoutID)
+                case .addRoom: AddRoomSheet(night: night)
+                case .swapRooms(let roomID): SwapRoomsSheet(night: night, firstRoomID: roomID)
+                case .renameRoom(let roomID):
+                    RenameRoomSheet(night: night, roomID: roomID, rename: { try model.renameRoom(roomID, to: $0) })
+                case .openNight: OpenNightSheet()
                 }
-        }
-        .toolbar { toolbar }
-        .sheet(item: $model.sheet) { sheet in
-            switch sheet {
-            case .seatBoard(let scoutID): SeatBoardSheet(night: night, scoutID: scoutID)
-            case .changeMembers(let scoutID): ChangeMembersSheet(night: night, scoutID: scoutID)
-            case .completeBoard(let scoutID): CompleteBoardSheet(night: night, scoutID: scoutID)
-            case .addRoom: AddRoomSheet(night: night)
-            case .swapRooms(let roomID): SwapRoomsSheet(night: night, firstRoomID: roomID)
-            case .renameRoom(let roomID):
-                RenameRoomSheet(night: night, roomID: roomID, rename: { try model.renameRoom(roomID, to: $0) })
-            case .openNight: OpenNightSheet()
             }
-        }
-        .confirmationDialog(
-            model.confirmation?.title ?? "",
-            isPresented: Binding(get: { model.confirmation != nil }, set: { if !$0 { model.confirmation = nil } }),
-            presenting: model.confirmation
-        ) { confirmation in
-            Button(confirmation.actionTitle, role: confirmation.isDestructive ? .destructive : nil) {
-                confirmation.action()
+            .confirmationDialog(
+                model.confirmation?.title ?? "",
+                isPresented: Binding(get: { model.confirmation != nil }, set: { if !$0 { model.confirmation = nil } }),
+                presenting: model.confirmation
+            ) { confirmation in
+                Button(confirmation.actionTitle, role: confirmation.isDestructive ? .destructive : nil) {
+                    confirmation.action()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: { confirmation in
+                Text(confirmation.message)
             }
-            Button("Cancel", role: .cancel) {}
-        } message: { confirmation in
-            Text(confirmation.message)
-        }
-        .messageAlert()
-        .onChange(of: proposalInputs) { model.refreshProposals() }
-        .onAppear { model.undoManager = undoManager }
-        .onChange(of: model.waitingCount, initial: true) { model.attention.showWaiting(model.waitingCount) }
-        .task(id: night.night) {
-            while !Task.isCancelled {
-                model.checkRoomTimers()
-                try? await Task.sleep(for: .seconds(30))
+            .messageAlert()
+            .onChange(of: proposalInputs) { model.refreshProposals() }
+            .onAppear { model.undoManager = undoManager }
+            .onChange(of: model.waitingCount, initial: true) { model.attention.showWaiting(model.waitingCount) }
+            .task(id: night.night) {
+                while !Task.isCancelled {
+                    model.checkRoomTimers()
+                    try? await Task.sleep(for: .seconds(30))
+                }
             }
-        }
-        .onChange(of: undoManager) { model.undoManager = undoManager }
+            .onChange(of: undoManager) { model.undoManager = undoManager }
     }
 
     /// What a proposed board is made from. When any of it changes, proposals

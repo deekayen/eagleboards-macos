@@ -78,10 +78,13 @@ a native window. See `PROVENANCE.md`.
   Start Review and the inspector's With Them list name supporting adults
   first. Link an Adult there, and the Adult menu, link or unlink them after
   sign-in (`EventNight.setSupporting`).
-- **The scheduler follows the Mac layout**: sidebar, list, inspector. Every
-  action lives in the Board, Adult or Room menu (and the matching context
-  menu), not in buttons along a panel. Report outcomes as alerts titled with
-  what failed, or show them in the inspector; no self-dismissing toasts.
+- **The scheduler follows the Mac layout**: list and inspector, with no
+  sidebar (SPEC.md P-1, P-6, as in the Java and Windows versions). The View
+  menu chooses Event, Results or People; Help › Donate… is the Donate link
+  (D-17). Every action lives in the Board, Adult or Room menu (and the
+  matching context menu), not in buttons along a panel. Report outcomes as
+  alerts titled with what failed, or show them in the inspector; no
+  self-dismissing toasts.
   A change the operator makes registers its inverse with Undo (`AppModel`'s
   `change` and `changeBoard`) instead of asking "Are you sure?"; a board step
   is undone with `EventNight.restoreBoard`.

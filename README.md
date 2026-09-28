@@ -53,10 +53,9 @@ settings stay on the Mac, so nobody at the door can look up anyone's details.
 
 Do this before anyone arrives. A board cannot be seated without a room.
 
-Click **Add Room** at the bottom of the sidebar (or choose **Room › Add
-Room…**) and add each room, marking it **Final Board** or **Proposal Review**
-by what it is used for today. After the first event, **Room › Copy Rooms
-From** brings back an earlier event's list.
+Choose **Room › Add Room…** (**⇧⌘N**) and add each room, marking it **Final
+Board** or **Proposal Review** by what it is used for today. After the first
+event, **Room › Copy Rooms From** brings back an earlier event's list.
 
 To hold two proposal reviews in one room, add it twice, e.g. `200A` and `200B`.
 
@@ -84,15 +83,16 @@ them and choose **Board › Postpone**. **Edit › Undo** brings them back.
 
 ### 3. Seat a board
 
-The sidebar has three pages. **Event** is where you work: every youth in one
-list, stacked **Waiting** (in sign-in order), **On a Board** (by room) and
-**Finished** (the most recent first), each with its count, and a card for every
-room beside it, so a room's timer is never out of sight. The search looks
+The window has three pages, chosen in the **View** menu; there is no
+sidebar. **Event** is where you work: every youth in one list, stacked
+**Waiting** (in sign-in order), **On a Board** (by room) and **Finished** (the
+most recent first), each with its count, and a card for every room beside it,
+so a room's timer is never out of sight. The search looks
 through all three groups. **Results** lists every board and its result;
 double-click one to see it on the Event page. **People** lists the adults who
 signed in. The inspector on the right follows the selected youth on every
 page. **View › Event**, **Results** and **People** (**⌥⌘1** to **⌥⌘3**) switch
-pages from the keyboard.
+pages; the one shown has a check.
 
 Select a waiting youth. Eagle Boards proposes a board in the inspector: a
 chair, enough members, and a free room of the right kind. It never picks adults
@@ -190,9 +190,8 @@ when a room goes overdue while you are in another app.
 
 ## Donating
 
-Eagle Boards is free. If it helps your board events, **Donate** at the foot of
-the sidebar lists ways to support its development, with a Venmo QR code a
-phone can scan. **Help › Donate** has the same list.
+Eagle Boards is free. If it helps your board events, **Help › Donate…** lists
+ways to support its development, with a Venmo QR code a phone can scan.
 
 ## For developers
 
