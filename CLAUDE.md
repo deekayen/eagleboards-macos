@@ -80,7 +80,11 @@ a native window. See `PROVENANCE.md`.
   sign-in (`EventNight.setSupporting`).
 - **The scheduler follows the Mac layout**: list and inspector, with no
   sidebar (SPEC.md P-1, P-6, as in the Java and Windows versions). The View
-  menu chooses Event, Results or People; Help › Donate… is the Donate link
+  menu chooses Event or one of the record pages (Youth, People,
+  Pre-Registered, Adult History), each a table edited in place with
+  `EditableText` and `EditableChoice`, through `AppModel.editYouth` and
+  `editAdult` so Undo takes a change back. There is no records window; a
+  page never repeats another's list. Help › Donate… is the Donate link
   (D-17). Every action lives in the Board, Adult or Room menu (and the
   matching context menu), not in buttons along a panel. Report outcomes as
   alerts titled with what failed, or show them in the inspector; no

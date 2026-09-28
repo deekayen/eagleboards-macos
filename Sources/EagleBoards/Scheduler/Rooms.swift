@@ -129,10 +129,15 @@ struct RoomCard: View {
                         StatusBadge(statusText: occupant.statusText)
                     }
                 }
-                Text(room.leaderNames.withListSeparators)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
+                // One member per line, in full, as on Windows: the cards are
+                // where people look to find which room someone is in.
+                VStack(alignment: .leading, spacing: 1) {
+                    ForEach(Array(room.leaderNames.memberLines.enumerated()), id: \.offset) { _, name in
+                        Text(name)
+                    }
+                }
+                .font(.callout)
+                .foregroundStyle(.secondary)
             }
         }
         .padding(10)

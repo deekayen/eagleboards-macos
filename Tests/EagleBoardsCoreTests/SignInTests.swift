@@ -127,6 +127,65 @@ struct SignInTests {
         #expect(newcomer.role(for: .finalBoard) == .member && newcomer.role(for: .projectReview) == .member)
     }
 
+    // An adult who would rather not use the tablet, added on the People page.
+    @Test func anAdultAddedByHandIsSignedInAsTheTabletWould() throws {
+        try scratch.write(
+            "Type,ID,Last,First,Email,Phone,UnitType,Unit,UnitName,ProjectReview,FinalBoard,RegTime,Room,Flags,Sel,BoardHistory\n"
+                + "ADULT,ADULT:Chair:Chris:7,Chair,Chris,chris@example.org,,Troop,7,Troop7,Member,Chair,,,,,(2026-08-25)\n",
+            to: "Master_AdultHistory.csv"
+        )
+        let clock = self.clock
+        let reopened = try EventNight(folder: scratch.dataFolder, night: "2026-09-22", clock: { clock.now })
+        let chris = try reopened.registerAdult(Adult.handSignInForm(
+            first: "Chris", last: "Chair", email: "", phone: "", unitType: "Troop", unit: "7",
+            finalBoard: nil, projectReview: .chair, woodBadge: true
+        ))
+        #expect(chris.canChair(.finalBoard), "As Last Time keeps the Chair on file")
+        #expect(chris.canChair(.projectReview), "a role chosen in the sheet is used")
+        #expect(chris.woodBadge == "Y")
+        #expect(reopened.adults.map(\.id) == ["ADULT:Chair:Chris:7"], "the same record the history holds")
+        #expect(reopened.adultHistory.count == 1 && reopened.adultHistory[0].boardHistory == "(2026-08-25)(2026-09-22)")
+
+        let dana = try reopened.registerAdult(Adult.handSignInForm(
+            first: "Dana", last: "District", email: "", phone: "", unitType: "District", unit: "12",
+            finalBoard: nil, projectReview: nil, woodBadge: false
+        ))
+        #expect(dana.unit == "" && dana.role(for: .finalBoard) == .member, "someone new is a Member")
+        #expect(throws: EventError.self, "a name is still required") {
+            try reopened.registerAdult(Adult.handSignInForm(
+                first: "", last: "Nobody", email: "", phone: "", unitType: "Troop", unit: "1",
+                finalBoard: nil, projectReview: nil, woodBadge: false
+            ))
+        }
+    }
+
+    // The Add Adult sheet fills itself in from the adult history.
+    @Test func theHistoryIsSearchedByNameEmailAndUnit() throws {
+        try scratch.write(
+            "Type,ID,Last,First,Email,Phone,UnitType,Unit,UnitName,ProjectReview,FinalBoard,RegTime,Room,Flags,Sel,BoardHistory\n"
+                + "ADULT,ADULT:Chair:Chris:7,Chair,Chris,chris@example.org,,Troop,7,Troop7,Member,Chair,,,,,(2026-08-25)\n"
+                + "ADULT,ADULT:Able:Ann:12,Able,Ann,ann@example.org,,Crew,12,Crew12,Member,Member,,,,,(2026-08-25)\n"
+                + "ADULT,ADULT:Chairez:Pat:7,Chairez,Pat,,,Troop,7,Troop7,Chair,Member,,,,,(2026-07-28)\n",
+            to: "Master_AdultHistory.csv"
+        )
+        let clock = self.clock
+        let reopened = try EventNight(folder: scratch.dataFolder, night: "2026-09-22", clock: { clock.now })
+        #expect(reopened.historyMatches(for: "chair").map(\.first) == ["Chris", "Pat"], "by last name, then first")
+        #expect(reopened.historyMatches(for: "chair pat").map(\.first) == ["Pat"], "every word must match")
+        #expect(reopened.historyMatches(for: "ANN@EXAMPLE").map(\.first) == ["Ann"])
+        #expect(reopened.historyMatches(for: "T7").count == 2, "the unit as the lists show it")
+        #expect(reopened.historyMatches(for: "  ").isEmpty)
+        #expect(reopened.historyMatches(for: "e", limit: 2).count == 2)
+
+        // Filled in from Chris's record, with the first name corrected.
+        let chris = try reopened.registerAdult(Adult.handSignInForm(
+            historyID: "ADULT:Chair:Chris:7", first: "Christopher", last: "Chair", email: "chris@example.org", phone: "",
+            unitType: "Troop", unit: "7", finalBoard: .chair, projectReview: .member, woodBadge: false
+        ))
+        #expect(chris.id == "ADULT:Chair:Chris:7" && chris.first == "Christopher")
+        #expect(reopened.adultHistory.count == 3, "the same history record, not a new one")
+    }
+
     @Test func signingInAgainDoesNotTakeAnAdultOffTheirBoard() throws {
         var adult = try night.registerAdult(["First": "Morgan", "Last": "Member", "UnitType": "Troop", "Unit": "9"])
         adult.room = "101"

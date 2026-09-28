@@ -1,9 +1,14 @@
 import EagleBoardsCore
 import SwiftUI
 
-/// Every adult who has signed in tonight. Select several with Command or
-/// Shift and add them to the board being drawn up, or drag them onto it in
-/// the inspector.
+/// Every adult who has signed in tonight, the People page (SPEC.md P-6).
+/// Select several with Command or Shift and add them to the board being drawn
+/// up, or drag them onto it in the inspector. Their details are edited in
+/// place, and it is here that someone is promoted to Chair; Undo takes a
+/// change back. It replaces the records window's list of tonight's adults.
+/// Add Adult, at the foot of the list, in the Adult menu, or by
+/// double-clicking below the last row, signs in someone who would rather not
+/// use the tablet.
 struct AdultList: View {
     @Environment(AppModel.self) private var model
     let night: EventNight
@@ -17,34 +22,58 @@ struct AdultList: View {
             .sorted(using: sortOrder)
 
         Table(of: Adult.self, selection: $model.selectedAdultIDs, sortOrder: $sortOrder) {
-            TableColumn("Status", value: \.room) { adult in
-                AdultStatusLabel(adult: adult, isOnDraft: draft?.memberIDs.contains(adult.id) == true)
+            Group {
+                TableColumn("Status", value: \Adult.room) { adult in
+                    AdultStatusLabel(adult: adult, isOnDraft: draft?.memberIDs.contains(adult.id) == true)
+                }
+                .width(min: 80, ideal: 110, max: 150)
+                TableColumn("Last", value: \Adult.last) { adult in
+                    EditableText(adult.last, name: "Last name") { value in edit(adult) { $0.last = value } }
+                }
+                TableColumn("First", value: \Adult.first) { adult in
+                    EditableText(adult.first, name: "First name") { value in edit(adult) { $0.first = value } }
+                }
+                TableColumn("Type", value: \Adult.unitType) { adult in
+                    EditableChoice(adult.unitType, choices: RecordChoices.adultUnitTypes, name: "Unit type") { value in
+                        edit(adult) { $0.unitType = value }
+                    }
+                }
+                .width(min: 50, ideal: 70, max: 90)
+                TableColumn("Unit", value: \Adult.unit) { adult in
+                    EditableText(adult.unit, name: "Unit number") { value in edit(adult) { $0.unit = value } }
+                }
+                .width(min: 40, ideal: 50, max: 70)
             }
-            .width(min: 80, ideal: 110, max: 150)
-            TableColumn("Last", value: \.last)
-            TableColumn("First", value: \.first)
-            TableColumn("Unit", value: \.unitName) { adult in
-                Text(adult.unitLabel).help(adult.unitName)
-            }
-            .width(min: 44, ideal: 60, max: 90)
-            TableColumn("Final", value: \.finalBoardRoleText) { adult in
-                RoleText(role: adult.finalBoardRoleText)
-            }
-            .width(min: 50, ideal: 70, max: 90)
-            TableColumn("Project", value: \.projectReviewRoleText) { adult in
-                RoleText(role: adult.projectReviewRoleText)
-            }
-            .width(min: 50, ideal: 70, max: 90)
-            // Volunteering toward a Wood Badge ticket item.
-            TableColumn("WB", value: \.woodBadge) { adult in
-                if adult.woodBadge == "Y" {
-                    WoodBadgeIcon()
+            Group {
+                TableColumn("Final", value: \Adult.finalBoardRoleText) { adult in
+                    RoleChoice(role: adult.finalBoardRoleText, name: "Final Board role") { value in
+                        edit(adult) { $0.finalBoardRoleText = value }
+                    }
+                }
+                .width(min: 60, ideal: 80, max: 100)
+                TableColumn("Project", value: \Adult.projectReviewRoleText) { adult in
+                    RoleChoice(role: adult.projectReviewRoleText, name: "Proposal Review role") { value in
+                        edit(adult) { $0.projectReviewRoleText = value }
+                    }
+                }
+                .width(min: 60, ideal: 80, max: 100)
+                // Volunteering toward a Wood Badge ticket item.
+                TableColumn("WB", value: \Adult.woodBadge) { adult in
+                    WoodBadgeToggle(isOn: adult.woodBadge == "Y") { on in edit(adult) { $0.woodBadge = on ? "Y" : "" } }
+                }
+                .width(min: 40, ideal: 48, max: 60)
+                TableColumn("With", value: \Adult.supporting) { adult in
+                    let names = supportedNames(adult)
+                    Text(names).foregroundStyle(.secondary).help(names)
                 }
             }
-            .width(min: 28, ideal: 34, max: 44)
-            TableColumn("With", value: \.supporting) { adult in
-                let names = supportedNames(adult)
-                Text(names).foregroundStyle(.secondary).help(names)
+            Group {
+                TableColumn("Email", value: \Adult.email) { adult in
+                    EditableText(adult.email, name: "Email") { value in edit(adult) { $0.email = value } }
+                }
+                TableColumn("Phone", value: \Adult.phone) { adult in
+                    EditableText(adult.phone, name: "Phone") { value in edit(adult) { $0.phone = value } }
+                }
             }
         } rows: {
             ForEach(rows) { adult in
@@ -52,9 +81,38 @@ struct AdultList: View {
             }
         }
         .contextMenu(forSelectionType: Adult.ID.self) { ids in
-            AdultActionButtons(model: model, adultIDs: ids)
+            if ids.isEmpty {
+                Button("Add Adult…") { model.sheet = .addAdult }
+            } else {
+                AdultActionButtons(model: model, adultIDs: ids)
+                if ids.count == 1, let id = ids.first {
+                    Divider()
+                    Button("Delete Adult…", role: .destructive) { model.confirmDeleteAdult(id) }
+                }
+            }
         } primaryAction: { ids in
-            model.addToDraft(Array(ids))
+            // Double-clicking below the last row adds someone.
+            if ids.isEmpty {
+                model.sheet = .addAdult
+            } else {
+                model.addToDraft(Array(ids))
+            }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            HStack {
+                Button {
+                    model.sheet = .addAdult
+                } label: {
+                    Label("Add Adult", systemImage: "plus")
+                }
+                .buttonStyle(.borderless)
+                .help("Sign in an adult who would rather not use the tablet")
+                Spacer()
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(.bar)
+            .overlay(alignment: .top) { Divider() }
         }
         .overlay {
             if rows.isEmpty {
@@ -66,6 +124,10 @@ struct AdultList: View {
                 }
             }
         }
+    }
+
+    private func edit(_ adult: Adult, _ change: (inout Adult) -> Void) -> Bool {
+        model.editAdult(adult.id, change)
     }
 
     private func supportedNames(_ adult: Adult) -> String {
@@ -149,6 +211,171 @@ struct AdultActionButtons: View {
             model.selectedAdultIDs = adultIDs
         }
         action()
+    }
+}
+
+/// Sign an adult in by hand, for someone who would rather not use the tablet.
+/// It is the tablet's own sign-in (`Adult.handSignInForm`). Someone who has
+/// served before is found in the adult history and fills the form in; a role
+/// left at As Last Time keeps the one in the history.
+struct AddAdultSheet: View {
+    @Environment(AppModel.self) private var model
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var search = ""
+    /// The history record the form was filled in from.
+    @State private var known: Adult?
+
+    @State private var first = ""
+    @State private var last = ""
+    @State private var unitType: UnitType = .troop
+    @State private var unit = ""
+    @State private var email = ""
+    @State private var phone = ""
+    @State private var finalBoard: BoardRole?
+    @State private var projectReview: BoardRole?
+    @State private var woodBadge = false
+    @State private var problem: String?
+
+    var body: some View {
+        SheetLayout(
+            title: "Add an Adult",
+            message: "For an adult who would rather not sign in at the tablet. They are signed in for today as if they had."
+        ) {
+            Section {
+                if let known {
+                    LabeledContent("From the adult history") {
+                        HStack {
+                            Text("\(known.fullName), \(known.unitDisplay)")
+                            Button("Start Over") { startOver() }
+                                .buttonStyle(.link)
+                        }
+                    }
+                } else {
+                    TextField("Signed in before?", text: $search, prompt: Text("Search the adult history by name, email or unit"))
+                    ForEach(model.night?.historyMatches(for: search, limit: 5) ?? []) { match in
+                        Button {
+                            fill(from: match)
+                        } label: {
+                            HStack {
+                                Text(match.fullName)
+                                Text(match.unitDisplay).foregroundStyle(.secondary)
+                                Spacer()
+                                Text(match.email).foregroundStyle(.secondary)
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .help("Fill in the form from \(match.fullName)'s record")
+                    }
+                }
+            }
+            Section {
+                TextField("First name", text: $first)
+                TextField("Last name", text: $last)
+                Picker("Unit type", selection: $unitType) {
+                    ForEach(UnitType.allCases) { Text($0.rawValue).tag($0) }
+                }
+                if unitType.hasUnitNumber {
+                    TextField("Unit #", text: $unit)
+                }
+                TextField("Email", text: $email)
+                TextField("Phone", text: $phone)
+            }
+            Section {
+                rolePicker("Final Board", selection: $finalBoard)
+                rolePicker("Proposal Review", selection: $projectReview)
+                Toggle("Counting today toward a Wood Badge ticket item", isOn: $woodBadge)
+            } footer: {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("As Last Time uses the role in the adult history, or Member for someone new.")
+                        .foregroundStyle(.secondary)
+                    if let problem {
+                        Text(problem).foregroundStyle(.red)
+                    }
+                }
+            }
+        } buttons: {
+            Button("Cancel", role: .cancel) { dismiss() }
+                .keyboardShortcut(.cancelAction)
+            Button("Add Adult") {
+                do {
+                    try model.addAdult(Adult.handSignInForm(
+                        historyID: known?.id,
+                        first: first, last: last, email: email, phone: phone, unitType: unitType.rawValue, unit: unit,
+                        finalBoard: finalBoard, projectReview: projectReview, woodBadge: woodBadge
+                    ))
+                    dismiss()
+                } catch {
+                    problem = error.localizedDescription
+                }
+            }
+            .keyboardShortcut(.defaultAction)
+            .disabled(first.trimmingCharacters(in: .whitespaces).isEmpty || last.trimmingCharacters(in: .whitespaces).isEmpty)
+        }
+    }
+
+    private func fill(from match: Adult) {
+        known = match
+        first = match.first
+        last = match.last
+        unitType = UnitType(rawValue: match.unitType) ?? .troop
+        unit = match.unit
+        email = match.email
+        phone = match.phone
+        finalBoard = match.role(for: .finalBoard)
+        projectReview = match.role(for: .projectReview)
+    }
+
+    private func startOver() {
+        known = nil
+        search = ""
+        first = ""
+        last = ""
+        unitType = .troop
+        unit = ""
+        email = ""
+        phone = ""
+        finalBoard = nil
+        projectReview = nil
+    }
+
+    private func rolePicker(_ title: String, selection: Binding<BoardRole?>) -> some View {
+        Picker(title, selection: selection) {
+            Text("As Last Time").tag(BoardRole?.none)
+            ForEach(BoardRole.allCases) { role in
+                Text(role == .unavailable ? "No Thanks" : role.rawValue).tag(Optional(role))
+            }
+        }
+    }
+}
+
+/// A board role chosen from a menu, shown as `RoleText`.
+struct RoleChoice: View {
+    let role: String
+    let name: String
+    let save: (String) -> Bool
+
+    var body: some View {
+        EditableChoice(value: role, choices: RecordChoices.roles, name: name, save: save) {
+            RoleText(role: role)
+        }
+    }
+}
+
+/// Whether an adult is counting today toward a Wood Badge ticket item: a
+/// check box, with the Wood Badge mark beside it when checked (SPEC.md D-20).
+struct WoodBadgeToggle: View {
+    let isOn: Bool
+    let save: (Bool) -> Bool
+
+    var body: some View {
+        Toggle(isOn: Binding(get: { isOn }, set: { _ = save($0) })) {
+            if isOn { WoodBadgeIcon() }
+        }
+        .toggleStyle(.checkbox)
+        .accessibilityLabel("Wood Badge")
+        .help("Counting today toward a Wood Badge ticket item")
     }
 }
 

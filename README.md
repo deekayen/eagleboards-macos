@@ -76,6 +76,12 @@ Each person appears on the Mac the moment they register. Youth are numbered
 `P1, P2…` if they pre-registered and `W1, W2…` if they walked in. Pre-registered
 youth are listed ahead of walk-ins.
 
+An adult who would rather not use the tablet can be signed in on the Mac:
+choose **Adult › Add Adult…**, or click **Add Adult** at the foot of the
+**People** page. Search the adult history to fill the form in for someone who
+has served before. On the **Adult History** page, double-click someone to sign
+them in for today.
+
 ### 2. Check the paperwork
 
 Check each youth's paperwork as they sign in. If it is not in order, select
@@ -83,17 +89,14 @@ them and choose **Board › Postpone**. **Edit › Undo** brings them back.
 
 ### 3. Seat a board
 
-The window has three pages, chosen in the **View** menu; there is no
-sidebar. **Event** is where you work: every youth in one list, stacked
-**Waiting** (in sign-in order), **On a Board** (by room) and **Finished** (the
-most recent first), each with its count, and a card for every room filling the
-rest of the window, so a room's timer is never out of sight. Drag the line
-between them to widen the list. The search looks
-through all three groups. **Results** lists every board and its result;
-double-click one to see it on the Event page. **People** lists the adults who
-signed in. The inspector on the right follows the selected youth on every
-page. **View › Event**, **Results** and **People** (**⌥⌘1** to **⌥⌘3**) switch
-pages; the one shown has a check.
+The **View** menu chooses the page; there is no sidebar. **Event** (**⌥⌘1**)
+is where you work: every youth in one list, stacked **Waiting** (in sign-in
+order), **On a Board** (by room) and **Finished** (the most recent first), each
+with its count, and a card for every room filling the rest of the window, so a
+room's timer is never out of sight. Drag the line between them to widen the
+list. The search looks through all three groups. The inspector on the right
+follows the selected youth on every page. The other pages are the event's
+records (see [The records](#the-records)).
 
 Select a waiting youth. Eagle Boards proposes a board in the inspector: a
 chair, enough members, and a free room of the right kind. It never picks adults
@@ -141,14 +144,31 @@ and add any notes. The room and the members are free for the next board.
   Advancement 8.0.0.3). Three is the norm, four to six asks you to confirm, and
   seven is refused. A project proposal review has two to six.
 - **The chair.** Only an adult whose role for that kind of board is **Chair**
-  may chair it. When the qualified chairs are all busy, promote someone in the
-  **Records** window. Nobody is made chair by accident.
+  may chair it. When the qualified chairs are all busy, promote someone on the
+  **People** page. Nobody is made chair by accident.
 - **One board at a time.** An adult on a board cannot be put on another.
   **Disable** takes someone out of the pool for the event, for example when
   they have gone home. **Enable** brings them back.
 - **Same unit.** This council does not allow adults from the youth's own unit
   on the board. You may override that, but a board must still have at least one
   member from outside the unit (8.0.3.0).
+
+## The records
+
+The rest of the **View** menu holds the event's records, and every value on
+them is changed in place: click a name, unit or note to type in it and press
+Return, or click a value with ⌃⌄ beside it to choose from a menu. **Edit ›
+Undo** takes a change back. There is no separate records window.
+
+| Page | What it holds |
+| --- | --- |
+| **Youth** (⌥⌘2) | Every youth who signed in, with their board, its status and result, chair, members and notes. Correct a result recorded against the wrong youth here. Double-click a youth to see them on the Event page. |
+| **People** (⌥⌘3) | Tonight's adults. Promote someone to Chair, mark Wood Badge, or fix a name. **Add Adult** at the foot signs someone in by hand. |
+| **Pre-Registered** (⌥⌘4) | The youth who signed up on SignUpGenius for today. |
+| **Adult History** (⌥⌘5) | Every adult who has ever signed in, across events, searched by name, email or unit. **Last Event** has a check for those signed in today; double-click someone to sign them in. |
+
+Right-click a record to delete it; that asks first, because Undo cannot bring
+it back. **File › Export List…** (⇧⌘E) saves the page's list as a spreadsheet.
 
 ## Room timers
 
@@ -169,13 +189,14 @@ the sign-up: youth become pre-registrations and adults join the history. Use
 
 ## After the event
 
-**File › Export Board Results** saves the event as a spreadsheet (CSV).
+**File › Export Board Results** saves every board and its result as a
+spreadsheet (CSV).
 Everything is saved as it happens; there is nothing to save before quitting.
 
 Made a mistake? **Edit › Undo** takes back the last step, whether seating,
 starting, completing, postponing or resetting a board, changing its members,
-disabling an adult, or a change to the rooms. It is refused once the room or a member has been given
-to another board.
+disabling an adult, a change to the rooms, or a change to a record. It is
+refused once the room or a member has been given to another board.
 
 The Dock icon shows how many youth are waiting, and a notification tells you
 when a room goes overdue while you are in another app.
@@ -186,7 +207,7 @@ when a room goes overdue while you are in another app.
 | --- | --- |
 | The tablet cannot open the address | Check both are on the same Wi-Fi. Click the sign-in address and try another address listed there. Check that Eagle Boards is allowed in System Settings › Network › Firewall. |
 | "Port 8080 is already in use" | Quit the other program (the Java Eagle Board Scheduler uses 8080 too), or change the port in Settings › General. |
-| "Not qualified to chair" | Promote someone: open Records › Adults, select them, and set their Final or Project role to Chair. |
+| "Not qualified to chair" | Promote someone: on the **People** page, click their Final or Project role and choose **Chair**. |
 | A board was seated by mistake | Select the youth and choose **Board › Reset Board**, or **Edit › Undo** right after seating. |
 
 ## Donating

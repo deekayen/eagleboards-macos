@@ -160,13 +160,31 @@ final class AppModel {
 
     // MARK: - The operator's work in progress
 
-    /// The main window's pages, chosen in the View menu (SPEC.md P-1, P-6). Event
-    /// holds every youth, the rooms and the inspector together (O-3); Results
-    /// and People are lists of their own. The inspector stays beside each.
-    enum Page: Hashable {
+    /// The main window's pages, chosen in the View menu (SPEC.md P-1, P-6).
+    /// Event holds every youth, the rooms and the inspector together (O-3).
+    /// The rest are the event's records, each a list edited in place: every
+    /// youth with their board and result, tonight's adults, the SignUpGenius
+    /// pre-registrations, and every adult who has ever signed in. There is no
+    /// separate records window. The inspector stays beside each page.
+    enum Page: Hashable, CaseIterable {
         case event
-        case results
+        case youth
         case people
+        case preRegistered
+        case adultHistory
+
+        var title: String {
+            switch self {
+            case .event: "Event"
+            case .youth: "Youth"
+            case .people: "People"
+            case .preRegistered: "Pre-Registered"
+            case .adultHistory: "Adult History"
+            }
+        }
+
+        /// A page that is a list of records, which File › Export List saves.
+        var isList: Bool { self != .event }
     }
 
     var page: Page = .event
@@ -197,6 +215,7 @@ final class AppModel {
         case changeMembers(scoutID: String)
         case completeBoard(scoutID: String)
         case addRoom
+        case addAdult
         case swapRooms(roomID: String)
         case renameRoom(roomID: String)
         case openNight
@@ -207,6 +226,7 @@ final class AppModel {
             case .changeMembers(let scoutID): "change members \(scoutID)"
             case .completeBoard(let scoutID): "complete \(scoutID)"
             case .addRoom: "add room"
+            case .addAdult: "add adult"
             case .swapRooms(let roomID): "swap \(roomID)"
             case .renameRoom(let roomID): "rename \(roomID)"
             case .openNight: "open event"
@@ -764,7 +784,123 @@ final class AppModel {
         }
     }
 
+    // MARK: - Records, edited in place
+
+    /// Sign an adult in by hand, as the tablet would, and select them on the
+    /// People page. Like a sign-in at the door, it is not undone; Delete
+    /// Adult takes a mistake off tonight's list.
+    func addAdult(_ form: [String: String]) throws {
+        guard let night else { return }
+        let adult = try night.registerAdult(form)
+        selectedAdultIDs = [adult.id]
+    }
+
+    /// Sign adults in for today straight from the Adult History page, with
+    /// the details and roles on file, as if each had signed in at the tablet.
+    func signInFromHistory(_ ids: Set<Adult.ID>) {
+        guard let night else { return }
+        for known in night.adultHistory where ids.contains(known.id) {
+            attempt("Could not sign in \(known.fullName)") {
+                _ = try night.registerAdult(Adult.handSignInForm(
+                    historyID: known.id, first: known.first, last: known.last, email: known.email, phone: known.phone,
+                    unitType: known.unitType, unit: known.unit, finalBoard: nil, projectReview: nil, woodBadge: false
+                ))
+            }
+        }
+    }
+
+    /// Save a change made to one youth on the Youth or Pre-Registered page.
+    /// Undo puts the record back as it was.
+    @discardableResult
+    func editYouth(_ id: Scout.ID, scheduled: Bool = false, _ edit: (inout Scout) -> Void) -> Bool {
+        guard let night, let before = (scheduled ? night.scheduledScouts : night.scouts).first(where: { $0.id == id }) else {
+            return false
+        }
+        var after = before
+        edit(&after)
+        guard after != before else { return true }
+        return change("Change to \(before.fullName)", failure: "Could not change \(before.fullName)",
+                      { try $0.updateYouth(after, scheduled: scheduled) },
+                      undo: { try $0.updateYouth(before, scheduled: scheduled) })
+    }
+
+    /// Save a change made to one adult on the People or Adult History page:
+    /// promoting someone to Chair, say. Undo puts the record back as it was.
+    @discardableResult
+    func editAdult(_ id: Adult.ID, history: Bool = false, _ edit: (inout Adult) -> Void) -> Bool {
+        guard let night, let before = (history ? night.adultHistory : night.adults).first(where: { $0.id == id }) else {
+            return false
+        }
+        var after = before
+        edit(&after)
+        guard after != before else { return true }
+        return change("Change to \(before.fullName)", failure: "Could not change \(before.fullName)",
+                      { try $0.updateAdult(after, history: history) },
+                      undo: { try $0.updateAdult(before, history: history) })
+    }
+
+    /// A deleted record leaves the file and Undo cannot bring it back, so
+    /// this one asks first.
+    func confirmDeleteYouth(_ id: Scout.ID, scheduled: Bool = false) {
+        guard let night, let youth = (scheduled ? night.scheduledScouts : night.scouts).first(where: { $0.id == id }) else {
+            return
+        }
+        confirmation = Confirmation(
+            title: "Delete \(youth.fullName)?",
+            message: "The record is removed from the file. This cannot be undone.",
+            actionTitle: "Delete",
+            isDestructive: true
+        ) { [weak self] in
+            guard let self, attempt("Could not delete \(youth.fullName)", { try night.deleteYouth(id: id, scheduled: scheduled) })
+            else { return }
+            if !scheduled && selectedYouthID == id { selectYouth(nil) }
+        }
+    }
+
+    func confirmDeleteAdult(_ id: Adult.ID, history: Bool = false) {
+        guard let night, let adult = (history ? night.adultHistory : night.adults).first(where: { $0.id == id }) else {
+            return
+        }
+        confirmation = Confirmation(
+            title: "Delete \(adult.fullName)?",
+            message: history
+                ? "They are removed from the history of every event. This cannot be undone."
+                : "The record is removed from the file. This cannot be undone.",
+            actionTitle: "Delete",
+            isDestructive: true
+        ) { [weak self] in
+            guard let self, attempt("Could not delete \(adult.fullName)", { try night.deleteAdult(id: id, history: history) })
+            else { return }
+            guard !history else { return }
+            selectedAdultIDs.remove(id)
+            for scoutID in drafts.keys { drafts[scoutID]?.memberIDs.removeAll { $0 == id } }
+        }
+    }
+
     // MARK: - Files
+
+    /// Save the page's list as a spreadsheet, with the data files' columns
+    /// but never a youth's birthdate or phone number (SPEC.md D-7, D-8).
+    func exportList() {
+        guard let night, page.isList else { return }
+        let text = switch page {
+        case .event: ""
+        case .youth: CSVFile.render(night.scouts.map(\.forExport))
+        case .preRegistered: CSVFile.render(night.scheduledScouts.map(\.forExport))
+        case .people: CSVFile.render(night.adults)
+        case .adultHistory: CSVFile.render(night.adultHistory)
+        }
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "\(page.title) \(night.night).csv"
+        panel.allowedContentTypes = [.commaSeparatedText]
+        panel.message = "This list holds personal information. Keep the file somewhere private."
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            try Data(text.utf8).write(to: url, options: .atomic)
+        } catch {
+            message = Message(title: "Could not save the list", text: error.localizedDescription)
+        }
+    }
 
     func exportReport() {
         guard let night else { return }

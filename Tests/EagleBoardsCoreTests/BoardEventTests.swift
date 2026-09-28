@@ -375,7 +375,7 @@ struct BoardEventTests {
 
     private func result(_ scoutID: String) -> String? { night.scout(id: scoutID)?.result }
 
-    /// What the Records window does: edit fields of a youth and save it.
+    /// What the Youth page does: edit fields of a youth and save it.
     private func editYouth(_ scoutID: String, _ change: (inout Scout) -> Void) throws {
         var record = try #require(night.scout(id: scoutID))
         change(&record)
@@ -620,9 +620,9 @@ struct BoardEventTests {
         #expect(busyAdults == 0)
     }
 
-    // Java section 18. Corrections made in the Records window, whose Status
-    // and Result choices are BoardStatus.recordsChoices and BoardResult.allCases.
-    @Test func aResultCorrectedInTheRecordsWindow() throws {
+    // Java section 18. Corrections made on the Youth page, whose Status and
+    // Result menus offer BoardStatus.recordsChoices and BoardResult.allCases.
+    @Test func aResultCorrectedOnTheYouthPage() throws {
         #expect(BoardStatus.recordsChoices.contains(.registered), "Registered is offered, to undo a result on the wrong youth")
         #expect(Set(BoardStatus.recordsChoices.map(\.label)).count == BoardStatus.recordsChoices.count,
                 "no two choices read alike: legacy Verified, which also reads Waiting, is not offered")
@@ -772,13 +772,13 @@ struct BoardEventTests {
     // lookupsFillTheFormAndNothingMore). The Java grid, CSV, filter and
     // autofill reads (the -cells endpoints, /youth-autofill) cannot arise:
     // this server has none, and operatorPagesAndRecordsAreNotReachable
-    // asserts each is a 404. Their counterparts here are the Records window's
-    // saved lists and the board results report, checked below. The Records
-    // window's search matches names, emails and units only, so it has no
-    // filter that could say whose number it is.
+    // asserts each is a 404. Their counterparts here are the lists exported
+    // from the View pages and the board results report, checked below. The
+    // Youth and Pre-Registered pages show no phone number and do not search
+    // one, so neither has a filter that could say whose number it is.
     @Test func aYouthsPhoneNumberIsNotKeptButOneOnFileStays() throws {
-        // A pre-registration, given a birthdate and a phone number in the
-        // Records window, as a file from before D-7 and D-8 would have them.
+        // A pre-registration given a birthdate and a phone number by hand, as
+        // a file from before D-7 and D-8 would have them.
         try night.mergeSignUps([
             SignUpEntry(startDate: "2026-09-22 19:00", firstName: "lena", lastName: "lookup", item: "Eagle Board of Review",
                         email: "Lena.Lookup@Example.org", customAnswers: ["Troop 4401", "555-0100", ""]),
@@ -792,7 +792,7 @@ struct BoardEventTests {
         #expect(scheduledFile.contains("555-0100") && scheduledFile.contains("2010-05-06"), "both stay on file")
         let scheduledList = CSVFile.render(night.scheduledScouts.map(\.forExport))
         #expect(!scheduledList.contains("555-0100") && !scheduledList.contains("2010-05-06"),
-                "but the pre-registrations saved from the Records window leave them out")
+                "but the pre-registrations exported from the Pre-Registered page leave them out")
 
         // A new sign-in from an old cached page.
         var form = [
@@ -816,7 +816,7 @@ struct BoardEventTests {
         let report = Reports.csv(night.scouts, columns: Reports.boardResultColumns)
         #expect(!report.contains("2011-02-03") && !report.contains("555-0101"), "but the board results report never shows it")
         let youthList = CSVFile.render(night.scouts.map(\.forExport))
-        #expect(!youthList.contains("2011-02-03") && !youthList.contains("555-0101"), "nor a youth list saved from the Records window")
+        #expect(!youthList.contains("2011-02-03") && !youthList.contains("555-0101"), "nor a list exported from the Youth page")
         #expect(CSVFile.parse(Scout.self, text: youthList).first(where: { $0.id == olive })?.first == "Olive",
                 "which keeps the columns, so they still line up")
 

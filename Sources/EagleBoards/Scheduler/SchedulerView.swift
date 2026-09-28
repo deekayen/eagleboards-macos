@@ -3,9 +3,10 @@ import SwiftUI
 
 /// The operator's screen for the evening. The View menu chooses the page
 /// (SPEC.md P-1, P-6): Event, with every youth in one list beside the rooms,
-/// so a room's timer is never out of sight while working the queue (O-3);
-/// Results; or People. There is no sidebar, as in the Java and Windows
-/// versions, so the page has the window's whole width. The inspector follows
+/// so a room's timer is never out of sight while working the queue (O-3); or
+/// one of the event's records, each a list edited in place -- Youth, People,
+/// Pre-Registered, Adult History. There is no sidebar and no separate records
+/// window, so the page has the window's whole width. The inspector follows
 /// the selected youth on every page: the board being drawn up for them, or
 /// how it went.
 ///
@@ -13,7 +14,6 @@ import SwiftUI
 /// signs in at the door appears the moment the tablet's request lands.
 struct SchedulerView: View {
     @Environment(AppModel.self) private var model
-    @Environment(\.openWindow) private var openWindow
     @Environment(\.undoManager) private var undoManager
     /// The youth list's width on the Event page, as the operator last left it.
     @AppStorage("youthListWidth") private var youthListWidth = 320.0
@@ -47,6 +47,7 @@ struct SchedulerView: View {
                 case .changeMembers(let scoutID): ChangeMembersSheet(night: night, scoutID: scoutID)
                 case .completeBoard(let scoutID): CompleteBoardSheet(night: night, scoutID: scoutID)
                 case .addRoom: AddRoomSheet(night: night)
+                case .addAdult: AddAdultSheet()
                 case .swapRooms(let roomID): SwapRoomsSheet(night: night, firstRoomID: roomID)
                 case .renameRoom(let roomID):
                     RenameRoomSheet(night: night, roomID: roomID, rename: { try model.renameRoom(roomID, to: $0) })
@@ -101,26 +102,26 @@ struct SchedulerView: View {
                 RoomsGrid(night: night)
                     .frame(minWidth: 240, maxWidth: .infinity, maxHeight: .infinity)
             }
-        case .results:
-            ResultsList(night: night)
+        case .youth:
+            YouthPage(night: night)
         case .people:
             AdultList(night: night)
+        case .preRegistered:
+            PreRegisteredPage(night: night)
+        case .adultHistory:
+            AdultHistoryPage(night: night)
         }
     }
 
-    private var title: String {
-        switch model.page {
-        case .event: "Event"
-        case .results: "Results"
-        case .people: "People"
-        }
-    }
+    private var title: String { model.page.title }
 
     private var searchPrompt: String {
         switch model.page {
         case .event: "Name, unit, leader or room"
-        case .results: "Name, unit, member or result"
+        case .youth: "Name, unit, member or result"
         case .people: "Name, unit or room"
+        case .preRegistered: "Name, email, unit or leader"
+        case .adultHistory: "Name, email or unit"
         }
     }
 
@@ -151,13 +152,6 @@ struct SchedulerView: View {
                 Label("Export Results", systemImage: "square.and.arrow.up")
             }
             .help("Save every youth's board and result as a spreadsheet (CSV)")
-
-            Button {
-                openWindow(id: WindowID.records)
-            } label: {
-                Label("Records", systemImage: "tablecells")
-            }
-            .help("View and edit every record: youth, adults, the adult history and rooms")
         }
     }
 }

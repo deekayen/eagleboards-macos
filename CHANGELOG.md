@@ -10,20 +10,38 @@ room cards, instead of a sidebar entry per group that had to be picked before a
 youth could be found. The search looks through all three groups. A waiting
 youth still drags onto a free room.
 
-**Event, Results and People** (P-6), as on Windows. Results lists every board
-and its result, read-only; double-click one to see it on the Event page, and
-correct it in Records. People is the adults list that used to be a queue
-filter.
-
 **No sidebar** (P-1, P-6, D-17), as in the Java and Windows versions: the page
 has the window's whole width. On the Event page the youth list is a 320-point
 column, as on Windows, and the room cards take the rest; drag the line between
-them to widen the list, and it stays that wide. View › Event, Results and People
-(Option-Command-1 to 3) choose the page, with a check on the one shown. Add
-Room is in the Room menu (Shift-Command-N) and on a room card's right-click
-menu. Help › Donate… opens the ways to support the project, with the Venmo QR
+them to widen the list, and it stays that wide. The View menu chooses the page,
+with a check on the one shown. Add Room is in the Room menu (Shift-Command-N)
+and on a room card's right-click menu. Help › Donate… opens the ways to support the project, with the Venmo QR
 code, in a window of its own; it replaces the Donate button at the sidebar's
 foot and the Help menu's list of links.
+
+**The records are pages, edited in place** (P-6). The Records window is
+gone. Its lists are pages in the View menu beside Event (Option-Command-1 to
+5), and every value on them is changed where it is shown: click a name, unit or
+note to type in it, or a value with a small chevron to choose from a menu.
+Undo takes a change back. **Youth** is every youth, with their board, status,
+result, chair, members and notes; a result recorded against the wrong youth is
+corrected there. **People** is tonight's adults, where someone is promoted to
+Chair. **Pre-Registered** and **Adult History** are the SignUpGenius sign-ups
+and every adult who has ever signed in; Adult History's search looks through
+names, emails and units, and its Last Event column has a check for those
+signed in today. File › Export List… saves the page's list; right-click a
+record to delete it. The records window's Rooms list is left to the Event
+page's room cards, which already rename, switch, move and remove rooms.
+
+**Add an adult by hand.** Adult › Add Adult…, the Add Adult button at the foot
+of People, or a double-click below the last row signs in an adult who would
+rather not use the tablet, through the tablet's own sign-in. Its search fills
+the form in from the adult history, and a role left at As Last Time keeps the
+one on file. On Adult History, double-click someone, or choose Sign In for
+Today, to put them on tonight's list.
+
+**One member per line on the room cards**, as on Windows, in full, so a name is
+never cut off.
 
 **One status palette, and a clock per timer state** (SPEC.md D-13). The
 status badges and room timers take the colors all three versions now share,

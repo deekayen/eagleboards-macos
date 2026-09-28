@@ -16,12 +16,6 @@ struct EagleBoardsApp: App {
         .defaultSize(width: 1280, height: 860)
         .commands { EagleBoardsCommands(model: model) }
 
-        Window("Records", id: WindowID.records) {
-            RecordsWindow()
-                .environment(model)
-        }
-        .defaultSize(width: 1100, height: 700)
-
         Window("Sign-In Code", id: WindowID.signInCode) {
             SignInCodeWindow()
                 .environment(model)
@@ -48,7 +42,6 @@ struct EagleBoardsApp: App {
 
 enum WindowID {
     static let scheduler = "scheduler"
-    static let records = "records"
     static let help = "help"
     static let signInCode = "signInCode"
     static let donate = "donate"
@@ -109,20 +102,27 @@ struct EagleBoardsCommands: Commands {
             Button("Export Board Results…") { model.exportReport() }
                 .keyboardShortcut("e")
                 .disabled(model.night == nil)
+            Button("Export List…") { model.exportList() }
+                .keyboardShortcut("e", modifiers: [.command, .shift])
+                .disabled(model.night == nil || !model.page.isList)
         }
         InspectorCommands()
-        // The pages (SPEC.md P-1, P-6). There is no sidebar to choose them in,
-        // as in the Java and Windows versions; the page shown has a check.
+        // The pages (SPEC.md P-1, P-6): the event, and its records, each a
+        // list edited in place. No sidebar chooses them and no records window
+        // repeats them; the page shown has a check.
         CommandGroup(before: .toolbar) {
-            pageButton("Event", .event, "1")
-            pageButton("Results", .results, "2")
-            pageButton("People", .people, "3")
+            ForEach(Array(AppModel.Page.allCases.enumerated()), id: \.element) { index, page in
+                pageButton(page, KeyEquivalent(Character(String(index + 1))))
+            }
         }
         CommandMenu("Board") {
             YouthActionButtons(model: model)
                 .disabled(model.night == nil)
         }
         CommandMenu("Adult") {
+            Button("Add Adult…") { model.sheet = .addAdult }
+                .disabled(model.night == nil || model.sheet != nil)
+            Divider()
             AdultActionButtons(model: model)
                 .disabled(model.night == nil)
         }
@@ -138,8 +138,6 @@ struct EagleBoardsCommands: Commands {
         CommandGroup(before: .windowList) {
             Button("Scheduler") { openWindow(id: WindowID.scheduler) }
                 .keyboardShortcut("1")
-            Button("Records") { openWindow(id: WindowID.records) }
-                .keyboardShortcut("2")
             Button("Sign-In Code") { openWindow(id: WindowID.signInCode) }
                 .keyboardShortcut("3")
             Divider()
@@ -168,8 +166,8 @@ struct EagleBoardsCommands: Commands {
         return Array(nights.prefix(10))
     }
 
-    private func pageButton(_ title: String, _ page: AppModel.Page, _ key: KeyEquivalent) -> some View {
-        Toggle(title, isOn: Binding(
+    private func pageButton(_ page: AppModel.Page, _ key: KeyEquivalent) -> some View {
+        Toggle(page.title, isOn: Binding(
             get: { model.night != nil && model.page == page },
             set: { _ in
                 openWindow(id: WindowID.scheduler)

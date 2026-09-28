@@ -170,14 +170,14 @@ struct CheckInServerTests {
 
     /// Java event test section 24, the youth phone number (SPEC.md D-8), over
     /// HTTP as the Java script does it. BoardEventTests follows the same
-    /// youth through the data files, the report and the Records window.
+    /// youth through the data files, the report and the exported lists.
     @Test func aYouthsPhoneNumberIsNotKeptButAnAdultsStillFillsTheirForm() async throws {
         let oldPage = "Last=Oldpage&First=Olive&Email=op%40example.org&Phone=555-0101&UnitType=Troop&Unit=4402&BoardType=Final&DOB=2011-02-03"
         #expect(try await send("/register-youth", method: .post, form: oldPage).body == "OK.")
         var olive = try #require(night.scout(id: "SCOUT:Oldpage:Olive:4402"))
         #expect(olive.phone == "" && olive.dateOfBirth == "", "neither is kept from an old cached page")
 
-        // One on file from before D-7 and D-8, put there in the Records window.
+        // One on file from before D-7 and D-8, put there by hand.
         olive.phone = "555-0101"
         olive.dateOfBirth = "2011-02-03"
         try night.updateYouth(olive)

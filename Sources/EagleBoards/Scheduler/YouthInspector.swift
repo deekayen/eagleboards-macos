@@ -138,7 +138,7 @@ private struct DraftBoardSections: View {
             FreeAdultsSection(youth: youth, night: night, boardType: boardType, draftIDs: Set(draft.memberIDs))
         } else if youth.boardType == nil {
             Section {
-                Label("\(youth.fullName) has no board type. Set Final Board or Proposal Review in the Records window.",
+                Label("\(youth.fullName) has no board type. Set Final or Project in the Board column of the Youth page.",
                       systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
             }

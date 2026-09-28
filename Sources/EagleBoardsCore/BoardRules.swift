@@ -120,8 +120,8 @@ public enum BoardRules {
             let roleColumn = boardType == .projectReview ? "Project" : "Final"
             blocking.append(
                 "None of the selected members is qualified to chair a \(boardType.label). "
-                    + "Select someone whose \(roleColumn) role is Chair, or promote someone in the "
-                    + "Records window by setting their \(roleColumn) role to Chair."
+                    + "Select someone whose \(roleColumn) role is Chair, or promote someone on the "
+                    + "People page by setting their \(roleColumn) role to Chair."
             )
         }
 
@@ -158,8 +158,8 @@ public struct SeatingReview: Sendable {
     public private(set) var warnings: [Warning] = []
     /// Selected members qualified to chair this board type. The chair must be
     /// one of these: the Chair designation is binding, and when the qualified
-    /// chairs are all busy the answer is to promote someone in the Records
-    /// window, never to hand the gavel to a Member.
+    /// chairs are all busy the answer is to promote someone on the People
+    /// page, never to hand the gavel to a Member.
     public private(set) var qualifiedChairs: [Adult] = []
 
     public struct Warning: Sendable, Hashable, Identifiable {
@@ -189,7 +189,7 @@ public struct SeatingReview: Sendable {
         }
 
         guard let boardType = scout.boardType else {
-            blockingProblems.append("\(scoutName) has no board type. Set Final Board or Proposal Review in the Records window.")
+            blockingProblems.append("\(scoutName) has no board type. Set Final or Project in the Board column of the Youth page.")
             return
         }
 

@@ -121,6 +121,20 @@ public final class EventNight {
         return adultHistory.first { Self.matchableEmail($0.email) == wanted }
     }
 
+    /// Adults in the history matching every word of `query` in their name,
+    /// email or unit, sorted by last name, then first: what the Add Adult
+    /// sheet offers to fill itself in from. An empty query matches no one.
+    public func historyMatches(for query: String, limit: Int = 8) -> [Adult] {
+        let words = query.split(whereSeparator: \.isWhitespace).map(String.init)
+        guard !words.isEmpty else { return [] }
+        let found = adultHistory.filter { adult in
+            let fields = [adult.first, adult.last, adult.email, adult.unitName, adult.unitLabel, adult.unitDisplay]
+            return words.allSatisfy { word in fields.contains { $0.localizedCaseInsensitiveContains(word) } }
+        }
+        return Array(found.sorted { ($0.last.lowercased(), $0.first.lowercased()) < ($1.last.lowercased(), $1.first.lowercased()) }
+            .prefix(limit))
+    }
+
     /// The youth an adult may say at sign-in they came to support: everyone
     /// who RSVP'd, plus tonight's walk-ins, leaving out anyone whose evening
     /// is over (Completed or Postponed). Tonight's record wins over the RSVP
@@ -287,7 +301,7 @@ public final class EventNight {
         }
         // disabledForTonightMarker ("N/A") is what Complete leaves in a youth's
         // room. A Registered youth holding it had a result recorded against them
-        // by mistake and was set back in the Records window: they have no room
+        // by mistake and was set back on the Youth page: they have no room
         // and must be seatable for their real board.
         guard scout.room.isEmpty || scout.room == disabledForTonightMarker || scout.room == room.name else {
             throw EventError("\(scout.fullName) is already assigned to room \(scout.room).")
@@ -334,7 +348,7 @@ public final class EventNight {
         }
 
         // The Chair designation is binding. Promoting someone is a deliberate
-        // edit in the Records window, never a side effect of seating a board
+        // edit on the People page, never a side effect of seating a board
         // because the qualified chairs were all busy.
         guard let chair = adult(id: chairID) else {
             throw EventError("There is no adult '\(chairID)' to chair the board.")
@@ -775,7 +789,7 @@ public final class EventNight {
 
     // MARK: - Editing records directly
 
-    /// Replace a youth record as edited in the Records window.
+    /// Replace a youth record as edited on the Youth or Pre-Registered page.
     public func updateYouth(_ edited: Scout, scheduled: Bool = false) throws {
         var record = edited
         record.refreshDerivedFields()
@@ -807,7 +821,7 @@ public final class EventNight {
         }
     }
 
-    /// Replace an adult record as edited in the Records window.
+    /// Replace an adult record as edited on the People or Adult History page.
     public func updateAdult(_ edited: Adult, history: Bool = false) throws {
         var record = edited
         record.refreshDerivedFields()

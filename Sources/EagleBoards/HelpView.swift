@@ -21,16 +21,17 @@ struct HelpView: View {
                     step("At the tablet, a youth taps I am a Youth and an adult taps I am 21+. Each fills in the form.")
                     step("People who pre-registered on SignUpGenius, and adults who have served before, are recognized by email and their form fills itself in.")
                     step("They appear in the scheduler the moment they register. Youth are numbered P1, P2… if they pre-registered and W1, W2… if they walked in, and the list keeps pre-registered youth ahead of walk-ins.")
+                    step("An adult who would rather not use the tablet can be signed in on the Mac: choose Adult › Add Adult…, or click Add Adult at the foot of the People page. Search the adult history to fill the form in for someone who has served before. On the Adult History page, double-click someone to sign them in for today.")
                     step("Check the paperwork as youth sign in. If it is not in order, select them and choose Board › Postpone. Edit › Undo brings them back.")
                 }
 
                 section("Seat a board") {
-                    step("The window has three pages, chosen in the View menu (Option-Command-1 to 3). Event lists every youth in one column -- Waiting, On a Board, then Finished, each with its count -- with the room cards filling the rest of the window, so every room and its timer stay in view. Drag the line between them to widen the list. Search looks through all three. Results lists every board and its result; double-click one to see it on the Event page. People lists the adults. The inspector on the right follows the selected youth on every page; View › Show Inspector brings it back if it is hidden.")
+                    step("Event, the first page in the View menu, lists every youth in one column -- Waiting, On a Board, then Finished, each with its count -- with the room cards filling the rest of the window, so every room and its timer stay in view. Drag the line between them to widen the list. Search looks through all three. The inspector on the right follows the selected youth on every page; View › Show Inspector brings it back if it is hidden.")
                     step("Select a waiting youth. The inspector proposes a board: a chair, enough members, and a free room of the right kind. It never picks adults from the youth's own unit. It picks with the whole waiting line in mind: it keeps adults who can chair free for the boards still to come, and uses adults whose troop rules them out for youth still waiting. If there aren't enough adults to do that it still proposes the best board it can.")
                     step("Change who sits on the board in the inspector: click someone in the free adults listed below the board to add them (type in Find an adult to narrow the list), and − takes them off. On the People page you can also Command-click several adults and choose Adult › Add to Board (Command-B), or drag them onto the board. A board you have changed is kept while you look at other youth; Suggest a Board replaces it with a proposal.")
                     step("To choose every board yourself, set Settings › General › When you select a waiting youth to Start with an empty board. Selecting a youth then picks only a free room.")
                     step("Press Seat Board… in the inspector or the toolbar, press Command-Return, or double-click the youth. You can also drag a waiting youth onto a free room's card. The sheet lists anything that stops the board -- too few or too many members, no qualified chair, someone already on another board -- and anything worth a second look, each of which needs its own tick.")
-                    step("Choose the chair. Only members whose role for this kind of board is Chair are offered. If none is free, promote someone in the Records window by changing their role.")
+                    step("Choose the chair. Only members whose role for this kind of board is Chair are offered. If none is free, promote someone on the People page: click their Final or Project role and choose Chair.")
                     step("Seating gives the members the room and the paperwork. The youth waits outside.")
                     step("To change who sits on a seated board, before or after the review starts, select the youth and press Change Members… in the inspector, or choose Board › Change Members…. The sheet checks the board the same way Seat Board… does. The room's timer keeps running.")
                 }
@@ -44,6 +45,15 @@ struct HelpView: View {
                 section("Complete") {
                     step("When the board has finished, press Complete… (Command-Return), choose the result and add any notes.")
                     step("The room and the members are freed for the next board. The inspector lists the youth's leader and parents so someone can find them.")
+                }
+
+                section("The records") {
+                    step("The other pages in the View menu hold the event's records, and every value on them is changed in place: click a name, unit or note to type in it, and press Return; click a value with ⌃⌄ beside it to choose from a menu. Edit › Undo takes a change back.")
+                    bullet("Youth: every youth who signed in, with their board, its status and result, chair, members and notes. Correct a result recorded against the wrong youth here. Double-click a youth to see them on the Event page.")
+                    bullet("People: tonight's adults. Promote someone to Chair, mark Wood Badge, or fix a name. Add Adult at the foot signs someone in by hand.")
+                    bullet("Pre-Registered: the youth who signed up on SignUpGenius for today.")
+                    bullet("Adult History: every adult who has ever signed in, across events, searched by name, email or unit. Last Event has a check for those signed in today.")
+                    bullet("Right-click a record to delete it. That asks first, because Undo cannot bring it back. File › Export List… (Shift-Command-E) saves the page's list as a spreadsheet.")
                 }
 
                 section("Board sizes") {
@@ -60,13 +70,13 @@ struct HelpView: View {
 
                 section("Menus") {
                     bullet("Every action is in the Board, Adult and Room menus, and on the right-click menu of a youth, an adult or a room.")
-                    bullet("Edit › Undo (Command-Z) takes back the last step: seating, starting, completing, postponing or resetting a board, changing its members, disabling or enabling an adult, linking, and adding, removing, renaming or swapping rooms. It is refused if the room or a member has been given to another board since.")
+                    bullet("Edit › Undo (Command-Z) takes back the last step: seating, starting, completing, postponing or resetting a board, changing its members, disabling or enabling an adult, linking, adding, removing, renaming or swapping rooms, and a change to a record. It is refused if the room or a member has been given to another board since.")
                     bullet("Board › Locate Leader and Parents (Command-L) shows who came with the selected youth, and where they are, in the inspector.")
                     bullet("Board › Reset Board undoes seating: the youth waits again and the room and members are freed.")
                     bullet("Adult › Disable for Today takes adults out of the pool, for example when they have gone home. Enable for Today brings them back.")
                     bullet("Room › Move Board to Another Room… moves a board, or swaps two boards.")
-                    bullet("View › Event, Results and People (Option-Command-1 to 3) choose the page; the one shown has a check.")
-                    bullet("File › Export Board Results saves the event as a spreadsheet.")
+                    bullet("View › Event, Youth, People, Pre-Registered and Adult History (Option-Command-1 to 5) choose the page; the one shown has a check.")
+                    bullet("File › Export Board Results saves every board and its result as a spreadsheet; File › Export List… saves the page's list.")
                 }
 
                 section("The data") {

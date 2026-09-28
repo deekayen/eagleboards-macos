@@ -293,6 +293,27 @@ public struct Adult: PersonRecord {
     /// The columns an adult fills in at the sign-in station.
     public static let signInColumns = ["First", "Last", "Unit", "UnitType", "Email", "Phone", "ProjectReview", "FinalBoard"]
 
+    /// The sign-in form for an adult the operator adds by hand on the People
+    /// page, for someone who would rather not use the tablet. It goes through
+    /// `EventNight.registerAdult` as the tablet's does. A nil role is left for
+    /// the adult history to fill in, or Member for someone new, so adding a
+    /// known chair cannot demote them. `historyID` is the history record the
+    /// form was filled in from, as the tablet's email lookup carries it, so a
+    /// name corrected in the sheet still signs in the same person.
+    public static func handSignInForm(
+        historyID: String? = nil,
+        first: String, last: String, email: String, phone: String, unitType: String, unit: String,
+        finalBoard: BoardRole?, projectReview: BoardRole?, woodBadge: Bool
+    ) -> [String: String] {
+        [
+            "ID": historyID ?? "",
+            "First": first, "Last": last, "Email": email, "Phone": phone,
+            "UnitType": unitType, "Unit": unit,
+            "FinalBoard": finalBoard?.rawValue ?? "", "ProjectReview": projectReview?.rawValue ?? "",
+            "WoodBadge": woodBadge ? "Y" : "",
+        ]
+    }
+
     public var fields: [String: String]
 
     public init(fields: [String: String]) {
@@ -489,5 +510,17 @@ public struct Config: EventRecord {
     public var finalRedMinutes: Int {
         get { minutes("FinalRedMins") }
         set { setMinutes("FinalRedMins", newValue) }
+    }
+}
+
+extension String {
+    /// Names as the operator types a list of them, "A, B", in the form
+    /// seating stores: joined with commas and no spaces, which the data files
+    /// write as `A~B`. A list read back from a file comes out the same.
+    public var asNameList: String {
+        split(whereSeparator: { $0 == "," || $0 == "~" })
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+            .joined(separator: ",")
     }
 }
