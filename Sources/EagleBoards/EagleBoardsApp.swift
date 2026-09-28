@@ -56,6 +56,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApplication.shared.setActivationPolicy(.regular)
         NSApplication.shared.activate()
+        // EAGLEBOARDS_APPEARANCE, for a screenshot run; otherwise the system's.
+        switch LaunchSettings(environment: ProcessInfo.processInfo.environment, defaults: .standard).appearance {
+        case .dark: NSApplication.shared.appearance = NSAppearance(named: .darkAqua)
+        case .light: NSApplication.shared.appearance = NSAppearance(named: .aqua)
+        case nil: break
+        }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

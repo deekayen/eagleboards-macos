@@ -76,6 +76,12 @@ a screenshot. Set `EAGLEBOARDS_SIGNUPGENIUS=1` as well only when you mean to
 test the import itself, and never screenshot the result. Preferences given on
 the command line (`-importSignUpsOnOpen NO`, `-checkInPort 18123`) work too.
 
+`EAGLEBOARDS_APPEARANCE=dark` (or `light`) sets the app's appearance for that
+run alone, whatever the system's, so a screenshot in each needs no change to
+System Settings. The README's pictures in `docs/images/` are shot this way from
+the demo event in `deekayen/eagleboards-shared` (its `WEBSITE.md` says how),
+with the window at 1280 by 738 and `-youthListWidth 320`.
+
 **Prefer pushing over re-running everything locally.** CI (`build.yml`) runs
 the tests, builds the app, checks the bundle, and runs the guards
 below. Run things locally to debug what CI found, or to iterate.

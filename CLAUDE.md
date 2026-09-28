@@ -33,7 +33,8 @@ a native window. See `PROVENANCE.md`.
   screenshot. `EAGLEBOARDS_DATA_FOLDER` also switches SignUpGenius off (no
   keychain read, no import on open), so the real key cannot pull minors'
   sign-ups into synthetic data. Never set `EAGLEBOARDS_SIGNUPGENIUS=1` for a
-  screenshot run.
+  screenshot run. `EAGLEBOARDS_APPEARANCE=dark|light` picks the appearance
+  for the run; never change the system's.
 - Prefer pushing over re-running the suite locally; CI is the gate.
 
 ## Standing rules

@@ -68,6 +68,19 @@ struct LaunchSettingsTests {
         #expect(LaunchSettings(environment: ["EAGLEBOARDS_PORT": "18123"], defaults: defaults).port == 18123)
         #expect(LaunchSettings(environment: [:], defaults: defaults).port == 9090)
     }
+
+    // A screenshot run shows dark or light without changing the Mac's setting.
+    @Test func theAppearanceVariableIsForOneRunOnly() {
+        let (defaults, suite) = scratchDefaults()
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        #expect(LaunchSettings(environment: [:], defaults: defaults).appearance == nil, "the system's, as always")
+        #expect(LaunchSettings(environment: ["EAGLEBOARDS_APPEARANCE": "dark"], defaults: defaults).appearance == .dark)
+        #expect(LaunchSettings(environment: ["EAGLEBOARDS_APPEARANCE": "Light"], defaults: defaults).appearance == .light)
+        #expect(LaunchSettings(environment: ["EAGLEBOARDS_APPEARANCE": "purple"], defaults: defaults).appearance == nil)
+        #expect((defaults.persistentDomain(forName: suite) ?? [:]).keys
+            .allSatisfy { !$0.localizedCaseInsensitiveContains("appearance") }, "and nothing is saved")
+    }
 }
 
 /// Whether selecting a waiting youth proposes a board, or leaves it for the
