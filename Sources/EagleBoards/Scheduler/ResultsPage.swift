@@ -117,14 +117,24 @@ struct ResultsPage: View {
     }
 }
 
-/// A youth's status pill, and a menu of statuses to correct it (SPEC.md D-13).
+/// A youth's status pill (SPEC.md D-13), and a menu to correct it: Waiting,
+/// Completed or Postponed. A board is seated and started only on the Event
+/// page, where it gets its room and members, so a sitting board's status is
+/// read-only here until Reset Board or Complete (P-6).
 struct StatusChoice: View {
     let youth: Scout
     let save: (String) -> Bool
 
     var body: some View {
-        EditableChoice(value: youth.statusText, choices: RecordChoices.statuses, name: "Status", save: save) {
+        if youth.status?.holdsRoom == true {
             StatusBadge(statusText: youth.statusText)
+                .help(youth.room.isEmpty
+                    ? "Marked \(youth.statusLabel) without a room. Board › Reset Board puts them back in the queue."
+                    : "On the board in room \(youth.room). Reset or complete it on the Event page.")
+        } else {
+            EditableChoice(value: youth.statusText, choices: RecordChoices.statuses, name: "Status", save: save) {
+                StatusBadge(statusText: youth.statusText)
+            }
         }
     }
 }

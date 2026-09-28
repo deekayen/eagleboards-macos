@@ -789,7 +789,14 @@ public final class EventNight {
 
     // MARK: - Editing records directly
 
-    /// Replace a youth record as edited on the Youth or Pre-Registered page.
+    /// Replace a youth record as edited on the Results, Youth or
+    /// Pre-Registered page.
+    ///
+    /// A status is corrected here, but a board is seated, started, reset and
+    /// completed only through its steps, which give the youth a room and
+    /// members and take them back (SPEC.md P-6). So a status is never set to
+    /// Seated or In review here, and a board that is sitting keeps its status
+    /// until Reset or Complete.
     public func updateYouth(_ edited: Scout, scheduled: Bool = false) throws {
         var record = edited
         record.refreshDerivedFields()
@@ -802,6 +809,17 @@ public final class EventNight {
         } else {
             guard let index = scouts.firstIndex(where: { $0.id == edited.id }) else {
                 throw EventError("That youth no longer exists.")
+            }
+            let current = scouts[index]
+            if record.statusText != current.statusText {
+                if record.status?.holdsRoom == true {
+                    throw EventError("\(current.fullName) can be seated, or their review started, only on the Event page, "
+                        + "where the board gets its room and members.")
+                }
+                if current.status?.holdsRoom == true {
+                    throw EventError("\(current.fullName)'s board is in room \(current.room). Reset it or complete it on the "
+                        + "Event page, which frees the room and its members.")
+                }
             }
             scouts[index] = record
             try save(.youth)

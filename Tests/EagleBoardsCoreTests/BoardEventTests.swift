@@ -682,6 +682,33 @@ struct BoardEventTests {
         #expect(busyAdults == 0)
     }
 
+    // SPEC.md P-6. A table corrects a status, but a board is seated, started,
+    // reset and completed only through the Event page's steps, which give it
+    // a room and members and take them back. Not in the Java script: its
+    // admin page still offers InProgress.
+    @Test func aTableCannotSeatStartOrEndABoard() throws {
+        #expect(BoardStatus.recordsChoices == [.registered, .completed, .postponed])
+        refused("a waiting youth is not seated from a table") { try editYouth(finalYouth(1)) { $0.status = .seated } }
+        refused("nor put in review") { try editYouth(finalYouth(1)) { $0.status = .inProgress } }
+        #expect(status(finalYouth(1)) == .registered && night.scout(id: finalYouth(1))?.room == "")
+
+        try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
+        refused("a seated board is not sent back to waiting from a table") {
+            try editYouth(finalYouth(1)) { $0.status = .registered }
+        }
+        try night.startReview(scoutID: finalYouth(1))
+        refused("nor a review completed") { try editYouth(finalYouth(1)) { $0.status = .completed } }
+        refused("nor postponed") { try editYouth(finalYouth(1)) { $0.status = .postponed } }
+        try editYouth(finalYouth(1)) { $0.notes = "Strong answers" }
+        #expect(night.scout(id: finalYouth(1))?.notes == "Strong answers", "the rest of a sitting board's record still corrects")
+        #expect(status(finalYouth(1)) == .inProgress && busyAdults == 3, "and the room and members stay with it")
+
+        try night.completeBoard(scoutID: finalYouth(1), result: .approved, notes: "")
+        try editYouth(finalYouth(2)) { $0.status = .postponed }
+        #expect(status(finalYouth(2)) == .postponed, "a status that holds no room still corrects")
+        #expect(busyAdults == 0)
+    }
+
     // Java section 19. What an adult says at sign-in.
     @Test func woodBadgeNoThanksAndTheYouthAnAdultCameToSupport() throws {
         let rsvp = try lateYouth("Galloway", "Tobias", unit: 3401)

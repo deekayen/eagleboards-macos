@@ -48,7 +48,7 @@ struct HelpView: View {
                 }
 
                 section("The records") {
-                    step("The other pages in the View menu are the tables the event keeps, and their values are changed in place: click a name, unit or note to type in it, or a value with ⌃⌄ beside it to choose from a menu. A change is saved when you press Return or leave the cell. It is not on Edit › Undo, which is for the Event page's steps; change the cell back instead. Who sits on a board and which room someone is in are never typed in: they change on the Event page.")
+                    step("The other pages in the View menu are the tables the event keeps, and their values are changed in place: click a name, unit or note to type in it, or a value with ⌃⌄ beside it to choose from a menu. A change is saved when you press Return or leave the cell. It is not on Edit › Undo, which is for the Event page's steps; change the cell back instead. Who sits on a board and which room someone is in are never typed in: they change on the Event page. So is seating a board or starting its review: a Status cell offers only Waiting, Completed and Postponed, and a board that is seated or in review keeps its status until Reset Board or Complete….")
                     bullet("Results: every board and its result. Correct a result or its notes here. Double-click a board to see it on the Event page.")
                     bullet("People: tonight's adults. Promote someone to Chair, mark Wood Badge, or fix a name. Add Adult at the foot signs someone in by hand.")
                     bullet("Youth: every youth who signed in, in sign-in order.")

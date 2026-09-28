@@ -41,9 +41,12 @@ struct SignInTests {
         let first = try night.registerYouth(youthForm("Jan", "Doe", email: "jan@example.org"))
         #expect(first.phone == "" && first.dateOfBirth == "", "a new youth's are empty (D-7, D-8)")
         try night.addRoom(named: "101", boardType: .finalBoard)
+        let board = try ["Chair", "Member", "Other"].enumerated().map { index, last in
+            try night.registerAdult(["First": "Pat", "Last": last, "UnitType": "Troop", "Unit": "\(index + 7)",
+                                     "FinalBoard": index == 0 ? "Chair" : "Member"])
+        }
+        try night.seatBoard(roomID: "ROOM:101", scoutID: first.id, chairID: board[0].id, memberIDs: board.map(\.id))
         var seatedCopy = try #require(night.scout(id: first.id))
-        seatedCopy.status = .seated
-        seatedCopy.room = "101"
         // A number on file from before D-8.
         seatedCopy.phone = "770-555-0101"
         try night.updateYouth(seatedCopy)

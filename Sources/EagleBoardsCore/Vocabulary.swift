@@ -41,6 +41,11 @@ public enum BoardStatus: String, CaseIterable, Sendable {
         self == .completed || self == .postponed
     }
 
+    /// A board is sitting: it holds a room and its members.
+    public var holdsRoom: Bool {
+        self == .seated || self == .inProgress
+    }
+
     /// What the screen calls it, the same word in all three versions (SPEC.md
     /// D-13): badges, their accessibility labels, the Youth page's Status
     /// menu and alerts. The data files keep the raw value.
@@ -54,11 +59,13 @@ public enum BoardStatus: String, CaseIterable, Sendable {
         }
     }
 
-    /// The statuses the Youth page's Status menu offers. Not Verified:
-    /// nothing sets it, and it reads Waiting like Registered, so the menu
-    /// would offer Waiting twice. A legacy Verified record still shows its
-    /// badge there.
-    public static let recordsChoices: [BoardStatus] = allCases.filter { $0 != .verified }
+    /// The statuses a table's Status menu offers (SPEC.md P-6): Waiting,
+    /// Completed and Postponed, to correct a status. Not Seated or In review:
+    /// a board gets there only through the Event page's steps, which give it
+    /// a room and its members (`EventNight.updateYouth` refuses them). Not
+    /// Verified: nothing sets it, and it reads Waiting like Registered. A
+    /// legacy Verified record still shows its badge.
+    public static let recordsChoices: [BoardStatus] = [.registered, .completed, .postponed]
 }
 
 /// The step that moves a youth's board along from where it is: the one
