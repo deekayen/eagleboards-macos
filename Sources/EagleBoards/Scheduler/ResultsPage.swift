@@ -1,20 +1,22 @@
 import EagleBoardsCore
 import SwiftUI
 
-/// The youth table (SPEC.md P-6): every youth who signed in at this event, in
-/// sign-in order, edited in place. A changed cell is saved as it is left and
-/// stays off the Undo stack. The room is read-only: it changes only through
-/// the Event page's steps. Double-click a youth to see them on the Event page.
+/// The boards table (SPEC.md P-6): every youth who has been seated or
+/// postponed, and how their board went. A result, its notes, a name or a unit
+/// is corrected in place; a changed cell is saved as it is left and stays off
+/// the Undo stack. Who sat on the board and the room are read-only: they
+/// change only through the Event page's steps. File › Export Board Results
+/// saves the report. Double-click a board to see it on the Event page.
 ///
 /// A youth's birthdate and phone number are never shown here (D-7, D-8).
-struct YouthPage: View {
+struct ResultsPage: View {
     @Environment(AppModel.self) private var model
     let night: EventNight
     @State private var sortOrder = [KeyPathComparator(\Scout.queueOrder)]
 
     var body: some View {
         let rows = night.scouts
-            .filter { matches(model.searchText, $0) }
+            .filter { !($0.status?.isWaitingForBoard ?? true) && matches(model.searchText, $0) }
             .sorted(using: sortOrder)
         let selection = Binding(get: { model.selectedYouthID }, set: { model.selectYouth($0) })
 
@@ -42,12 +44,6 @@ struct YouthPage: View {
                 .width(min: 40, ideal: 50, max: 70)
             }
             Group {
-                TableColumn("Leader", value: \Scout.leader) { youth in
-                    EditableText(youth.leader, name: "Leader") { value in edit(youth) { $0.leader = value } }
-                }
-                TableColumn("Email", value: \Scout.email) { youth in
-                    EditableText(youth.email, name: "Email") { value in edit(youth) { $0.email = value } }
-                }
                 TableColumn("Board", value: \Scout.boardTypeText) { youth in
                     EditableChoice(value: youth.boardTypeText, choices: RecordChoices.boardTypes, name: "Board") { value in
                         edit(youth) { $0.boardTypeText = value }
@@ -56,27 +52,39 @@ struct YouthPage: View {
                     }
                 }
                 .width(min: 50, ideal: 70, max: 90)
-                TableColumn("Room", value: \Scout.room)
-                    .width(min: 40, ideal: 50, max: 70)
                 TableColumn("Status", value: \Scout.statusRank) { youth in
                     StatusChoice(youth: youth) { value in edit(youth) { $0.statusText = value } }
                 }
                 .width(min: 80, ideal: 100, max: 120)
+                TableColumn("Room", value: \Scout.room)
+                    .width(min: 40, ideal: 50, max: 70)
+                TableColumn("Result", value: \Scout.result) { youth in
+                    EditableChoice(youth.result, choices: RecordChoices.results, name: "Result") { value in
+                        edit(youth) { $0.result = value }
+                    }
+                }
+                .width(min: 70, ideal: 100, max: 130)
+                // Who sat changes on the Event page, under the rules for
+                // seating; never typed into a table (P-6).
+                TableColumn("Chair", value: \Scout.boardChair)
             }
-            TableColumn("Result", value: \Scout.result) { youth in
-                EditableChoice(youth.result, choices: RecordChoices.results, name: "Result") { value in
-                    edit(youth) { $0.result = value }
+            Group {
+                TableColumn("Members", value: \Scout.boardMembers) { youth in
+                    Text(youth.boardMembers.withListSeparators).help(youth.boardMembers.withListSeparators)
+                }
+                TableColumn("Leader", value: \Scout.leader) { youth in
+                    EditableText(youth.leader, name: "Leader") { value in edit(youth) { $0.leader = value } }
+                }
+                TableColumn("Notes", value: \Scout.notes) { youth in
+                    EditableText(youth.notes.withCommasRestored, name: "Notes") { value in edit(youth) { $0.notes = value } }
                 }
             }
-            .width(min: 70, ideal: 100, max: 130)
         } rows: {
             ForEach(rows) { TableRow($0) }
         }
         .contextMenu(forSelectionType: Scout.ID.self) { ids in
             if let id = ids.first {
                 Button("Show on Event Page") { model.showOnEventPage(id) }
-                Divider()
-                Button("Delete Youth…", role: .destructive) { model.confirmDeleteYouth(id) }
             }
         } primaryAction: { ids in
             if let id = ids.first {
@@ -86,8 +94,8 @@ struct YouthPage: View {
         .overlay {
             if rows.isEmpty {
                 if model.searchText.isEmpty {
-                    ContentUnavailableView("No Youth Yet", systemImage: "person.crop.circle.badge.clock",
-                                           description: Text("Youth appear here the moment they sign in at the tablet."))
+                    ContentUnavailableView("No Boards Yet", systemImage: "checklist",
+                                           description: Text("A board appears here once it is seated, and keeps its result when it is complete."))
                 } else {
                     ContentUnavailableView.search(text: model.searchText)
                 }
@@ -102,7 +110,21 @@ struct YouthPage: View {
     private func matches(_ search: String, _ youth: Scout) -> Bool {
         let query = search.trimmingCharacters(in: .whitespaces)
         guard !query.isEmpty else { return true }
-        return [youth.fullName, youth.unitName, youth.unitLabel, youth.leader, youth.room, youth.regNum, youth.email]
+        let result = BoardResult(rawValue: youth.result)?.label ?? youth.result
+        return [youth.fullName, youth.unitName, youth.unitLabel, youth.leader, youth.room, youth.regNum,
+                youth.boardChair, youth.boardMembers, result, youth.notes]
             .contains { $0.localizedCaseInsensitiveContains(query) }
+    }
+}
+
+/// A youth's status pill, and a menu of statuses to correct it (SPEC.md D-13).
+struct StatusChoice: View {
+    let youth: Scout
+    let save: (String) -> Bool
+
+    var body: some View {
+        EditableChoice(value: youth.statusText, choices: RecordChoices.statuses, name: "Status", save: save) {
+            StatusBadge(statusText: youth.statusText)
+        }
     }
 }

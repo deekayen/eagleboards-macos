@@ -375,7 +375,7 @@ struct BoardEventTests {
 
     private func result(_ scoutID: String) -> String? { night.scout(id: scoutID)?.result }
 
-    /// What the Youth page does: edit fields of a youth and save it.
+    /// What the Results and Youth pages do: change a youth's fields and save them.
     private func editYouth(_ scoutID: String, _ change: (inout Scout) -> Void) throws {
         var record = try #require(night.scout(id: scoutID))
         change(&record)
@@ -620,9 +620,12 @@ struct BoardEventTests {
         #expect(busyAdults == 0)
     }
 
-    // Java section 18. Corrections made on the Youth page, whose Status and
-    // Result menus offer BoardStatus.recordsChoices and BoardResult.allCases.
-    @Test func aResultCorrectedOnTheYouthPage() throws {
+    // Java section 18. Corrections made on the Results and Youth pages, whose
+    // Status and Result menus offer BoardStatus.recordsChoices and
+    // BoardResult.allCases. The pages show the chair and members read-only
+    // (SPEC.md P-6); the record's move with the result is checked here as
+    // Java's admin page makes it.
+    @Test func aResultCorrectedOnTheResultsPage() throws {
         #expect(BoardStatus.recordsChoices.contains(.registered), "Registered is offered, to undo a result on the wrong youth")
         #expect(Set(BoardStatus.recordsChoices.map(\.label)).count == BoardStatus.recordsChoices.count,
                 "no two choices read alike: legacy Verified, which also reads Waiting, is not offered")

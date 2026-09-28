@@ -59,17 +59,6 @@ struct FileFormatTests {
         #expect(youth.statusLabel == "Mystery", "an unknown status shows as stored")
     }
 
-    // A board's members typed on the Youth page, "A, B", are stored as
-    // seating stores them, so the file holds A~B as the Java app writes it.
-    @Test func membersTypedAsAListAreStoredAsSeatingStoresThem() {
-        #expect("Chris Chair, Morgan Member ".asNameList == "Chris Chair,Morgan Member")
-        #expect("Chris Chair~Morgan Member".asNameList == "Chris Chair,Morgan Member", "a list read from a file")
-        #expect(" , ".asNameList.isEmpty)
-        var youth = Scout.blank(at: Date())
-        youth.boardMembers = "Chris Chair, Morgan Member".asNameList
-        #expect(CSVFile.render([youth]).contains(",Chris Chair~Morgan Member,"))
-    }
-
     @Test func commasAndLineBreaksCannotBreakARow() {
         var youth = Scout.blank(at: Date())
         youth.first = "Jan"

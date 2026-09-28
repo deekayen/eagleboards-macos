@@ -155,20 +155,25 @@ and add any notes. The room and the members are free for the next board.
 
 ## The records
 
-The rest of the **View** menu holds the event's records, and every value on
-them is changed in place: click a name, unit or note to type in it and press
-Return, or click a value with ⌃⌄ beside it to choose from a menu. **Edit ›
-Undo** takes a change back. There is no separate records window.
+The rest of the **View** menu is a page for each table the event keeps, and
+their values are changed in place: click a name, unit or note to type in it,
+or click a value with ⌃⌄ beside it to choose from a menu. A change is saved
+when you press Return or leave the cell. It is not on **Edit › Undo**, which is
+for the Event page's steps; change the cell back instead. Who sits on a board
+and which room someone is in are never typed in: they change on the Event
+page. There is no separate records window.
 
 | Page | What it holds |
 | --- | --- |
-| **Youth** (⌥⌘2) | Every youth who signed in, with their board, its status and result, chair, members and notes. Correct a result recorded against the wrong youth here. Double-click a youth to see them on the Event page. |
+| **Results** (⌥⌘2) | Every board and its result. Correct a result or its notes here. Double-click a board to see it on the Event page. |
 | **People** (⌥⌘3) | Tonight's adults. Promote someone to Chair, mark Wood Badge, or fix a name. **Add Adult** at the foot signs someone in by hand. |
-| **Pre-Registered** (⌥⌘4) | The youth who signed up on SignUpGenius for today. |
-| **Adult History** (⌥⌘5) | Every adult who has ever signed in, across events, searched by name, email or unit. **Last Event** has a check for those signed in today; double-click someone to sign them in. |
+| **Youth** (⌥⌘4) | Every youth who signed in, in sign-in order. |
+| **Pre-Registered** (⌥⌘5) | The youth who signed up on SignUpGenius for today. |
+| **Adult History** (⌥⌘6) | Every adult who has ever signed in, across events, searched by name, email or unit. **Last Event** has a check for those signed in today; double-click someone to sign them in. |
+| **Rooms** (⌥⌘7) | What each room is used for today, and whose board is in it. **Add Room** at the foot adds one. |
 
-Right-click a record to delete it; that asks first, because Undo cannot bring
-it back. **File › Export List…** (⇧⌘E) saves the page's list as a spreadsheet.
+Right-click a record to delete it; that asks first. **File › Export List…**
+(⇧⌘E) saves the page's list as a spreadsheet.
 
 ## Room timers
 
@@ -195,8 +200,8 @@ Everything is saved as it happens; there is nothing to save before quitting.
 
 Made a mistake? **Edit › Undo** takes back the last step, whether seating,
 starting, completing, postponing or resetting a board, changing its members,
-disabling an adult, a change to the rooms, or a change to a record. It is
-refused once the room or a member has been given to another board.
+disabling an adult, or a change to the rooms from the Event page. It is refused
+once the room or a member has been given to another board.
 
 The Dock icon shows how many youth are waiting, and a notification tells you
 when a room goes overdue while you are in another app.

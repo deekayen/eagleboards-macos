@@ -48,12 +48,14 @@ struct HelpView: View {
                 }
 
                 section("The records") {
-                    step("The other pages in the View menu hold the event's records, and every value on them is changed in place: click a name, unit or note to type in it, and press Return; click a value with ⌃⌄ beside it to choose from a menu. Edit › Undo takes a change back.")
-                    bullet("Youth: every youth who signed in, with their board, its status and result, chair, members and notes. Correct a result recorded against the wrong youth here. Double-click a youth to see them on the Event page.")
+                    step("The other pages in the View menu are the tables the event keeps, and their values are changed in place: click a name, unit or note to type in it, or a value with ⌃⌄ beside it to choose from a menu. A change is saved when you press Return or leave the cell. It is not on Edit › Undo, which is for the Event page's steps; change the cell back instead. Who sits on a board and which room someone is in are never typed in: they change on the Event page.")
+                    bullet("Results: every board and its result. Correct a result or its notes here. Double-click a board to see it on the Event page.")
                     bullet("People: tonight's adults. Promote someone to Chair, mark Wood Badge, or fix a name. Add Adult at the foot signs someone in by hand.")
+                    bullet("Youth: every youth who signed in, in sign-in order.")
                     bullet("Pre-Registered: the youth who signed up on SignUpGenius for today.")
-                    bullet("Adult History: every adult who has ever signed in, across events, searched by name, email or unit. Last Event has a check for those signed in today.")
-                    bullet("Right-click a record to delete it. That asks first, because Undo cannot bring it back. File › Export List… (Shift-Command-E) saves the page's list as a spreadsheet.")
+                    bullet("Adult History: every adult who has ever signed in, across events, searched by name, email or unit. Last Event has a check for those signed in today; double-click someone to sign them in for today.")
+                    bullet("Rooms: what each room is used for today, and whose board is in it. Add Room at the foot adds one.")
+                    bullet("Right-click a record to delete it; that asks first. File › Export List… (Shift-Command-E) saves the page's list as a spreadsheet.")
                 }
 
                 section("Board sizes") {
@@ -70,12 +72,12 @@ struct HelpView: View {
 
                 section("Menus") {
                     bullet("Every action is in the Board, Adult and Room menus, and on the right-click menu of a youth, an adult or a room.")
-                    bullet("Edit › Undo (Command-Z) takes back the last step: seating, starting, completing, postponing or resetting a board, changing its members, disabling or enabling an adult, linking, adding, removing, renaming or swapping rooms, and a change to a record. It is refused if the room or a member has been given to another board since.")
+                    bullet("Edit › Undo (Command-Z) takes back the last step: seating, starting, completing, postponing or resetting a board, changing its members, disabling or enabling an adult, linking, and adding, removing, renaming or swapping rooms. It is refused if the room or a member has been given to another board since.")
                     bullet("Board › Locate Leader and Parents (Command-L) shows who came with the selected youth, and where they are, in the inspector.")
                     bullet("Board › Reset Board undoes seating: the youth waits again and the room and members are freed.")
                     bullet("Adult › Disable for Today takes adults out of the pool, for example when they have gone home. Enable for Today brings them back.")
                     bullet("Room › Move Board to Another Room… moves a board, or swaps two boards.")
-                    bullet("View › Event, Youth, People, Pre-Registered and Adult History (Option-Command-1 to 5) choose the page; the one shown has a check.")
+                    bullet("View › Event, Results, People, Youth, Pre-Registered, Adult History and Rooms (Option-Command-1 to 7) choose the page; the one shown has a check.")
                     bullet("File › Export Board Results saves every board and its result as a spreadsheet; File › Export List… saves the page's list.")
                 }
 

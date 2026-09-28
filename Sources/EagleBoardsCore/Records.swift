@@ -512,15 +512,3 @@ public struct Config: EventRecord {
         set { setMinutes("FinalRedMins", newValue) }
     }
 }
-
-extension String {
-    /// Names as the operator types a list of them, "A, B", in the form
-    /// seating stores: joined with commas and no spaces, which the data files
-    /// write as `A~B`. A list read back from a file comes out the same.
-    public var asNameList: String {
-        split(whereSeparator: { $0 == "," || $0 == "~" })
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-            .joined(separator: ",")
-    }
-}

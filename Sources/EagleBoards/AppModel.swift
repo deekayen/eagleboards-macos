@@ -160,31 +160,37 @@ final class AppModel {
 
     // MARK: - The operator's work in progress
 
-    /// The main window's pages, chosen in the View menu (SPEC.md P-1, P-6).
-    /// Event holds every youth, the rooms and the inspector together (O-3).
-    /// The rest are the event's records, each a list edited in place: every
-    /// youth with their board and result, tonight's adults, the SignUpGenius
-    /// pre-registrations, and every adult who has ever signed in. There is no
-    /// separate records window. The inspector stays beside each page.
+    /// The main window's pages, chosen in the View menu (SPEC.md P-1, P-6),
+    /// in the Windows version's order. Event holds every youth, the rooms and
+    /// the inspector together (O-3). The rest are a page for each table the
+    /// event keeps, edited in place: the boards (Results), tonight's adults
+    /// (People), every youth, the SignUpGenius pre-registrations, every adult
+    /// who has ever signed in, and the rooms. There is no separate records
+    /// window. The inspector stays beside each page.
     enum Page: Hashable, CaseIterable {
         case event
-        case youth
+        case results
         case people
+        case youth
         case preRegistered
         case adultHistory
+        case rooms
 
         var title: String {
             switch self {
             case .event: "Event"
-            case .youth: "Youth"
+            case .results: "Results"
             case .people: "People"
+            case .youth: "Youth"
             case .preRegistered: "Pre-Registered"
             case .adultHistory: "Adult History"
+            case .rooms: "Rooms"
             }
         }
 
-        /// A page that is a list of records, which File › Export List saves.
-        var isList: Bool { self != .event }
+        /// A table File › Export List saves. Results has Export Board Results
+        /// instead.
+        var isList: Bool { self != .event && self != .results }
     }
 
     var page: Page = .event
@@ -809,34 +815,37 @@ final class AppModel {
         }
     }
 
-    /// Save a change made to one youth on the Youth or Pre-Registered page.
-    /// Undo puts the record back as it was.
+    /// Save a cell changed on the Results, Youth or Pre-Registered page. A
+    /// changed cell is saved as it is left and stays off the Undo stack
+    /// (SPEC.md P-6), which is kept for the Event page's steps.
     @discardableResult
     func editYouth(_ id: Scout.ID, scheduled: Bool = false, _ edit: (inout Scout) -> Void) -> Bool {
-        guard let night, let before = (scheduled ? night.scheduledScouts : night.scouts).first(where: { $0.id == id }) else {
+        guard let night, var record = (scheduled ? night.scheduledScouts : night.scouts).first(where: { $0.id == id }) else {
             return false
         }
-        var after = before
-        edit(&after)
-        guard after != before else { return true }
-        return change("Change to \(before.fullName)", failure: "Could not change \(before.fullName)",
-                      { try $0.updateYouth(after, scheduled: scheduled) },
-                      undo: { try $0.updateYouth(before, scheduled: scheduled) })
+        let name = record.fullName
+        edit(&record)
+        return attempt("Could not change \(name)") { try night.updateYouth(record, scheduled: scheduled) }
     }
 
-    /// Save a change made to one adult on the People or Adult History page:
-    /// promoting someone to Chair, say. Undo puts the record back as it was.
+    /// Save a cell changed on the People or Adult History page: promoting
+    /// someone to Chair, say. Off the Undo stack, as `editYouth`.
     @discardableResult
     func editAdult(_ id: Adult.ID, history: Bool = false, _ edit: (inout Adult) -> Void) -> Bool {
-        guard let night, let before = (history ? night.adultHistory : night.adults).first(where: { $0.id == id }) else {
+        guard let night, var record = (history ? night.adultHistory : night.adults).first(where: { $0.id == id }) else {
             return false
         }
-        var after = before
-        edit(&after)
-        guard after != before else { return true }
-        return change("Change to \(before.fullName)", failure: "Could not change \(before.fullName)",
-                      { try $0.updateAdult(after, history: history) },
-                      undo: { try $0.updateAdult(before, history: history) })
+        let name = record.fullName
+        edit(&record)
+        return attempt("Could not change \(name)") { try night.updateAdult(record, history: history) }
+    }
+
+    /// The Rooms page's Board Type cell: off the Undo stack like any cell
+    /// (P-6). Room › Used For, an Event page step, is undoable.
+    @discardableResult
+    func editRoomType(_ id: Room.ID, to boardType: BoardType) -> Bool {
+        guard let night else { return false }
+        return attempt("Could not change the room") { try night.setBoardType(boardType, forRoom: id) }
     }
 
     /// A deleted record leaves the file and Undo cannot bring it back, so
@@ -884,7 +893,8 @@ final class AppModel {
     func exportList() {
         guard let night, page.isList else { return }
         let text = switch page {
-        case .event: ""
+        case .event, .results: ""
+        case .rooms: CSVFile.render(night.rooms)
         case .youth: CSVFile.render(night.scouts.map(\.forExport))
         case .preRegistered: CSVFile.render(night.scheduledScouts.map(\.forExport))
         case .people: CSVFile.render(night.adults)

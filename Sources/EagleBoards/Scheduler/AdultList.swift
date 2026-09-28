@@ -4,8 +4,10 @@ import SwiftUI
 /// Every adult who has signed in tonight, the People page (SPEC.md P-6).
 /// Select several with Command or Shift and add them to the board being drawn
 /// up, or drag them onto it in the inspector. Their details are edited in
-/// place, and it is here that someone is promoted to Chair; Undo takes a
-/// change back. It replaces the records window's list of tonight's adults.
+/// place, and it is here that someone is promoted to Chair; a changed cell is
+/// saved as it is left and stays off the Undo stack. Their room is read-only:
+/// it changes only through the Event page's steps. It replaces the records
+/// window's list of tonight's adults.
 /// Add Adult, at the foot of the list, in the Adult menu, or by
 /// double-clicking below the last row, signs in someone who would rather not
 /// use the tablet.
@@ -59,7 +61,7 @@ struct AdultList: View {
                 .width(min: 60, ideal: 80, max: 100)
                 // Volunteering toward a Wood Badge ticket item.
                 TableColumn("WB", value: \Adult.woodBadge) { adult in
-                    WoodBadgeToggle(isOn: adult.woodBadge == "Y") { on in edit(adult) { $0.woodBadge = on ? "Y" : "" } }
+                    WoodBadgeChoice(value: adult.woodBadge) { value in edit(adult) { $0.woodBadge = value } }
                 }
                 .width(min: 40, ideal: 48, max: 60)
                 TableColumn("With", value: \Adult.supporting) { adult in
@@ -99,20 +101,7 @@ struct AdultList: View {
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            HStack {
-                Button {
-                    model.sheet = .addAdult
-                } label: {
-                    Label("Add Adult", systemImage: "plus")
-                }
-                .buttonStyle(.borderless)
-                .help("Sign in an adult who would rather not use the tablet")
-                Spacer()
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(.bar)
-            .overlay(alignment: .top) { Divider() }
+            ListFooter("Add Adult", help: "Sign in an adult who would rather not use the tablet") { model.sheet = .addAdult }
         }
         .overlay {
             if rows.isEmpty {
@@ -363,19 +352,47 @@ struct RoleChoice: View {
     }
 }
 
-/// Whether an adult is counting today toward a Wood Badge ticket item: a
-/// check box, with the Wood Badge mark beside it when checked (SPEC.md D-20).
-struct WoodBadgeToggle: View {
-    let isOn: Bool
-    let save: (Bool) -> Bool
+/// Whether an adult is counting today toward a Wood Badge ticket item: the
+/// Wood Badge mark, and Yes or No while it is being changed (SPEC.md D-20).
+struct WoodBadgeChoice: View {
+    let value: String
+    let save: (String) -> Bool
 
     var body: some View {
-        Toggle(isOn: Binding(get: { isOn }, set: { _ = save($0) })) {
-            if isOn { WoodBadgeIcon() }
+        EditableChoice(value: value, choices: [("", "No"), ("Y", "Yes")], name: "Wood Badge", save: save) {
+            if value == "Y" {
+                WoodBadgeIcon()
+            }
         }
-        .toggleStyle(.checkbox)
-        .accessibilityLabel("Wood Badge")
-        .help("Counting today toward a Wood Badge ticket item")
+    }
+}
+
+/// The bar at the foot of a table page with its Add button, as under a Mac
+/// list.
+struct ListFooter: View {
+    let title: String
+    let help: String
+    let action: () -> Void
+
+    init(_ title: String, help: String, action: @escaping () -> Void) {
+        self.title = title
+        self.help = help
+        self.action = action
+    }
+
+    var body: some View {
+        HStack {
+            Button(action: action) {
+                Label(title, systemImage: "plus")
+            }
+            .buttonStyle(.borderless)
+            .help(help)
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(.bar)
+        .overlay(alignment: .top) { Divider() }
     }
 }
 

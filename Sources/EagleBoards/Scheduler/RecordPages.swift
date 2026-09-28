@@ -1,9 +1,10 @@
 import EagleBoardsCore
 import SwiftUI
 
-// The pages that list the rest of the event's records, edited in place like
-// the Youth and People pages (SPEC.md P-6). Together they replace the records
-// window. Undo takes a change back; a deleted record is asked about first.
+// The pages for the rest of the tables the event keeps, edited in place like
+// Results, People and Youth (SPEC.md P-6). Together they replace the records
+// window. A changed cell is saved as it is left and stays off the Undo stack;
+// a deleted record is asked about first.
 
 /// The youth who signed up on SignUpGenius for this event, before any of them
 /// has signed in at the door. A youth's birthdate and phone number are never
@@ -179,6 +180,66 @@ struct AdultHistoryPage: View {
 
     private func edit(_ adult: Adult, _ change: (inout Adult) -> Void) -> Bool {
         model.editAdult(adult.id, history: true, change)
+    }
+}
+
+/// The rooms table: what each room is used for today, and whose board is in
+/// it. The board type is changed in place; the name, and who is in the room,
+/// change from the Event page's room cards (Room › Rename…, Move Board…).
+struct RoomsPage: View {
+    @Environment(AppModel.self) private var model
+    let night: EventNight
+    @State private var sortOrder = [KeyPathComparator(\Room.name)]
+
+    var body: some View {
+        @Bindable var model = model
+        let rows = night.rooms
+            .filter { matches(model.searchText, $0.name, $0.scoutName, $0.leaderNames) }
+            .sorted(using: sortOrder)
+
+        Table(of: Room.self, selection: $model.selectedRoomID, sortOrder: $sortOrder) {
+            TableColumn("Room", value: \Room.name)
+                .width(min: 50, ideal: 70, max: 100)
+            TableColumn("Used For", value: \Room.boardTypeText) { room in
+                EditableChoice(room.boardTypeText, choices: RecordChoices.boardTypes, name: "Used for") { value in
+                    guard let boardType = BoardType(rawValue: value) else { return false }
+                    return model.editRoomType(room.id, to: boardType)
+                }
+            }
+            .width(min: 110, ideal: 130, max: 160)
+            TableColumn("Youth", value: \Room.scoutName)
+            TableColumn("Members", value: \Room.leaderNames) { room in
+                Text(room.leaderNames.withListSeparators).help(room.leaderNames.withListSeparators)
+            }
+        } rows: {
+            ForEach(rows) { TableRow($0) }
+        }
+        .contextMenu(forSelectionType: Room.ID.self) { ids in
+            if let id = ids.first, let room = night.room(id: id) {
+                Button("Remove Room") {
+                    model.selectedRoomID = id
+                    model.removeSelectedRoom()
+                }
+                .disabled(!room.isFree)
+            } else {
+                Button("Add Room…") { model.sheet = .addRoom }
+            }
+        } primaryAction: { ids in
+            if ids.isEmpty { model.sheet = .addRoom }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            ListFooter("Add Room", help: "Add a room for today") { model.sheet = .addRoom }
+        }
+        .overlay {
+            if rows.isEmpty {
+                if model.searchText.isEmpty {
+                    ContentUnavailableView("No Rooms Yet", systemImage: "door.left.hand.closed",
+                                           description: Text("Add Room, at the foot of this list, adds one."))
+                } else {
+                    ContentUnavailableView.search(text: model.searchText)
+                }
+            }
+        }
     }
 }
 

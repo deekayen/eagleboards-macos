@@ -4,11 +4,11 @@ import SwiftUI
 /// The operator's screen for the evening. The View menu chooses the page
 /// (SPEC.md P-1, P-6): Event, with every youth in one list beside the rooms,
 /// so a room's timer is never out of sight while working the queue (O-3); or
-/// one of the event's records, each a list edited in place -- Youth, People,
-/// Pre-Registered, Adult History. There is no sidebar and no separate records
-/// window, so the page has the window's whole width. The inspector follows
-/// the selected youth on every page: the board being drawn up for them, or
-/// how it went.
+/// a page for one of the event's tables, edited in place -- Results, People,
+/// Youth, Pre-Registered, Adult History, Rooms. There is no sidebar and no
+/// separate records window, so the page has the window's whole width. The
+/// inspector follows the selected youth on every page: the board being drawn
+/// up for them, or how it went.
 ///
 /// Nothing here polls. The event night is observed directly, so a youth who
 /// signs in at the door appears the moment the tablet's request lands.
@@ -102,14 +102,18 @@ struct SchedulerView: View {
                 RoomsGrid(night: night)
                     .frame(minWidth: 240, maxWidth: .infinity, maxHeight: .infinity)
             }
-        case .youth:
-            YouthPage(night: night)
+        case .results:
+            ResultsPage(night: night)
         case .people:
             AdultList(night: night)
+        case .youth:
+            YouthPage(night: night)
         case .preRegistered:
             PreRegisteredPage(night: night)
         case .adultHistory:
             AdultHistoryPage(night: night)
+        case .rooms:
+            RoomsPage(night: night)
         }
     }
 
@@ -118,10 +122,12 @@ struct SchedulerView: View {
     private var searchPrompt: String {
         switch model.page {
         case .event: "Name, unit, leader or room"
-        case .youth: "Name, unit, member or result"
+        case .results: "Name, unit, member or result"
         case .people: "Name, unit or room"
+        case .youth: "Name, unit, leader or room"
         case .preRegistered: "Name, email, unit or leader"
         case .adultHistory: "Name, email or unit"
+        case .rooms: "Room, youth or member"
         }
     }
 

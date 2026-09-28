@@ -107,8 +107,8 @@ struct EagleBoardsCommands: Commands {
                 .disabled(model.night == nil || !model.page.isList)
         }
         InspectorCommands()
-        // The pages (SPEC.md P-1, P-6): the event, and its records, each a
-        // list edited in place. No sidebar chooses them and no records window
+        // The pages (SPEC.md P-1, P-6): the event, and a page per table,
+        // edited in place. No sidebar chooses them and no records window
         // repeats them; the page shown has a check.
         CommandGroup(before: .toolbar) {
             ForEach(Array(AppModel.Page.allCases.enumerated()), id: \.element) { index, page in
