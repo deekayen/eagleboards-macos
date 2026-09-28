@@ -3,8 +3,9 @@ import SwiftUI
 
 /// The youth table (SPEC.md P-6): every youth who signed in at this event, in
 /// sign-in order, edited in place. A changed cell is saved as it is left and
-/// stays off the Undo stack. The room is read-only: it changes only through
-/// the Event page's steps. Double-click a youth to see them on the Event page.
+/// stays off the Undo stack. The status and the room are read-only: they
+/// change only through the Event page's steps, which take and free a room
+/// and its members. Double-click a youth to see them on the Event page.
 ///
 /// A youth's birthdate and phone number are never shown here (D-7, D-8).
 struct YouthPage: View {
@@ -59,7 +60,7 @@ struct YouthPage: View {
                 TableColumn("Room", value: \Scout.room)
                     .width(min: 40, ideal: 50, max: 70)
                 TableColumn("Status", value: \Scout.statusRank) { youth in
-                    StatusChoice(youth: youth) { value in edit(youth) { $0.statusText = value } }
+                    StatusBadge(statusText: youth.statusText)
                 }
                 .width(min: 80, ideal: 100, max: 120)
             }

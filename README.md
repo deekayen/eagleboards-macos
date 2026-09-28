@@ -161,10 +161,10 @@ or click a value with ⌃⌄ beside it to choose from a menu. A change is saved
 when you press Return or leave the cell. It is not on **Edit › Undo**, which is
 for the Event page's steps; change the cell back instead. Who sits on a board
 and which room someone is in are never typed in: they change on the Event
-page. So is seating a board or starting its review: a Status cell offers only
-Waiting, Completed and Postponed, and a board that is seated or in review keeps
-its status until **Reset Board** or **Complete…**. There is no separate records
-window.
+page. Nor is a youth's status: it is read-only on every page, and changes only
+through the Event page's steps (**Seat Board**, **Start Review**, **Complete…**,
+**Postpone**, **Reset Board** and **Undo**), which take and free a room and its
+members. There is no separate records window.
 
 | Page | What it holds |
 | --- | --- |

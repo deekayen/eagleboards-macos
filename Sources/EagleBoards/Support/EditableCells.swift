@@ -100,7 +100,6 @@ enum RecordChoices {
     static let youthUnitTypes = UnitType.youthChoices.map { ($0.rawValue, $0.rawValue) }
     static let adultUnitTypes = UnitType.allCases.map { ($0.rawValue, $0.rawValue) }
     static let boardTypes = BoardType.allCases.map { ($0.rawValue, $0.label) }
-    static let statuses = BoardStatus.recordsChoices.map { ($0.rawValue, $0.label) }
     static let results = [("", "None")] + BoardResult.allCases.map { ($0.rawValue, $0.label) }
     static let roles = BoardRole.allCases.map { role in
         (role.rawValue, role == .unavailable ? "No Thanks" : role.rawValue)

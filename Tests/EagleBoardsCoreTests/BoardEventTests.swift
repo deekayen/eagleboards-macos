@@ -620,15 +620,12 @@ struct BoardEventTests {
         #expect(busyAdults == 0)
     }
 
-    // Java section 18. Corrections made on the Results and Youth pages, whose
-    // Status and Result menus offer BoardStatus.recordsChoices and
-    // BoardResult.allCases. The pages show the chair and members read-only
-    // (SPEC.md P-6); the record's move with the result is checked here as
-    // Java's admin page makes it.
+    // Java section 18. A result corrected on the Results page, whose Result
+    // menu offers BoardResult.allCases. The pages show the status, chair and
+    // members read-only (SPEC.md P-6); moving a result to the right youth,
+    // with its board, is checked here on the record, as the data files and
+    // /youth-update still take it.
     @Test func aResultCorrectedOnTheResultsPage() throws {
-        #expect(BoardStatus.recordsChoices.contains(.registered), "Registered is offered, to undo a result on the wrong youth")
-        #expect(Set(BoardStatus.recordsChoices.map(\.label)).count == BoardStatus.recordsChoices.count,
-                "no two choices read alike: legacy Verified, which also reads Waiting, is not offered")
         #expect(BoardResult.allCases.map(\.rawValue) == ["Approved", "Adjourned", "NotApproved"],
                 "results are exactly the board's three decisions; Postponed is a status, not a result")
 
@@ -686,7 +683,6 @@ struct BoardEventTests {
     // seated, started, reset and completed only through the Event page's
     // steps, which give it a room and members and take them back.
     @Test func aTableCannotSeatStartOrEndABoard() throws {
-        #expect(BoardStatus.recordsChoices == [.registered, .completed, .postponed])
         refused("a waiting youth is not seated from a table") { try editYouth(finalYouth(1)) { $0.status = .seated } }
         refused("nor put in review") { try editYouth(finalYouth(1)) { $0.status = .inProgress } }
         #expect(status(finalYouth(1)) == .registered && night.scout(id: finalYouth(1))?.room == "")

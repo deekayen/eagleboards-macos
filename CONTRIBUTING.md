@@ -123,10 +123,10 @@ below. Run things locally to debug what CI found, or to iterate.
    can be timed apart: seating convenes the board with the paperwork while the
    youth waits (GTA 8.0.3.0 #8), and Start Review brings them in. Only an
    InProgress board can be completed. Seated and InProgress are reached only
-   through those steps, which give the youth a room and members: a table's
-   Status menu offers Waiting, Completed and Postponed, and
-   `EventNight.updateYouth` refuses to set a sitting status or to change a
-   board that holds a room (Reset Board and Complete free it). `Verified`
+   through those steps, which give the youth a room and members: the pages
+   show the status read-only, and `EventNight.updateYouth` refuses to set a
+   sitting status or to change a board that holds a room (Reset Board and
+   Complete free it). `Verified`
    survives on legacy records only; nothing sets it.
 8. **Names say what things are for.** No `var1`-style names anywhere. CI
    greps for `var` followed by digits and fails.

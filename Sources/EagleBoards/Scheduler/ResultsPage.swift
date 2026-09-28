@@ -4,8 +4,9 @@ import SwiftUI
 /// The boards table (SPEC.md P-6): every youth who has been seated or
 /// postponed, and how their board went. A result, its notes, a name or a unit
 /// is corrected in place; a changed cell is saved as it is left and stays off
-/// the Undo stack. Who sat on the board and the room are read-only: they
-/// change only through the Event page's steps. File › Export Board Results
+/// the Undo stack. The status, who sat on the board and the room are
+/// read-only: they change only through the Event page's steps, which take
+/// and free a room and its members. File › Export Board Results
 /// saves the report. Double-click a board to see it on the Event page.
 ///
 /// A youth's birthdate and phone number are never shown here (D-7, D-8).
@@ -53,7 +54,7 @@ struct ResultsPage: View {
                 }
                 .width(min: 50, ideal: 70, max: 90)
                 TableColumn("Status", value: \Scout.statusRank) { youth in
-                    StatusChoice(youth: youth) { value in edit(youth) { $0.statusText = value } }
+                    StatusBadge(statusText: youth.statusText)
                 }
                 .width(min: 80, ideal: 100, max: 120)
                 TableColumn("Room", value: \Scout.room)
@@ -114,27 +115,5 @@ struct ResultsPage: View {
         return [youth.fullName, youth.unitName, youth.unitLabel, youth.leader, youth.room, youth.regNum,
                 youth.boardChair, youth.boardMembers, result, youth.notes]
             .contains { $0.localizedCaseInsensitiveContains(query) }
-    }
-}
-
-/// A youth's status pill (SPEC.md D-13), and a menu to correct it: Waiting,
-/// Completed or Postponed. A board is seated and started only on the Event
-/// page, where it gets its room and members, so a sitting board's status is
-/// read-only here until Reset Board or Complete (P-6).
-struct StatusChoice: View {
-    let youth: Scout
-    let save: (String) -> Bool
-
-    var body: some View {
-        if youth.status?.holdsRoom == true {
-            StatusBadge(statusText: youth.statusText)
-                .help(youth.room.isEmpty
-                    ? "Marked \(youth.statusLabel) without a room. Board › Reset Board puts them back in the queue."
-                    : "On the board in room \(youth.room). Reset or complete it on the Event page.")
-        } else {
-            EditableChoice(value: youth.statusText, choices: RecordChoices.statuses, name: "Status", save: save) {
-                StatusBadge(statusText: youth.statusText)
-            }
-        }
     }
 }

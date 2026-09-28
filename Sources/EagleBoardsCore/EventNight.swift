@@ -792,11 +792,13 @@ public final class EventNight {
     /// Replace a youth record as edited on the Results, Youth or
     /// Pre-Registered page.
     ///
-    /// A status is corrected here, but a board is seated, started, reset and
-    /// completed only through its steps, which give the youth a room and
-    /// members and take them back (SPEC.md P-6). So a status is never set to
-    /// Seated or In review here, and a board that is sitting keeps its status
-    /// until Reset or Complete.
+    /// The pages show a youth's status read-only: it changes through the Event
+    /// page's steps, which give the youth a room and members and take them
+    /// back (SPEC.md P-6). A record can still be set back to Registered, or to
+    /// Completed or Postponed, to move a result recorded against the wrong
+    /// youth (Java event test section 18), but never to Seated or In review,
+    /// and a board that is sitting keeps its status until Reset or Complete
+    /// (section 25).
     public func updateYouth(_ edited: Scout, scheduled: Bool = false) throws {
         var record = edited
         record.refreshDerivedFields()

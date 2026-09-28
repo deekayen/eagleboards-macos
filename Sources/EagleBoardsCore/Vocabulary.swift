@@ -58,14 +58,6 @@ public enum BoardStatus: String, CaseIterable, Sendable {
         case .postponed: "Postponed"
         }
     }
-
-    /// The statuses a table's Status menu offers (SPEC.md P-6): Waiting,
-    /// Completed and Postponed, to correct a status. Not Seated or In review:
-    /// a board gets there only through the Event page's steps, which give it
-    /// a room and its members (`EventNight.updateYouth` refuses them). Not
-    /// Verified: nothing sets it, and it reads Waiting like Registered. A
-    /// legacy Verified record still shows its badge.
-    public static let recordsChoices: [BoardStatus] = [.registered, .completed, .postponed]
 }
 
 /// The step that moves a youth's board along from where it is: the one

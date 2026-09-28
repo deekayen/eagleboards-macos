@@ -25,10 +25,9 @@ Pre-Registered, Adult History CSV and Rooms (Option-Command-1 to 7), and a value
 changed where it is shown: click a name, unit or note to type in it, or a value
 with a small chevron to choose from a menu. A changed cell is saved as it is
 left and stays off the Undo stack. Who sits on a board and which room anyone is
-in stay read-only: they change through the Event page's steps. A Status cell
-offers Waiting, Completed and Postponed, never Seated or In review, and a board
-that is sitting keeps its status until Reset Board or Complete, so nobody is
-seated without a room and members. A cell still open when the page is left is
+in stay read-only: they change through the Event page's steps. So does a
+youth's status, read-only on every page, so nobody is left seated without a
+room and members, or finished while holding one. A cell still open when the page is left is
 saved. **Results** is the boards, where a result or its notes is corrected.
 **Adults** is tonight's adults, where someone is promoted to Chair and Wood
 Badge is a Yes/No choice showing the mark; a change to an adult's name, unit,
