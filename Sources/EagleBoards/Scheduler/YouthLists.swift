@@ -208,6 +208,8 @@ struct YouthActionButtons: View {
         Divider()
         Button("Suggest a Board") { run { model.suggestBoard() } }
             .disabled(status?.isWaitingForBoard != true)
+        Button("Fill the Rest") { run { model.fillDraft() } }
+            .disabled(status?.isWaitingForBoard != true)
         Button("Clear Board") { run { model.clearDraft() } }
             .disabled(status?.isWaitingForBoard != true)
         Divider()

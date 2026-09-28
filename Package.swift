@@ -45,7 +45,12 @@ let package = Package(
         ),
         .testTarget(
             name: "EagleBoardsCoreTests",
-            dependencies: ["EagleBoardsCore"]
+            dependencies: ["EagleBoardsCore"],
+            resources: [
+                // The rule and auto-select cases all three versions share
+                // (SPEC.md D-5), pinned by test-cases.lock.
+                .copy("Resources/cases")
+            ]
         ),
         .testTarget(
             name: "CheckInServerTests",

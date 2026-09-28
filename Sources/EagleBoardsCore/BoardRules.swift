@@ -272,8 +272,9 @@ public struct ChangeMembersReview: Sendable {
 ///
 /// With no full board to be had it proposes what it can, in the same
 /// preference order, and says what is short. The same algorithm, with the
-/// same test cases, is `proposeBoard` in the Java version's process_seat.js
-/// and `SchedulerLogic.AutoSelect` in the Windows version.
+/// same test cases (SPEC.md D-5, `SharedCaseTests`), is `proposeBoard` in
+/// the Java version's process_seat.js and `SchedulerLogic.AutoSelect` in the
+/// Windows version.
 public struct BoardSuggestion: Sendable, Equatable {
     public var chairID: String?
     /// The whole board, chair first.
@@ -360,6 +361,28 @@ public struct BoardSuggestion: Sendable, Equatable {
         return since
     }
 
+    /// Every free adult, best first for a seat: fewest chair qualifications,
+    /// then those who could sit for the fewest `waiting` youth, then those
+    /// who came for any board, then the longest since they were last free,
+    /// then sign-in order. Each keeps the keys it was ranked on, since the
+    /// suggestion scores whole boards with them.
+    private static func rankFreeAdults(_ adults: [Adult], waiting: [Scout], freeSince: [String: String]) -> [Candidate] {
+        adults.enumerated()
+            .filter { $0.element.isAvailable }
+            .map { order, adult in
+                Candidate(
+                    adult: adult,
+                    chairs: BoardType.allCases.filter { adult.role(for: $0) == .chair }.count,
+                    useful: waiting.filter { canSit(adult, for: $0) }.count,
+                    since: freeSince[adult.id] ?? "",
+                    order: order)
+            }
+            .sorted {
+                ($0.chairs, $0.useful, $0.adult.cameForAnyBoard ? 0 : 1, $0.since, $0.order)
+                    < ($1.chairs, $1.useful, $1.adult.cameForAnyBoard ? 0 : 1, $1.since, $1.order)
+            }
+    }
+
     /// Choose from `adults` (in sign-in order), skipping anyone on a board,
     /// disabled for tonight, Unavailable, or from the youth's own unit.
     /// `freeSince` is from `freeSinceTimes`; an adult missing from it sorts first.
@@ -371,20 +394,7 @@ public struct BoardSuggestion: Sendable, Equatable {
         let label = boardType.label
         let need = Self.membersBesideChair(boardType)
 
-        let pool = adults.enumerated()
-            .filter { $0.element.isAvailable }
-            .map { order, adult in
-                Candidate(
-                    adult: adult,
-                    chairs: BoardType.allCases.filter { adult.role(for: $0) == .chair }.count,
-                    useful: waiting.filter { Self.canSit(adult, for: $0) }.count,
-                    since: freeSince[adult.id] ?? "",
-                    order: order)
-            }
-            .sorted {
-                ($0.chairs, $0.useful, $0.adult.cameForAnyBoard ? 0 : 1, $0.since, $0.order)
-                    < ($1.chairs, $1.useful, $1.adult.cameForAnyBoard ? 0 : 1, $1.since, $1.order)
-            }
+        let pool = Self.rankFreeAdults(adults, waiting: waiting, freeSince: freeSince)
         let chairs = pool.filter { Self.canChair($0.adult, for: scout) }
         let sitters = pool.filter { Self.canSit($0.adult, for: scout) }
 
@@ -442,6 +452,53 @@ public struct BoardSuggestion: Sendable, Equatable {
         if roomID == nil {
             problems.append("No \(label) rooms are free.")
         }
+    }
+
+    /// What Fill the Rest adds to a board (SPEC.md D-12).
+    public struct Fill: Sendable, Equatable {
+        /// The chair added, or nil when one of the picks may chair this kind
+        /// of board, or no one free may.
+        public var chairID: String?
+        /// The members added beside the chair, best first. Never a pick.
+        public var memberIDs: [String] = []
+        public var problems: [String] = []
+    }
+
+    /// Fill the Rest (SPEC.md D-12): keep the adults the operator chose and
+    /// complete the board around them -- a chair if none of `picked` may chair
+    /// this kind of board, then members up to the working size, in the
+    /// suggestion's order of preference. Unlike the suggestion it does not
+    /// weigh whole boards: the operator has already decided who the board is
+    /// built around. With no chair to add, the chair's seat counts as a
+    /// member's, so it asks for one more member than it would beside a chair.
+    /// The same as `fillBoard` in the Java version's process_seat.js and
+    /// `SchedulerLogic.FillBoard` in the Windows version.
+    public static func fill(
+        for scout: Scout, adults: [Adult], picked: [Adult.ID], waiting: [Scout] = [], freeSince: [String: String] = [:]
+    ) -> Fill {
+        var fill = Fill()
+        guard let boardType = scout.boardType else {
+            fill.problems.append("\(scout.fullName) has no board type.")
+            return fill
+        }
+        let label = boardType.label
+        let pool = rankFreeAdults(adults, waiting: waiting, freeSince: freeSince).filter { !picked.contains($0.adult.id) }
+
+        if !adults.contains(where: { picked.contains($0.id) && $0.role(for: boardType) == .chair }) {
+            fill.chairID = pool.first { canChair($0.adult, for: scout) }?.adult.id
+            if fill.chairID == nil {
+                fill.problems.append("No \(label) chairs are available.")
+            }
+        }
+
+        let wanted = max(0, BoardRules.minimumMembers(for: boardType) - picked.count - (fill.chairID == nil ? 0 : 1))
+        fill.memberIDs = pool.filter { $0.adult.id != fill.chairID && canSit($0.adult, for: scout) }
+            .prefix(wanted).map(\.adult.id)
+        if fill.memberIDs.count < wanted {
+            let count = fill.memberIDs.count
+            fill.problems.append("Only \(count) \(label) member\(count == 1 ? " is" : "s are") available.")
+        }
+        return fill
     }
 }
 

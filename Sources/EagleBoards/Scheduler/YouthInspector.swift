@@ -123,16 +123,20 @@ private struct DraftBoardSections: View {
                 HStack {
                     Button("Suggest a Board") { model.suggestBoard() }
                         .help("Replace this board with a proposed chair, members and room")
+                    Button("Fill the Rest") { model.fillDraft() }
+                        .help("Keep the members you've chosen and add a chair and members to complete the board")
                     Button("Clear") { model.clearDraft() }
                         .disabled(members.isEmpty)
+                }
+                HStack {
+                    Button("Postpone", role: .destructive) { model.postpone() }
+                        .buttonStyle(.link)
+                        .help("Put this board off to another event, for example when the paperwork is not ready")
                     Spacer()
                     Button(BoardStep.seat.title) { model.beginSeating() }
                         .buttonStyle(.borderedProminent)
                         .disabled(members.isEmpty || model.sheet != nil)
                 }
-                Button("Postpone", role: .destructive) { model.postpone() }
-                    .buttonStyle(.link)
-                    .help("Put this board off to another event, for example when the paperwork is not ready")
             }
 
             FreeAdultsSection(youth: youth, night: night, boardType: boardType, draftIDs: Set(draft.memberIDs))

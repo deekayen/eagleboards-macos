@@ -339,6 +339,22 @@ final class AppModel {
         drafts[youth.id] = proposedBoard(for: youth, in: night)
     }
 
+    /// Fill the Rest (SPEC.md D-12): keep who the operator put on the board
+    /// and add a chair, if none of them may chair it, and members up to the
+    /// working size, chosen as a suggestion would choose them.
+    func fillDraft() {
+        guard let night, let youth = selectedYouth, youth.status?.isWaitingForBoard == true,
+              let draft = drafts[youth.id] else { return }
+        let fill = BoardSuggestion.fill(
+            for: youth, adults: night.adults, picked: draft.memberIDs,
+            waiting: waitingBehind(youth, in: night),
+            freeSince: BoardSuggestion.freeSinceTimes(adults: night.adults, scouts: night.scouts))
+        drafts[youth.id]?.memberIDs = (fill.chairID.map { [$0] } ?? []) + draft.memberIDs + fill.memberIDs
+        drafts[youth.id]?.roomID = draft.roomID ?? night.rooms.first { $0.isFree && $0.boardType == youth.boardType }?.id
+        drafts[youth.id]?.problems = fill.problems
+        drafts[youth.id]?.isEdited = true
+    }
+
     /// Empty the board, keeping its room.
     func clearDraft() {
         guard let id = selectedYouthID, drafts[id] != nil else { return }
@@ -347,20 +363,23 @@ final class AppModel {
         drafts[id]?.isEdited = true
     }
 
+    /// The other waiting youth in queue order (pre-registered first), so a
+    /// proposal keeps chairs and adults free for the boards to come.
+    private func waitingBehind(_ youth: Scout, in night: EventNight) -> [Scout] {
+        night.scouts
+            .filter { $0.id != youth.id && $0.status?.isWaitingForBoard == true }
+            .sorted { $0.queueOrder < $1.queueOrder }
+    }
+
     private func proposedBoard(for youth: Scout, in night: EventNight, whole: Bool? = nil) -> BoardDraft {
         guard whole ?? proposeBoards else {
             // Picking by hand: no one yet, but a free room of the right kind.
             let roomID = night.rooms.first { $0.isFree && $0.boardType == youth.boardType }?.id
             return BoardDraft(roomID: roomID, memberIDs: [], problems: [])
         }
-        // The other waiting youth in queue order (pre-registered first), so
-        // the proposal keeps chairs and adults free for the boards to come.
-        let waiting = night.scouts
-            .filter { $0.id != youth.id && $0.status?.isWaitingForBoard == true }
-            .sorted { $0.queueOrder < $1.queueOrder }
         let freeSince = BoardSuggestion.freeSinceTimes(adults: night.adults, scouts: night.scouts)
         let suggestion = BoardSuggestion(
-            for: youth, adults: night.adults, rooms: night.rooms, waiting: waiting, freeSince: freeSince)
+            for: youth, adults: night.adults, rooms: night.rooms, waiting: waitingBehind(youth, in: night), freeSince: freeSince)
         return BoardDraft(roomID: suggestion.roomID, memberIDs: suggestion.memberIDs, problems: suggestion.problems)
     }
 

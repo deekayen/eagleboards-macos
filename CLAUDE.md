@@ -65,8 +65,19 @@ a native window. See `PROVENANCE.md`.
   Anything saved outside the data folder goes through `Scout.forExport`,
   which blanks `Scout.withheldColumns`. Adults keep their numbers everywhere.
 - **Board suggestions** (`BoardSuggestion`) weigh the whole waiting line;
-  the same algorithm and test cases are in the Java (`proposeBoard`) and
-  Windows (`SchedulerLogic.AutoSelect`) versions. Change all three together.
+  the same algorithm is in the Java (`proposeBoard`) and Windows
+  (`SchedulerLogic.AutoSelect`) versions. Change all three together.
+  **Fill the Rest** (`BoardSuggestion.fill`, SPEC.md D-12) keeps the
+  operator's picks and adds a chair and members around them, as Java's
+  `fillBoard` and Windows' `SchedulerLogic.FillBoard` do.
+- **The rule and auto-select cases are shared** (SPEC.md D-5): the files in
+  `Tests/EagleBoardsCoreTests/Resources/cases/` are copies of
+  `eagleboards-shared/cases`, pinned by `test-cases.lock`, and
+  `SharedCaseTests` runs every one through `BoardRules` and
+  `BoardSuggestion`. **Never add or edit a case here**; CI fails if the
+  copies differ from the pinned commit. Add it in the shared repo, copy the
+  `*.json` here and update the lock. `BoardRulesTests` keeps only what the
+  Mac alone has (seating review, the suggestion's room, locate, timers).
   Just above that, volunteers who came for any board (`Adult.cameForAnyBoard`:
   not linked to a youth, or Wood Badge) go before a youth's own leaders.
   The last tie-break is who has waited longest to volunteer since last free

@@ -4,6 +4,12 @@ Versions are CalVer: the release date.
 
 ## Unreleased
 
+**Fill the Rest** (SPEC.md D-12), beside Suggest a Board in the inspector and
+in the Board menu: keeps the adults you put on the board and adds a chair, if
+none of them may chair it, and members up to the number needed, chosen as a
+suggestion would choose them. Suggest a Board still replaces the whole board.
+Seat Board… moves to the inspector's bottom row, beside Postpone.
+
 **Every youth in one list** (SPEC.md O-3, amended). The Event page lists the
 youth stacked Waiting, On a Board and Finished, each with its count, beside the
 room cards, instead of a sidebar entry per group that had to be picked before a

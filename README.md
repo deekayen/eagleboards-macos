@@ -111,8 +111,10 @@ Change the board in the inspector: click an adult in the free list below it
 to add them (**Find an adult** narrows the list), and **−** takes one off. In
 the **Adults** page you can also Command-click several adults and choose
 **Adult › Add to Board** (**⌘B**), or drag them onto the board. A board you
-have changed is kept while you look at other youth; **Suggest a Board**
-replaces it with a proposal.
+have changed is kept while you look at other youth. **Fill the Rest** keeps
+who you chose and adds a chair, if none of them can chair it, and members up to
+the number needed; **Suggest a Board** replaces the whole board with a
+proposal.
 
 To pick every board yourself, set **Settings › General › When you select a
 waiting youth** to **Start with an empty board**. Selecting a youth then picks
