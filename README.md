@@ -12,8 +12,14 @@ This is the native Mac version of the Java
 [Eagle Board Scheduler](https://github.com/deekayen/eagleboards-java). It reads and
 writes the same data files, so a district can switch between them.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/event-dark.png">
+  <img src="docs/images/event.png" alt="The Event page mid-event: the youth list with three waiting and four on a board; room cards with Arthur Eldred's final board in room 101 overdue at 49 minutes (an alarm clock on a pink-red fill) and Rob Corddry's proposal review in 200A running long at 28 minutes (a timer clock on an orange tint), each board's members one per line; and the inspector showing Arthur Eldred's board, chaired by Neil Armstrong, ready to complete">
+</picture>
+
 **Running an event? This page is the whole manual.** The same guide is
-in the app under **Help › Eagle Boards Help**.
+in the app under **Help › Eagle Boards Help**. The pictures use a made-up
+event whose cast is famous Eagle Scouts; nothing in them is real.
 
 ## Before the first event
 
@@ -128,6 +134,8 @@ Choose the chair and press **Seat Board**.
 
 The members now have the room and the paperwork. The youth waits outside.
 
+![Selecting Bill Amend, who has waited 53 minutes, proposes Guion Bluford as chair with Steve Fossett in room 200B, each with the Wood Badge mark after their name; the Seat Board sheet confirms it, and room 200B's card shows the board convening](docs/images/seat-board.gif)
+
 ### 4. Start the review
 
 When the members have finished reading, select the youth and press **Start
@@ -144,6 +152,8 @@ timer keeps running; it does not restart.
 
 When the board has finished, press **Complete…** (**⌘↩**), choose the result,
 and add any notes. The room and the members are free for the next board.
+
+![Completing Arthur Eldred's overdue board: the Complete sheet records Approved with a note, then Arthur Eldred is listed under Finished and room 101 is free again](docs/images/complete-board.gif)
 
 ## Rules the scheduler keeps
 
