@@ -25,9 +25,9 @@ struct HelpView: View {
                 }
 
                 section("Seat a board") {
-                    step("The sidebar lists the youth Waiting, On Boards and Finished, and the Adults. The room cards sit beside whichever list you choose, so every room and its timer stay in view. The inspector on the right follows the selected youth; View › Show Inspector brings it back if it is hidden.")
+                    step("The sidebar has three pages. Event lists every youth in one column -- Waiting, On a Board, then Finished, each with its count -- with the room cards beside it, so every room and its timer stay in view. Search looks through all three. Results lists every board and its result; double-click one to see it on the Event page. People lists the adults. The inspector on the right follows the selected youth on every page; View › Show Inspector brings it back if it is hidden.")
                     step("Select a waiting youth. The inspector proposes a board: a chair, enough members, and a free room of the right kind. It never picks adults from the youth's own unit. It picks with the whole waiting line in mind: it keeps adults who can chair free for the boards still to come, and uses adults whose troop rules them out for youth still waiting. If there aren't enough adults to do that it still proposes the best board it can.")
-                    step("Change who sits on the board in the inspector: click someone in the free adults listed below the board to add them (type in Find an adult to narrow the list), and − takes them off. In the Adults list you can also Command-click several adults and choose Adult › Add to Board (Command-B), or drag them onto the board. A board you have changed is kept while you look at other youth; Suggest a Board replaces it with a proposal.")
+                    step("Change who sits on the board in the inspector: click someone in the free adults listed below the board to add them (type in Find an adult to narrow the list), and − takes them off. On the People page you can also Command-click several adults and choose Adult › Add to Board (Command-B), or drag them onto the board. A board you have changed is kept while you look at other youth; Suggest a Board replaces it with a proposal.")
                     step("To choose every board yourself, set Settings › General › When you select a waiting youth to Start with an empty board. Selecting a youth then picks only a free room.")
                     step("Press Seat Board… in the inspector or the toolbar, press Command-Return, or double-click the youth. You can also drag a waiting youth onto a free room's card. The sheet lists anything that stops the board -- too few or too many members, no qualified chair, someone already on another board -- and anything worth a second look, each of which needs its own tick.")
                     step("Choose the chair. Only members whose role for this kind of board is Chair are offered. If none is free, promote someone in the Records window by changing their role.")
@@ -65,7 +65,7 @@ struct HelpView: View {
                     bullet("Board › Reset Board undoes seating: the youth waits again and the room and members are freed.")
                     bullet("Adult › Disable for Today takes adults out of the pool, for example when they have gone home. Enable for Today brings them back.")
                     bullet("Room › Move Board to Another Room… moves a board, or swaps two boards.")
-                    bullet("View › Waiting, On Boards, Finished and Adults (Option-Command-1 to 4) choose the list shown beside the rooms.")
+                    bullet("View › Event, Results and People (Option-Command-1 to 3) choose the page.")
                     bullet("File › Export Board Results saves the event as a spreadsheet.")
                 }
 

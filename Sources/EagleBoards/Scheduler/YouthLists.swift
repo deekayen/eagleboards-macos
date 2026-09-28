@@ -1,27 +1,26 @@
 import EagleBoardsCore
 import SwiftUI
 
-/// The youth the sidebar has chosen: waiting, on boards, or finished. Each
-/// list is its own table, since a table's columns cannot change on macOS 14.
+/// Every youth, in one list stacked by status (SPEC.md O-3): Waiting in
+/// sign-in order, On a Board by room, Finished with the most recent first,
+/// each headed with its count. Nothing is chosen to see a group, and the
+/// search looks through all three.
 ///
 /// Double-click or Return takes the next step. A waiting youth can be dragged
 /// onto a free room to seat their board there.
 struct YouthList: View {
     @Environment(AppModel.self) private var model
     let night: EventNight
-    let section: AppModel.Section
 
     var body: some View {
-        let rows = night.scouts.filter { section.lists($0) && matches(model.searchText, $0) }
+        let found = night.scouts.filter { matches(model.searchText, $0) }
         let selection = Binding(get: { model.selectedYouthID }, set: { model.selectYouth($0) })
 
         TimelineView(.periodic(from: .now, by: 20)) { timeline in
-            Group {
-                switch section {
-                case .onBoards: OnBoardsTable(night: night, rows: rows, now: timeline.date, selection: selection)
-                case .finished: FinishedTable(night: night, rows: rows, selection: selection)
-                default: WaitingTable(night: night, rows: rows, now: timeline.date, selection: selection)
-                }
+            List(selection: selection) {
+                section(.waiting, of: found, now: timeline.date)
+                section(.onBoard, of: found, now: timeline.date)
+                section(.finished, of: found, now: timeline.date)
             }
         }
         .contextMenu(forSelectionType: Scout.ID.self) { ids in
@@ -34,28 +33,38 @@ struct YouthList: View {
             model.performNextStep()
         }
         .overlay {
-            if rows.isEmpty {
-                if model.searchText.isEmpty {
-                    emptyState
-                } else {
-                    ContentUnavailableView.search(text: model.searchText)
-                }
+            if night.scouts.isEmpty {
+                ContentUnavailableView("No Youth Yet", systemImage: "person.crop.circle.badge.clock",
+                                       description: Text("Youth appear here the moment they sign in at the tablet."))
+            } else if found.isEmpty {
+                ContentUnavailableView.search(text: model.searchText)
             }
         }
     }
 
     @ViewBuilder
-    private var emptyState: some View {
-        switch section {
-        case .onBoards:
-            ContentUnavailableView("No Boards Sitting", systemImage: "person.3",
-                                   description: Text("Seated boards and reviews in progress are listed here."))
-        case .finished:
-            ContentUnavailableView("Nothing Finished Yet", systemImage: "checkmark.circle",
-                                   description: Text("Completed and postponed boards are listed here."))
-        default:
-            ContentUnavailableView("No One Waiting", systemImage: "person.crop.circle.badge.clock",
-                                   description: Text("Youth appear here the moment they sign in at the tablet."))
+    private func section(_ group: QueueGroup, of found: [Scout], now: Date) -> some View {
+        let rows = group.sorted(found.filter(group.holds))
+        Section {
+            if rows.isEmpty {
+                Text(model.searchText.isEmpty ? group.emptyText : "No match")
+                    .foregroundStyle(.secondary)
+            }
+            // A list row is dragged through its item provider; .draggable on
+            // the row's view starts a drag no room card accepts.
+            ForEach(rows) { youth in
+                YouthRow(night: night, youth: youth, now: now)
+                    .itemProvider {
+                        group == .waiting ? NSItemProvider(object: DragPayload.youth(youth.id) as NSString) : nil
+                    }
+            }
+        } header: {
+            HStack {
+                Text(group.title)
+                Spacer()
+                Text("\(rows.count)").monospacedDigit()
+            }
+            .accessibilityElement(children: .combine)
         }
     }
 
@@ -67,125 +76,105 @@ struct YouthList: View {
     }
 }
 
-private struct WaitingTable: View {
-    let night: EventNight
-    let rows: [Scout]
-    let now: Date
-    let selection: Binding<Scout.ID?>
-    @State private var sortOrder = [KeyPathComparator(\Scout.queueOrder)]
+/// The list's three groups, in the order they are stacked.
+enum QueueGroup {
+    case waiting
+    case onBoard
+    case finished
 
-    var body: some View {
-        Table(of: Scout.self, selection: selection, sortOrder: $sortOrder) {
-            TableColumn("#", value: \.queueOrder) { youth in
-                Text(youth.regNum).help(youth.regNumHelp)
-            }
-            .width(min: 30, ideal: 36, max: 50)
-            TableColumn("Waiting", value: \.minutesSortKey) { youth in
-                Text(youth.minutesSinceLastUpdate(now: now).map { "\($0) min" } ?? "")
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-            }
-            .width(min: 50, ideal: 60, max: 80)
-            TableColumn("Last", value: \.last)
-            TableColumn("First", value: \.first)
-            TableColumn("Unit", value: \.unitName) { youth in
-                Text(youth.unitLabel).help(youth.unitName)
-            }
-            .width(min: 44, ideal: 60, max: 90)
-            TableColumn("Board", value: \.boardTypeText) { youth in
-                BoardTypeText(youth: youth)
-            }
-            .width(min: 50, ideal: 64, max: 90)
-            TableColumn("Leader", value: \.leader)
-        } rows: {
-            ForEach(rows.sorted(using: sortOrder)) { youth in
-                TableRow(youth).draggable(DragPayload.youth(youth.id))
-            }
+    var title: String {
+        switch self {
+        case .waiting: "Waiting"
+        case .onBoard: "On a Board"
+        case .finished: "Finished"
+        }
+    }
+
+    var emptyText: String {
+        switch self {
+        case .waiting: "No one waiting"
+        case .onBoard: "No boards sitting"
+        case .finished: "Nothing finished yet"
+        }
+    }
+
+    func holds(_ youth: Scout) -> Bool {
+        switch self {
+        case .waiting: youth.status?.isWaitingForBoard ?? true
+        case .onBoard: youth.status == .seated || youth.status == .inProgress
+        case .finished: youth.status?.isFinished ?? false
+        }
+    }
+
+    /// Waiting in sign-in order, a board by its room, finished the most
+    /// recent first.
+    func sorted(_ rows: [Scout]) -> [Scout] {
+        switch self {
+        case .waiting: rows.sorted { $0.queueOrder < $1.queueOrder }
+        case .onBoard: rows.sorted { $0.room.localizedStandardCompare($1.room) == .orderedAscending }
+        case .finished: rows.sorted { $0.minutesSortKey < $1.minutesSortKey }
         }
     }
 }
 
-private struct OnBoardsTable: View {
+/// One youth: their name, then sign-in number, unit, and board type or room;
+/// on the right, how long they have waited, or the board's status and timer,
+/// or how it ended.
+private struct YouthRow: View {
     let night: EventNight
-    let rows: [Scout]
+    let youth: Scout
     let now: Date
-    let selection: Binding<Scout.ID?>
-    @State private var sortOrder = [KeyPathComparator(\Scout.room)]
 
     var body: some View {
-        Table(of: Scout.self, selection: selection, sortOrder: $sortOrder) {
-            TableColumn("Room", value: \.room)
-                .width(min: 40, ideal: 50, max: 70)
-            TableColumn("Time", value: \.minutesSortKey) { youth in
-                if let minutes = youth.minutesSinceLastUpdate(now: now),
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(youth.fullName)
+                    .fontWeight(.medium)
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .help(youth.regNumHelp)
+            }
+            Spacer(minLength: 0)
+            trailing
+        }
+        .padding(.vertical, 2)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var detail: String {
+        var parts = [youth.regNum, youth.unitLabel]
+        if youth.status == .seated || youth.status == .inProgress {
+            parts.append("Room \(youth.room)")
+        } else {
+            parts.append(youth.boardType == .projectReview ? "Project" : youth.boardTypeText)
+        }
+        if youth.status == .completed, let result = BoardResult(rawValue: youth.result) {
+            parts.append(result.label)
+        }
+        return parts.filter { !$0.isEmpty }.joined(separator: " · ")
+    }
+
+    @ViewBuilder
+    private var trailing: some View {
+        let minutes = youth.minutesSinceLastUpdate(now: now)
+        if youth.status?.isWaitingForBoard ?? true {
+            if let minutes {
+                Text("\(minutes) min")
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                    .help("Waiting \(minutes) minutes")
+            }
+        } else if youth.status?.isFinished == true {
+            StatusBadge(statusText: youth.statusText)
+        } else {
+            HStack(spacing: 6) {
+                StatusBadge(statusText: youth.statusText)
+                if let minutes,
                    let state = RoomTimer.state(status: youth.status, boardType: youth.boardType, minutes: minutes, config: night.config) {
                     TimerBadge(minutes: minutes, state: state)
                 }
             }
-            .width(min: 50, ideal: 60, max: 80)
-            TableColumn("Status", value: \.statusRank) { youth in
-                StatusBadge(statusText: youth.statusText)
-            }
-            .width(min: 70, ideal: 90, max: 110)
-            TableColumn("Last", value: \.last)
-            TableColumn("First", value: \.first)
-            TableColumn("Unit", value: \.unitName) { youth in
-                Text(youth.unitLabel).help(youth.unitName)
-            }
-            .width(min: 44, ideal: 60, max: 90)
-            TableColumn("Board", value: \.boardTypeText) { youth in
-                BoardTypeText(youth: youth)
-            }
-            .width(min: 50, ideal: 64, max: 90)
-            TableColumn("Chair", value: \.boardChair)
-            TableColumn("Members", value: \.boardMembers) { youth in
-                Text(youth.boardMembers.withListSeparators).help(youth.boardMembers.withListSeparators)
-            }
-        } rows: {
-            ForEach(rows.sorted(using: sortOrder)) { TableRow($0) }
-        }
-    }
-}
-
-private struct FinishedTable: View {
-    let night: EventNight
-    let rows: [Scout]
-    let selection: Binding<Scout.ID?>
-    @State private var sortOrder = [KeyPathComparator(\Scout.queueOrder)]
-
-    var body: some View {
-        Table(of: Scout.self, selection: selection, sortOrder: $sortOrder) {
-            TableColumn("#", value: \.queueOrder) { youth in
-                Text(youth.regNum).help(youth.regNumHelp)
-            }
-            .width(min: 30, ideal: 36, max: 50)
-            TableColumn("Last", value: \.last)
-            TableColumn("First", value: \.first)
-            TableColumn("Unit", value: \.unitName) { youth in
-                Text(youth.unitLabel).help(youth.unitName)
-            }
-            .width(min: 44, ideal: 60, max: 90)
-            TableColumn("Board", value: \.boardTypeText) { youth in
-                BoardTypeText(youth: youth)
-            }
-            .width(min: 50, ideal: 64, max: 90)
-            TableColumn("Status", value: \.statusRank) { youth in
-                StatusBadge(statusText: youth.statusText)
-            }
-            .width(min: 70, ideal: 90, max: 110)
-            TableColumn("Result", value: \.result) { youth in
-                Text(BoardResult(rawValue: youth.result)?.label ?? youth.result)
-            }
-            .width(min: 60, ideal: 90, max: 120)
-            TableColumn("Chair", value: \.boardChair)
-            TableColumn("Members", value: \.boardMembers) { youth in
-                Text(youth.boardMembers.withListSeparators).help(youth.boardMembers.withListSeparators)
-            }
-            TableColumn("Notes", value: \.notes) { youth in
-                Text(youth.notes.withCommasRestored).help(youth.notes.withCommasRestored)
-            }
-        } rows: {
-            ForEach(rows.sorted(using: sortOrder)) { TableRow($0) }
         }
     }
 }

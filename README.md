@@ -84,12 +84,15 @@ them and choose **Board › Postpone**. **Edit › Undo** brings them back.
 
 ### 3. Seat a board
 
-The window has three parts, all on screen at once: the sidebar, which
-chooses who the list shows (youth **Waiting**, **On Boards** or **Finished**,
-or the **Adults**); that list, with a card for every room beside it, so a
-room's timer is never out of sight; and the inspector on the right, which
-follows the selected youth. **View › Waiting**, **On Boards**, **Finished**
-and **Adults** (**⌥⌘1** to **⌥⌘4**) switch the list from the keyboard.
+The sidebar has three pages. **Event** is where you work: every youth in one
+list, stacked **Waiting** (in sign-in order), **On a Board** (by room) and
+**Finished** (the most recent first), each with its count, and a card for every
+room beside it, so a room's timer is never out of sight. The search looks
+through all three groups. **Results** lists every board and its result;
+double-click one to see it on the Event page. **People** lists the adults who
+signed in. The inspector on the right follows the selected youth on every
+page. **View › Event**, **Results** and **People** (**⌥⌘1** to **⌥⌘3**) switch
+pages from the keyboard.
 
 Select a waiting youth. Eagle Boards proposes a board in the inspector: a
 chair, enough members, and a free room of the right kind. It never picks adults
@@ -97,7 +100,7 @@ from the youth's own unit.
 
 Change the board in the inspector: click an adult in the free list below it
 to add them (**Find an adult** narrows the list), and **−** takes one off. In
-the **Adults** list you can also Command-click several adults and choose
+the **People** page you can also Command-click several adults and choose
 **Adult › Add to Board** (**⌘B**), or drag them onto the board. A board you
 have changed is kept while you look at other youth; **Suggest a Board**
 replaces it with a proposal.

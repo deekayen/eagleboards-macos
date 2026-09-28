@@ -1,11 +1,11 @@
 import EagleBoardsCore
 import SwiftUI
 
-/// The operator's screen for the evening (O-3: one live-operations view).
-/// The sidebar filters the queue -- youth waiting, on boards or finished, or
-/// the adults -- and the rooms sit beside it always, whichever filter is
-/// chosen. The inspector follows the selected youth: the board being drawn
-/// up for them, or how it went.
+/// The operator's screen for the evening. The sidebar chooses the page
+/// (SPEC.md P-6): Event, with every youth in one list beside the rooms, so a
+/// room's timer is never out of sight while working the queue (O-3);
+/// Results; or People. The inspector follows the selected youth on every
+/// page: the board being drawn up for them, or how it went.
 ///
 /// Nothing here polls. The event night is observed directly, so a youth who
 /// signs in at the door appears the moment the tablet's request lands.
@@ -87,41 +87,38 @@ struct SchedulerView: View {
             + night.scouts.map { "\($0.id)|\($0.statusText)|\($0.boardTypeText)" }
     }
 
-    /// The queue, filtered to the sidebar's choice, beside the rooms -- both
-    /// always on screen together (O-3), so a room's timer is never out of
-    /// sight while working the queue.
-    private var content: some View {
-        HSplitView {
-            queue
-                .frame(minWidth: 340, idealWidth: 520)
-            RoomsGrid(night: night)
-                .frame(minWidth: 280)
-        }
-    }
-
+    /// On the Event page, every youth beside the rooms -- both always on
+    /// screen together (O-3).
     @ViewBuilder
-    private var queue: some View {
-        switch model.section {
-        case .waiting, .onBoards, .finished:
-            YouthList(night: night, section: model.section)
-        case .adults:
+    private var content: some View {
+        switch model.page {
+        case .event:
+            HSplitView {
+                YouthList(night: night)
+                    .frame(minWidth: 280, idealWidth: 360)
+                RoomsGrid(night: night)
+                    .frame(minWidth: 280)
+            }
+        case .results:
+            ResultsList(night: night)
+        case .people:
             AdultList(night: night)
         }
     }
 
     private var title: String {
-        switch model.section {
-        case .waiting: "Waiting"
-        case .onBoards: "On Boards"
-        case .finished: "Finished"
-        case .adults: "Adults"
+        switch model.page {
+        case .event: "Event"
+        case .results: "Results"
+        case .people: "People"
         }
     }
 
     private var searchPrompt: String {
-        switch model.section {
-        case .adults: "Name, unit or room"
-        default: "Name, unit or leader"
+        switch model.page {
+        case .event: "Name, unit, leader or room"
+        case .results: "Name, unit, member or result"
+        case .people: "Name, unit or room"
         }
     }
 

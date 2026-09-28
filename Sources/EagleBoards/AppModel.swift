@@ -160,27 +160,16 @@ final class AppModel {
 
     // MARK: - The operator's work in progress
 
-    /// Which of the queue's filters the sidebar has chosen (O-3): the rooms
-    /// and the inspector are always visible beside it, not separate
-    /// destinations of their own.
-    enum Section: Hashable {
-        case waiting
-        case onBoards
-        case finished
-        case adults
-
-        /// Does this youth belong in this list?
-        func lists(_ youth: Scout) -> Bool {
-            switch self {
-            case .waiting: youth.status?.isWaitingForBoard ?? true
-            case .onBoards: youth.status == .seated || youth.status == .inProgress
-            case .finished: youth.status?.isFinished ?? false
-            case .adults: false
-            }
-        }
+    /// The main window's pages, chosen in the sidebar (SPEC.md P-6). Event
+    /// holds every youth, the rooms and the inspector together (O-3); Results
+    /// and People are lists of their own. The inspector stays beside each.
+    enum Page: Hashable {
+        case event
+        case results
+        case people
     }
 
-    var section: Section = .waiting
+    var page: Page = .event
     var searchText = ""
     var showsInspector = true
 
@@ -272,10 +261,18 @@ final class AppModel {
         drafts = [:]
     }
 
-    /// Filter the queue in the main window. The rooms and the inspector do
-    /// not change: they are always there beside it.
-    func show(_ newSection: Section) {
-        section = newSection
+    /// Change the main window's page. Each page searches its own list, so
+    /// the search starts empty.
+    func show(_ newPage: Page) {
+        guard newPage != page else { return }
+        page = newPage
+        searchText = ""
+    }
+
+    /// A board picked on Results, on the Event page beside its room.
+    func showOnEventPage(_ id: Scout.ID) {
+        show(.event)
+        selectYouth(id)
     }
 
     /// Selecting a waiting youth proposes a board, the way the Java scheduler

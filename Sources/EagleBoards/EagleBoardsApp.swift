@@ -106,10 +106,9 @@ struct EagleBoardsCommands: Commands {
         SidebarCommands()
         InspectorCommands()
         CommandGroup(before: .sidebar) {
-            sectionButton("Waiting", .waiting, "1")
-            sectionButton("On Boards", .onBoards, "2")
-            sectionButton("Finished", .finished, "3")
-            sectionButton("Adults", .adults, "4")
+            pageButton("Event", .event, "1")
+            pageButton("Results", .results, "2")
+            pageButton("People", .people, "3")
             Divider()
         }
         CommandMenu("Board") {
@@ -157,10 +156,10 @@ struct EagleBoardsCommands: Commands {
         return Array(nights.prefix(10))
     }
 
-    private func sectionButton(_ title: String, _ section: AppModel.Section, _ key: KeyEquivalent) -> some View {
+    private func pageButton(_ title: String, _ page: AppModel.Page, _ key: KeyEquivalent) -> some View {
         Button(title) {
             openWindow(id: WindowID.scheduler)
-            model.show(section)
+            model.show(page)
         }
         .keyboardShortcut(key, modifiers: [.command, .option])
         .disabled(model.night == nil)

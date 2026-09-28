@@ -4,6 +4,18 @@ Versions are CalVer: the release date.
 
 ## Unreleased
 
+**Every youth in one list** (SPEC.md O-3, amended). The Event page lists the
+youth stacked Waiting, On a Board and Finished, each with its count, beside the
+room cards, instead of a sidebar entry per group that had to be picked before a
+youth could be found. The search looks through all three groups. A waiting
+youth still drags onto a free room.
+
+**Event, Results and People** (P-6), as on Windows. The sidebar holds pages now.
+Results lists every board and its result, read-only; double-click one to see it
+on the Event page, and correct it in Records. People is the adults list that
+used to be a queue filter. View › Event, Results and People are Option-Command-1
+to 3.
+
 **One status palette, and a clock per timer state** (SPEC.md D-13). The
 status badges and room timers take the colors all three versions now share,
 from Monokai Pro's hues, checked for contrast and color blindness in light and
