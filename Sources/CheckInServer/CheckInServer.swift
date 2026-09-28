@@ -30,8 +30,8 @@ public enum CheckInServer {
             return try jsonResponse(lists)
         }
 
-        // The adult form's "I'm here supporting" list: RSVPs and tonight's
-        // walk-ins whose evening is not over. ID, name and unit only.
+        // The adult form's "I'm here supporting" list: RSVPs and the event's
+        // walk-ins not yet finished. ID, name and unit only.
         router.get("/api/scout-choices") { _, _ in
             let choices = await ScoutChoices(night: night)
             return try jsonResponse(choices.scouts)

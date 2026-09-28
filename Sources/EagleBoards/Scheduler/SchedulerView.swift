@@ -1,7 +1,7 @@
 import EagleBoardsCore
 import SwiftUI
 
-/// The operator's screen for the evening. The View menu chooses the page
+/// The operator's screen for the event. The View menu chooses the page
 /// (SPEC.md P-1, P-6): Event, with every youth in one list beside the rooms,
 /// so a room's timer is never out of sight while working the queue (O-3); or
 /// a page for one of the event's tables -- Results, Adults, Youth,

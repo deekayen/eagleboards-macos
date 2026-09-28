@@ -2,7 +2,7 @@
 // exactly as the Java Eagle Board Scheduler wrote it, so a data folder can be
 // opened by either program.
 
-/// Where a youth is in the evening. Stored in the `Status` column.
+/// Where a youth is in the event. Stored in the `Status` column.
 ///
 /// Registered -> Seated -> InProgress -> Completed, or Registered -> Postponed.
 /// Seating and starting are two steps on purpose: seating gives the board the

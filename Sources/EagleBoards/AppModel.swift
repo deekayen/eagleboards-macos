@@ -126,7 +126,7 @@ final class AppModel {
                 self?.serverState = .failed(Self.describe(serverError: error, port: requestedPort))
             }
         }
-        // A laptop that dozes off mid-evening takes the sign-in station with
+        // A laptop that dozes off mid-event takes the sign-in station with
         // it. Keep the Mac awake while serving; the display may still sleep.
         keepAwake = ProcessInfo.processInfo.beginActivity(
             options: [.idleSystemSleepDisabled, .userInitiated],

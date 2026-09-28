@@ -136,9 +136,9 @@ public final class EventNight {
     }
 
     /// The youth an adult may say at sign-in they came to support: everyone
-    /// who RSVP'd, plus tonight's walk-ins, leaving out anyone whose evening
-    /// is over (Completed or Postponed). Tonight's record wins over the RSVP
-    /// with the same ID; sorted by last name, then first.
+    /// who RSVP'd, plus the event's walk-ins, leaving out anyone already
+    /// finished (Completed or Postponed). The sign-in's record wins over the
+    /// RSVP with the same ID; sorted by last name, then first.
     public func scoutChoices() -> [Scout] {
         let done = Set(scouts.filter { $0.status == .completed || $0.status == .postponed }.map(\.id))
         var byID: [String: Scout] = [:]
@@ -542,7 +542,7 @@ public final class EventNight {
     /// and the members are taken back, or released, to match.
     ///
     /// Refused when the room or a member has been given to another board, or
-    /// a member has gone home, since: the evening has moved on, and undoing
+    /// a member has gone home, since: the event has moved on, and undoing
     /// would put someone on two boards at once.
     public func restoreBoard(_ earlier: Scout) throws {
         guard let scoutIndex = scouts.firstIndex(where: { $0.id == earlier.id }) else {

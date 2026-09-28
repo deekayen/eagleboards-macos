@@ -44,7 +44,7 @@ once pushed.
 ## Network exposure
 
 The sign-in station is plain HTTP with no authentication, meant for a trusted
-venue network for one evening.
+venue network for the length of one event.
 
 - **Only the sign-in pages are served.** The scheduler, records and settings
   are native windows, not pages, so there is nothing for someone at the door
