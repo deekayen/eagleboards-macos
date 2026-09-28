@@ -21,17 +21,17 @@ struct HelpView: View {
                     step("At the tablet, a youth taps I am a Youth and an adult taps I am 21+. Each fills in the form.")
                     step("People who pre-registered on SignUpGenius, and adults who have served before, are recognized by email and their form fills itself in.")
                     step("They appear in the scheduler the moment they register. Youth are numbered P1, P2… if they pre-registered and W1, W2… if they walked in, and the list keeps pre-registered youth ahead of walk-ins.")
-                    step("An adult who would rather not use the tablet can be signed in on the Mac: choose Adult › Add Adult…, or click Add Adult at the foot of the People page. Search the adult history to fill the form in for someone who has served before. On the Adult History page, double-click someone to sign them in for today.")
+                    step("An adult who would rather not use the tablet can be signed in on the Mac: choose Adult › Add Adult…, or click Add Adult at the foot of the Adults page. Search the adult history to fill the form in for someone who has served before. On the Adult History CSV page, double-click someone to sign them in for today.")
                     step("Check the paperwork as youth sign in. If it is not in order, select them and choose Board › Postpone. Edit › Undo brings them back.")
                 }
 
                 section("Seat a board") {
                     step("Event, the first page in the View menu, lists every youth in one column -- Waiting, On a Board, then Finished, each with its count -- with the room cards filling the rest of the window, so every room and its timer stay in view. Drag the line between them to widen the list. Search looks through all three. The inspector on the right follows the selected youth on every page; View › Show Inspector brings it back if it is hidden.")
                     step("Select a waiting youth. The inspector proposes a board: a chair, enough members, and a free room of the right kind. It never picks adults from the youth's own unit. It picks with the whole waiting line in mind: it keeps adults who can chair free for the boards still to come, and uses adults whose troop rules them out for youth still waiting. If there aren't enough adults to do that it still proposes the best board it can.")
-                    step("Change who sits on the board in the inspector: click someone in the free adults listed below the board to add them (type in Find an adult to narrow the list), and − takes them off. On the People page you can also Command-click several adults and choose Adult › Add to Board (Command-B), or drag them onto the board. A board you have changed is kept while you look at other youth; Suggest a Board replaces it with a proposal.")
+                    step("Change who sits on the board in the inspector: click someone in the free adults listed below the board to add them (type in Find an adult to narrow the list), and − takes them off. On the Adults page you can also Command-click several adults and choose Adult › Add to Board (Command-B), or drag them onto the board. A board you have changed is kept while you look at other youth; Suggest a Board replaces it with a proposal.")
                     step("To choose every board yourself, set Settings › General › When you select a waiting youth to Start with an empty board. Selecting a youth then picks only a free room.")
                     step("Press Seat Board… in the inspector or the toolbar, press Command-Return, or double-click the youth. You can also drag a waiting youth onto a free room's card. The sheet lists anything that stops the board -- too few or too many members, no qualified chair, someone already on another board -- and anything worth a second look, each of which needs its own tick.")
-                    step("Choose the chair. Only members whose role for this kind of board is Chair are offered. If none is free, promote someone on the People page: click their Final or Project role and choose Chair.")
+                    step("Choose the chair. Only members whose role for this kind of board is Chair are offered. If none is free, promote someone on the Adults page: click their Final or Project role and choose Chair.")
                     step("Seating gives the members the room and the paperwork. The youth waits outside.")
                     step("To change who sits on a seated board, before or after the review starts, select the youth and press Change Members… in the inspector, or choose Board › Change Members…. The sheet checks the board the same way Seat Board… does. The room's timer keeps running.")
                 }
@@ -50,10 +50,10 @@ struct HelpView: View {
                 section("The records") {
                     step("The other pages in the View menu are the tables the event keeps, and their values are changed in place: click a name, unit or note to type in it, or a value with ⌃⌄ beside it to choose from a menu. A change is saved when you press Return or leave the cell. It is not on Edit › Undo, which is for the Event page's steps; change the cell back instead. Who sits on a board and which room someone is in are never typed in: they change on the Event page. So is seating a board or starting its review: a Status cell offers only Waiting, Completed and Postponed, and a board that is seated or in review keeps its status until Reset Board or Complete….")
                     bullet("Results: every board and its result. Correct a result or its notes here. Double-click a board to see it on the Event page.")
-                    bullet("People: tonight's adults. Promote someone to Chair, mark Wood Badge, or fix a name. Add Adult at the foot signs someone in by hand.")
+                    bullet("Adults: tonight's adults. Promote someone to Chair, mark Wood Badge, or fix a name. Add Adult at the foot signs someone in by hand.")
                     bullet("Youth: every youth who signed in, in sign-in order.")
                     bullet("Pre-Registered: the youth who signed up on SignUpGenius for today.")
-                    bullet("Adult History: every adult who has ever signed in, across events, searched by name, email or unit. Last Event has a check for those signed in today; double-click someone to sign them in for today. An adult's name, unit, contact and roles are the same on People and Adult History: change them on either and both follow, so someone promoted to Chair in the history chairs tonight. Wood Badge is for today only.")
+                    bullet("Adult History CSV: every adult who has ever signed in, across events, read-only and searched by name, email or unit. Last Event has a check for those signed in today; double-click someone to sign them in for today. A change to an adult's name, unit, contact or roles on the Adults page is made here too, so someone promoted to Chair tonight is a chair next time. Wood Badge is for today only.")
                     bullet("Rooms: what each room is used for today, and whose board is in it. Add Room at the foot adds one.")
                     bullet("Right-click a record to delete it; that asks first. File › Export List… (Shift-Command-E) saves the page's list as a spreadsheet.")
                 }
@@ -77,7 +77,7 @@ struct HelpView: View {
                     bullet("Board › Reset Board undoes seating: the youth waits again and the room and members are freed.")
                     bullet("Adult › Disable for Today takes adults out of the pool, for example when they have gone home. Enable for Today brings them back.")
                     bullet("Room › Move Board to Another Room… moves a board, or swaps two boards.")
-                    bullet("View › Event, Results, People, Youth, Pre-Registered, Adult History and Rooms (Option-Command-1 to 7) choose the page; the one shown has a check.")
+                    bullet("View › Event, Results, Adults, Youth, Pre-Registered, Adult History CSV and Rooms (Option-Command-1 to 7) choose the page; the one shown has a check.")
                     bullet("File › Export Board Results saves every board and its result as a spreadsheet; File › Export List… saves the page's list.")
                 }
 

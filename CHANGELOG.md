@@ -20,30 +20,29 @@ code, in a window of its own; it replaces the Donate button at the sidebar's
 foot and the Help menu's list of links.
 
 **Every table a page, edited in place** (P-6), as on Windows. The Records
-window is gone. The View menu has Event, then Results, People, Youth,
-Pre-Registered, Adult History and Rooms (Option-Command-1 to 7), and a value is
+window is gone. The View menu has Event, then Results, Adults, Youth,
+Pre-Registered, Adult History CSV and Rooms (Option-Command-1 to 7), and a value is
 changed where it is shown: click a name, unit or note to type in it, or a value
 with a small chevron to choose from a menu. A changed cell is saved as it is
 left and stays off the Undo stack. Who sits on a board and which room anyone is
 in stay read-only: they change through the Event page's steps. A Status cell
 offers Waiting, Completed and Postponed, never Seated or In review, and a board
 that is sitting keeps its status until Reset Board or Complete, so nobody is
-seated without a room and members. An adult's name, unit, contact and roles
-are one set of facts on People and Adult History: a change on either is made on
-both, so a chair promoted in the history chairs tonight. A cell still open when
-the page is left is saved. **Results** is
-the boards, where a result or its notes is corrected. **People** is tonight's
-adults, where someone is promoted to Chair and Wood Badge is a Yes/No choice
-showing the mark. **Adult History** searches names, emails and units, and its
-Last Event column has a check for those signed in today. **Rooms** changes what
+seated without a room and members. A cell still open when the page is left is
+saved. **Results** is the boards, where a result or its notes is corrected.
+**Adults** is tonight's adults, where someone is promoted to Chair and Wood
+Badge is a Yes/No choice showing the mark; a change to an adult's name, unit,
+contact or roles reaches the adult history too. **Adult History CSV** is every
+adult who has ever signed in, read-only; its search looks through names, emails
+and units, and its Last Event column has a check for those signed in today. **Rooms** changes what
 a room is used for, with Add Room at its foot. File › Export List… saves the
 page's list; right-click a record to delete it.
 
 **Add an adult by hand.** Adult › Add Adult…, the Add Adult button at the foot
-of People, or a double-click below the last row signs in an adult who would
+of Adults, or a double-click below the last row signs in an adult who would
 rather not use the tablet, through the tablet's own sign-in. Its search fills
 the form in from the adult history, and a role left at As Last Time keeps the
-one on file. On Adult History, double-click someone, or choose Sign In for
+one on file. On Adult History CSV, double-click someone, or choose Sign In for
 Today, to put them on tonight's list.
 
 **One member per line on the room cards**, as on Windows, in full, so a name is

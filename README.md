@@ -78,8 +78,8 @@ youth are listed ahead of walk-ins.
 
 An adult who would rather not use the tablet can be signed in on the Mac:
 choose **Adult › Add Adult…**, or click **Add Adult** at the foot of the
-**People** page. Search the adult history to fill the form in for someone who
-has served before. On the **Adult History** page, double-click someone to sign
+**Adults** page. Search the adult history to fill the form in for someone who
+has served before. On the **Adult History CSV** page, double-click someone to sign
 them in for today.
 
 ### 2. Check the paperwork
@@ -104,7 +104,7 @@ from the youth's own unit.
 
 Change the board in the inspector: click an adult in the free list below it
 to add them (**Find an adult** narrows the list), and **−** takes one off. In
-the **People** page you can also Command-click several adults and choose
+the **Adults** page you can also Command-click several adults and choose
 **Adult › Add to Board** (**⌘B**), or drag them onto the board. A board you
 have changed is kept while you look at other youth; **Suggest a Board**
 replaces it with a proposal.
@@ -145,7 +145,7 @@ and add any notes. The room and the members are free for the next board.
   seven is refused. A project proposal review has two to six.
 - **The chair.** Only an adult whose role for that kind of board is **Chair**
   may chair it. When the qualified chairs are all busy, promote someone on the
-  **People** page. Nobody is made chair by accident.
+  **Adults** page. Nobody is made chair by accident.
 - **One board at a time.** An adult on a board cannot be put on another.
   **Disable** takes someone out of the pool for the event, for example when
   they have gone home. **Enable** brings them back.
@@ -169,10 +169,10 @@ window.
 | Page | What it holds |
 | --- | --- |
 | **Results** (⌥⌘2) | Every board and its result. Correct a result or its notes here. Double-click a board to see it on the Event page. |
-| **People** (⌥⌘3) | Tonight's adults. Promote someone to Chair, mark Wood Badge, or fix a name. **Add Adult** at the foot signs someone in by hand. |
+| **Adults** (⌥⌘3) | Tonight's adults. Promote someone to Chair, mark Wood Badge, or fix a name; a change to a name, unit, contact or role reaches the adult history too. **Add Adult** at the foot signs someone in by hand. |
 | **Youth** (⌥⌘4) | Every youth who signed in, in sign-in order. |
 | **Pre-Registered** (⌥⌘5) | The youth who signed up on SignUpGenius for today. |
-| **Adult History** (⌥⌘6) | Every adult who has ever signed in, across events, searched by name, email or unit. **Last Event** has a check for those signed in today; double-click someone to sign them in. An adult's name, unit, contact and roles are the same here and on People: change either and both follow. |
+| **Adult History CSV** (⌥⌘6) | Every adult who has ever signed in, across events, read-only, searched by name, email or unit. **Last Event** has a check for those signed in today; double-click someone to sign them in. |
 | **Rooms** (⌥⌘7) | What each room is used for today, and whose board is in it. **Add Room** at the foot adds one. |
 
 Right-click a record to delete it; that asks first. **File › Export List…**
@@ -215,7 +215,7 @@ when a room goes overdue while you are in another app.
 | --- | --- |
 | The tablet cannot open the address | Check both are on the same Wi-Fi. Click the sign-in address and try another address listed there. Check that Eagle Boards is allowed in System Settings › Network › Firewall. |
 | "Port 8080 is already in use" | Quit the other program (the Java Eagle Board Scheduler uses 8080 too), or change the port in Settings › General. |
-| "Not qualified to chair" | Promote someone: on the **People** page, click their Final or Project role and choose **Chair**. |
+| "Not qualified to chair" | Promote someone: on the **Adults** page, click their Final or Project role and choose **Chair**. |
 | A board was seated by mistake | Select the youth and choose **Board › Reset Board**, or **Edit › Undo** right after seating. |
 
 ## Donating

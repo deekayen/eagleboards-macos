@@ -1,10 +1,10 @@
 import EagleBoardsCore
 import SwiftUI
 
-// The pages for the rest of the tables the event keeps, edited in place like
-// Results, People and Youth (SPEC.md P-6). Together they replace the records
-// window. A changed cell is saved as it is left and stays off the Undo stack;
-// a deleted record is asked about first.
+// The pages for the rest of the tables the event keeps, like Results, Adults
+// and Youth (SPEC.md P-6). Together they replace the records window. A changed
+// cell is saved as it is left and stays off the Undo stack; a deleted record
+// is asked about first. The Adult History CSV is read-only.
 
 /// The youth who signed up on SignUpGenius for this event, before any of them
 /// has signed in at the door. A youth's birthdate and phone number are never
@@ -77,10 +77,11 @@ struct PreRegisteredPage: View {
 }
 
 /// Every adult who has ever signed in, across events: the adult history the
-/// sign-in form fills itself in from, searched by name, email or unit. A role
-/// set here is what the form fills in for them next time; tonight's roles are
-/// on the People page. Double-click someone, or choose Sign In for Today, to
-/// put them on tonight's list without the tablet.
+/// sign-in form fills itself in from, read-only (SPEC.md P-6), and searched by
+/// name, email or unit. A sign-in writes it, and a change on the Adults page
+/// reaches the same adult here. Last Event has a check for those signed in
+/// today; double-click someone, or choose Sign In for Today, to put them on
+/// tonight's list without the tablet.
 struct AdultHistoryPage: View {
     @Environment(AppModel.self) private var model
     let night: EventNight
@@ -91,7 +92,6 @@ struct AdultHistoryPage: View {
         let rows = night.adultHistory
             .filter { matches(model.searchText, $0.fullName, $0.email, $0.unitName) }
             .sorted(using: sortOrder)
-
         let signedIn = Set(night.adults.map(\.id))
 
         Table(of: Adult.self, selection: $selection, sortOrder: $sortOrder) {
@@ -108,48 +108,30 @@ struct AdultHistoryPage: View {
                     }
                 }
                 .width(min: 90, ideal: 110, max: 130)
-                TableColumn("Last", value: \Adult.last) { adult in
-                    EditableText(adult.last, name: "Last name") { value in edit(adult) { $0.last = value } }
+                TableColumn("Last", value: \Adult.last)
+                TableColumn("First", value: \Adult.first)
+                TableColumn("Unit", value: \Adult.unitName) { adult in
+                    Text(adult.unitDisplay)
                 }
-                TableColumn("First", value: \Adult.first) { adult in
-                    EditableText(adult.first, name: "First name") { value in edit(adult) { $0.first = value } }
-                }
-                TableColumn("Type", value: \Adult.unitType) { adult in
-                    EditableChoice(adult.unitType, choices: RecordChoices.adultUnitTypes, name: "Unit type") { value in
-                        edit(adult) { $0.unitType = value }
-                    }
+                .width(min: 60, ideal: 90, max: 130)
+                TableColumn("Final", value: \Adult.finalBoardRoleText) { adult in
+                    RoleText(role: adult.finalBoardRoleText)
                 }
                 .width(min: 50, ideal: 70, max: 90)
-                TableColumn("Unit", value: \Adult.unit) { adult in
-                    EditableText(adult.unit, name: "Unit number") { value in edit(adult) { $0.unit = value } }
-                }
-                .width(min: 40, ideal: 50, max: 70)
             }
             Group {
-                TableColumn("Final", value: \Adult.finalBoardRoleText) { adult in
-                    RoleChoice(role: adult.finalBoardRoleText, name: "Final Board role") { value in
-                        edit(adult) { $0.finalBoardRoleText = value }
-                    }
-                }
-                .width(min: 60, ideal: 80, max: 100)
                 TableColumn("Project", value: \Adult.projectReviewRoleText) { adult in
-                    RoleChoice(role: adult.projectReviewRoleText, name: "Proposal Review role") { value in
-                        edit(adult) { $0.projectReviewRoleText = value }
-                    }
+                    RoleText(role: adult.projectReviewRoleText)
                 }
-                .width(min: 60, ideal: 80, max: 100)
+                .width(min: 50, ideal: 70, max: 90)
                 TableColumn("Events", value: \Adult.boardHistory) { adult in
                     Text("\(adult.boardHistory.filter { $0 == "(" }.count)")
                         .monospacedDigit()
                         .help(adult.boardHistory)
                 }
                 .width(min: 44, ideal: 50, max: 70)
-                TableColumn("Email", value: \Adult.email) { adult in
-                    EditableText(adult.email, name: "Email") { value in edit(adult) { $0.email = value } }
-                }
-                TableColumn("Phone", value: \Adult.phone) { adult in
-                    EditableText(adult.phone, name: "Phone") { value in edit(adult) { $0.phone = value } }
-                }
+                TableColumn("Email", value: \Adult.email)
+                TableColumn("Phone", value: \Adult.phone)
             }
         } rows: {
             ForEach(rows) { TableRow($0) }
@@ -158,10 +140,6 @@ struct AdultHistoryPage: View {
             if !ids.isEmpty {
                 Button("Sign In for Today") { model.signInFromHistory(ids) }
                     .disabled(ids.isSubset(of: signedIn))
-            }
-            if ids.count == 1, let id = ids.first {
-                Divider()
-                Button("Delete from History…", role: .destructive) { model.confirmDeleteAdult(id, history: true) }
             }
         } primaryAction: { ids in
             model.signInFromHistory(ids.subtracting(signedIn))
@@ -176,10 +154,6 @@ struct AdultHistoryPage: View {
                 }
             }
         }
-    }
-
-    private func edit(_ adult: Adult, _ change: (inout Adult) -> Void) -> Bool {
-        model.editAdult(adult.id, history: true, change)
     }
 }
 

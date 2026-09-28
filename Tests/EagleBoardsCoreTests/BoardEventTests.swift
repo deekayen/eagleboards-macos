@@ -682,10 +682,9 @@ struct BoardEventTests {
         #expect(busyAdults == 0)
     }
 
-    // SPEC.md P-6. A table corrects a status, but a board is seated, started,
-    // reset and completed only through the Event page's steps, which give it
-    // a room and members and take them back. Not in the Java script: its
-    // admin page still offers InProgress.
+    // Java section 25 (SPEC.md P-6). A table corrects a status, but a board is
+    // seated, started, reset and completed only through the Event page's
+    // steps, which give it a room and members and take them back.
     @Test func aTableCannotSeatStartOrEndABoard() throws {
         #expect(BoardStatus.recordsChoices == [.registered, .completed, .postponed])
         refused("a waiting youth is not seated from a table") { try editYouth(finalYouth(1)) { $0.status = .seated } }
@@ -709,18 +708,46 @@ struct BoardEventTests {
         #expect(busyAdults == 0)
     }
 
-    // SPEC.md P-6. People and Adult History are one set of facts for an
-    // adult: a chair promoted in the history is seated as a chair tonight.
-    @Test func aChairPromotedInTheHistoryIsSeatedAsOne() throws {
+    // Java section 26 (SPEC.md P-6). An adult's facts are edited on the
+    // Adults page and kept in the history, which is read-only: EventNight has
+    // no call that edits it (Java's /adult-history-update refuses one).
+    @Test func aChairPromotedOnTheAdultsPageIsSeatedAsOne() throws {
+        #expect(night.adultHistory.first { $0.id == member(1) }?.finalBoardRoleText == "Member")
         refused("a plain member cannot chair") { try seat("101", finalYouth(1), chair: member(1), member(2), member(3)) }
-        var history = try #require(night.adultHistory.first { $0.id == member(1) })
-        history.finalBoardRoleText = BoardRole.chair.rawValue
-        try night.updateAdult(history, history: true)
-        #expect(night.adult(id: member(1))?.canChair(.finalBoard) == true)
+        var promoted = try #require(night.adult(id: member(1)))
+        promoted.finalBoardRoleText = BoardRole.chair.rawValue
+        promoted.phone = "555-0106"
+        promoted.woodBadge = "Y"
+        try night.updateAdult(promoted)
+        let history = try #require(night.adultHistory.first { $0.id == member(1) })
+        #expect(history.canChair(.finalBoard), "and is a chair in the history too, for their next sign-in")
+        #expect(history.phone == "555-0106", "their contact follows too")
+        #expect(history.woodBadge == "", "but Wood Badge stays with tonight")
         try seat("101", finalYouth(1), chair: member(1), member(2), member(3))
-        #expect(night.scout(id: finalYouth(1))?.boardChairID == member(1))
-        #expect(night.adult(id: member(1))?.room == "101", "their room is tonight's alone")
-        #expect(night.adultHistory.first { $0.id == member(1) }?.room == "")
+        #expect(night.scout(id: finalYouth(1))?.boardChairID == member(1), "the promoted chair is seated as one")
+        #expect(night.adult(id: member(1))?.room == "101" && history.room == "", "their room is tonight's alone")
+    }
+
+    // Java section 27. Add Adult, for someone who won't use the tablet, signs
+    // them in as the tablet does; filled in from the adult history it carries
+    // that record's ID, so a name corrected in the sheet is the same adult.
+    @Test func anAdultSignedInByHandFromTheHistory() throws {
+        try night.registerAdult([
+            "Last": "Handley", "First": "Harriet", "Email": "hh@example.org", "UnitType": "Troop", "Unit": "3601",
+            "ProjectReview": "Member", "FinalBoard": "Chair",
+        ])
+        let hand = "ADULT:Handley:Harriet:3601"
+        try night.deleteAdult(id: hand)
+        #expect(night.adult(id: hand) == nil, "an adult taken off tonight's list")
+        let historyCount = night.adultHistory.count
+        let back = try night.registerAdult(Adult.handSignInForm(
+            historyID: hand, first: "Harriet Ann", last: "Handley", email: "hh@example.org", phone: "",
+            unitType: "Troop", unit: "3601", finalBoard: .chair, projectReview: .member, woodBadge: false
+        ))
+        #expect(back.id == hand && back.first == "Harriet Ann", "is signed in by hand as the same adult")
+        #expect(back.canChair(.finalBoard), "still a chair")
+        #expect(night.adultHistory.count == historyCount, "with no second history record")
+        #expect(night.adultHistory.first { $0.id == hand }?.first == "Harriet Ann", "and the corrected name in the history")
     }
 
     // Java section 19. What an adult says at sign-in.

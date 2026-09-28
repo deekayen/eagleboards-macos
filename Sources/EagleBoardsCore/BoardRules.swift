@@ -121,7 +121,7 @@ public enum BoardRules {
             blocking.append(
                 "None of the selected members is qualified to chair a \(boardType.label). "
                     + "Select someone whose \(roleColumn) role is Chair, or promote someone on the "
-                    + "People page by setting their \(roleColumn) role to Chair."
+                    + "Adults page by setting their \(roleColumn) role to Chair."
             )
         }
 
@@ -158,7 +158,7 @@ public struct SeatingReview: Sendable {
     public private(set) var warnings: [Warning] = []
     /// Selected members qualified to chair this board type. The chair must be
     /// one of these: the Chair designation is binding, and when the qualified
-    /// chairs are all busy the answer is to promote someone on the People
+    /// chairs are all busy the answer is to promote someone on the Adults
     /// page, never to hand the gavel to a Member.
     public private(set) var qualifiedChairs: [Adult] = []
 

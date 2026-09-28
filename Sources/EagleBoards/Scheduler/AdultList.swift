@@ -1,13 +1,13 @@
 import EagleBoardsCore
 import SwiftUI
 
-/// Every adult who has signed in tonight, the People page (SPEC.md P-6).
+/// Every adult who has signed in tonight, the Adults page (SPEC.md P-6).
 /// Select several with Command or Shift and add them to the board being drawn
 /// up, or drag them onto it in the inspector. Their details are edited in
 /// place, and it is here that someone is promoted to Chair; a changed cell is
-/// saved as it is left and stays off the Undo stack. Their room is read-only:
-/// it changes only through the Event page's steps. It replaces the records
-/// window's list of tonight's adults.
+/// saved as it is left and stays off the Undo stack, and a change to their
+/// name, unit, contact or roles reaches the adult history too. Their room is
+/// read-only: it changes only through the Event page's steps.
 /// Add Adult, at the foot of the list, in the Adult menu, or by
 /// double-clicking below the last row, signs in someone who would rather not
 /// use the tablet.

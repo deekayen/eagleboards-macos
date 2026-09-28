@@ -130,7 +130,8 @@ struct SignInTests {
         #expect(newcomer.role(for: .finalBoard) == .member && newcomer.role(for: .projectReview) == .member)
     }
 
-    // An adult who would rather not use the tablet, added on the People page.
+    // An adult who would rather not use the tablet, added on the Adults page
+    // (Java event test section 27).
     @Test func anAdultAddedByHandIsSignedInAsTheTabletWould() throws {
         try scratch.write(
             "Type,ID,Last,First,Email,Phone,UnitType,Unit,UnitName,ProjectReview,FinalBoard,RegTime,Room,Flags,Sel,BoardHistory\n"
@@ -190,30 +191,29 @@ struct SignInTests {
     }
 
     // SPEC.md P-6: an adult's name, unit, contact and roles are one set of
-    // facts on People and Adult History; Wood Badge stays with the event.
-    @Test func peopleAndTheHistoryShareAnAdultsFacts() throws {
+    // facts in tonight's adults and the read-only adult history; an edit on
+    // the Adults page reaches the history, and Wood Badge stays with the event.
+    @Test func anEditOnTheAdultsPageReachesTheHistory() throws {
         let adult = try night.registerAdult(["First": "Morgan", "Last": "Member", "UnitType": "Troop", "Unit": "9",
                                              "Email": "morgan@example.org", "WoodBadge": "Y"])
-        var history = try #require(night.adultHistory.first { $0.id == adult.id })
-        history.finalBoardRoleText = "Chair"
-        history.phone = "555-0110"
-        try night.updateAdult(history, history: true)
-        let tonight = try #require(night.adult(id: adult.id))
-        #expect(tonight.canChair(.finalBoard) && tonight.phone == "555-0110", "a change on Adult History reaches People")
-        #expect(tonight.woodBadge == "Y", "Wood Badge stays with the event")
-
-        var edited = tonight
+        var edited = try #require(night.adult(id: adult.id))
+        edited.finalBoardRoleText = "Chair"
         edited.email = ""
         edited.unit = "19"
         edited.woodBadge = ""
         try night.updateAdult(edited)
         let kept = try #require(night.adultHistory.first { $0.id == adult.id })
-        #expect(kept.email == "" && kept.unitName == "Troop19", "a change on People reaches the history, a cleared field too")
+        #expect(kept.canChair(.finalBoard), "a chair promoted tonight is one at the next sign-in")
+        #expect(kept.email == "" && kept.unitName == "Troop19", "a cleared field reaches the history too")
         #expect(kept.boardHistory == "(2026-09-22)", "the history's own columns are left alone")
 
         let reopened = try EventNight(folder: scratch.dataFolder, night: "2026-09-22")
         #expect(reopened.adult(id: adult.id)?.canChair(.finalBoard) == true, "both files are saved")
         #expect(reopened.adultHistory.first { $0.id == adult.id }?.unit == "19")
+
+        try night.deleteAdult(id: adult.id)
+        #expect(night.adult(id: adult.id) == nil && night.adultHistory.contains { $0.id == adult.id },
+                "taking someone off tonight's list leaves the history alone")
     }
 
     @Test func signingInAgainDoesNotTakeAnAdultOffTheirBoard() throws {

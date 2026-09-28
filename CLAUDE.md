@@ -80,15 +80,16 @@ a native window. See `PROVENANCE.md`.
   sign-in (`EventNight.setSupporting`).
 - **The scheduler follows the Mac layout**: list and inspector, with no
   sidebar (SPEC.md P-1, P-6, as in the Java and Windows versions). The View
-  menu chooses Event or a page per table (Results, People, Youth,
-  Pre-Registered, Adult History, Rooms), edited in place with
+  menu chooses Event or a page per table (Results, Adults, Youth,
+  Pre-Registered, Rooms, and the read-only Adult History CSV), edited in
+  place with
   `EditableText` and `EditableChoice` through `AppModel.editYouth`,
   `editAdult` and `editRoomType`. A changed cell stays off the Undo stack,
   and who sits on a board or which room anyone is in is never typed into a
   table (P-6); nor is a status set to Seated or In review, or a sitting
   board's status changed (`EventNight.updateYouth` refuses both). An
-  adult's `signInColumns` are one set of facts on People and Adult History
-  (`updateAdult` copies them across). There is no records window. Help › Donate… is the Donate
+  adult's `signInColumns` edited on Adults reach the adult history
+  (`updateAdult` copies them across); nothing edits the history directly. There is no records window. Help › Donate… is the Donate
   link (D-17). Every action lives in the Board, Adult or Room menu (and the
   matching context menu), not in buttons along a panel. Report outcomes as
   alerts titled with what failed, or show them in the inspector; no

@@ -4,8 +4,9 @@ import SwiftUI
 /// The operator's screen for the evening. The View menu chooses the page
 /// (SPEC.md P-1, P-6): Event, with every youth in one list beside the rooms,
 /// so a room's timer is never out of sight while working the queue (O-3); or
-/// a page for one of the event's tables, edited in place -- Results, People,
-/// Youth, Pre-Registered, Adult History, Rooms. There is no sidebar and no
+/// a page for one of the event's tables -- Results, Adults, Youth,
+/// Pre-Registered and Rooms, edited in place, and the read-only Adult History
+/// CSV. There is no sidebar and no
 /// separate records window, so the page has the window's whole width. The
 /// inspector follows the selected youth on every page: the board being drawn
 /// up for them, or how it went.
@@ -104,7 +105,7 @@ struct SchedulerView: View {
             }
         case .results:
             ResultsPage(night: night)
-        case .people:
+        case .adults:
             AdultList(night: night)
         case .youth:
             YouthPage(night: night)
@@ -123,7 +124,7 @@ struct SchedulerView: View {
         switch model.page {
         case .event: "Name, unit, leader or room"
         case .results: "Name, unit, member or result"
-        case .people: "Name, unit or room"
+        case .adults: "Name, unit or room"
         case .youth: "Name, unit, leader or room"
         case .preRegistered: "Name, email, unit or leader"
         case .adultHistory: "Name, email or unit"

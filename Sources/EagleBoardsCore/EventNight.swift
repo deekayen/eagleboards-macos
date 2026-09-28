@@ -348,7 +348,7 @@ public final class EventNight {
         }
 
         // The Chair designation is binding. Promoting someone is a deliberate
-        // edit on the People page, never a side effect of seating a board
+        // edit on the Adults page, never a side effect of seating a board
         // because the qualified chairs were all busy.
         guard let chair = adult(id: chairID) else {
             throw EventError("There is no adult '\(chairID)' to chair the board.")
@@ -839,50 +839,35 @@ public final class EventNight {
         }
     }
 
-    /// Replace an adult record as edited on the People or Adult History page.
+    /// Replace one of tonight's adults as edited on the Adults page.
     ///
     /// An adult's name, unit, contact and roles (`Adult.signInColumns`) are
-    /// one set of facts on the two pages, as a sign-in carries them between
-    /// the two tables (SPEC.md P-6): a change to either is made to the same
-    /// adult in the other, so a chair promoted in the history is seated as a
-    /// chair tonight. Wood Badge, whom they came to support and their room
-    /// belong to this event alone.
-    public func updateAdult(_ edited: Adult, history: Bool = false) throws {
+    /// one set of facts in tonight's adults and the adult history, as a
+    /// sign-in carries them between the two tables (SPEC.md P-6): the change
+    /// is made to the same adult in the history too, so someone promoted to
+    /// Chair tonight is a chair the next time they sign in. Wood Badge, whom
+    /// they came to support and their room belong to this event alone. The
+    /// history itself is read-only: a sign-in writes it, and this reaches it.
+    public func updateAdult(_ edited: Adult) throws {
         var record = edited
         record.refreshDerivedFields()
-        let tonightIndex = adults.firstIndex(where: { $0.id == edited.id })
-        let historyIndex = adultHistory.firstIndex(where: { $0.id == edited.id })
-        if history {
-            guard let historyIndex else {
-                throw EventError("That history record no longer exists.")
-            }
-            adultHistory[historyIndex] = record
-            if let tonightIndex {
-                adults[tonightIndex].copyFacts(from: record)
-            }
-        } else {
-            guard let tonightIndex else {
-                throw EventError("That adult no longer exists.")
-            }
-            adults[tonightIndex] = record
-            if let historyIndex {
-                adultHistory[historyIndex].copyFacts(from: record)
-            }
+        guard let tonightIndex = adults.firstIndex(where: { $0.id == edited.id }) else {
+            throw EventError("That adult no longer exists.")
+        }
+        adults[tonightIndex] = record
+        if let historyIndex = adultHistory.firstIndex(where: { $0.id == edited.id }) {
+            adultHistory[historyIndex].copyFacts(from: record)
         }
         try save(.adults, .adultHistory)
     }
 
-    public func deleteAdult(id: String, history: Bool = false) throws {
-        if history {
-            adultHistory.removeAll { $0.id == id }
-            try save(.adultHistory)
-        } else {
-            if let adult = adult(id: id), adult.isOnBoard {
-                throw EventError("\(adult.fullName) is on the board in room \(adult.room). Reset or complete that board first.")
-            }
-            adults.removeAll { $0.id == id }
-            try save(.adults)
+    /// Take an adult off tonight's list. The adult history keeps them.
+    public func deleteAdult(id: String) throws {
+        if let adult = adult(id: id), adult.isOnBoard {
+            throw EventError("\(adult.fullName) is on the board in room \(adult.room). Reset or complete that board first.")
         }
+        adults.removeAll { $0.id == id }
+        try save(.adults)
     }
 
     public func updateConfig(_ edited: Config) throws {

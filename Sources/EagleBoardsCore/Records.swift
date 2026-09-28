@@ -294,7 +294,7 @@ public struct Adult: PersonRecord {
     public static let signInColumns = ["First", "Last", "Unit", "UnitType", "Email", "Phone", "ProjectReview", "FinalBoard"]
 
     /// Take another record's name, unit, contact and roles, cleared ones
-    /// too: what People and Adult History share (SPEC.md P-6).
+    /// too: what tonight's adults and the adult history share (SPEC.md P-6).
     public mutating func copyFacts(from other: Adult) {
         for column in Self.signInColumns {
             self[column] = other[column]
@@ -302,7 +302,7 @@ public struct Adult: PersonRecord {
         refreshDerivedFields()
     }
 
-    /// The sign-in form for an adult the operator adds by hand on the People
+    /// The sign-in form for an adult the operator adds by hand on the Adults
     /// page, for someone who would rather not use the tablet. It goes through
     /// `EventNight.registerAdult` as the tablet's does. A nil role is left for
     /// the adult history to fill in, or Member for someone new, so adding a

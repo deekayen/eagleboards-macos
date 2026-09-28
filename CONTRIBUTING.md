@@ -110,7 +110,7 @@ below. Run things locally to debug what CI found, or to iterate.
      under the same ceiling.
    - **Chair is binding.** The chair's role for that board type must be
      `Chair`, and the chair must be on the board. When the qualified chairs are
-     all busy, the answer is to promote someone on the People page, never to
+     all busy, the answer is to promote someone on the Adults page, never to
      hand the gavel to a Member.
    - **One board at a time.** An adult with a `Room` is committed to it. `N/A`
      is the Disable marker for someone gone home.

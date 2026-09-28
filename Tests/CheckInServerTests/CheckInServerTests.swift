@@ -139,11 +139,9 @@ struct CheckInServerTests {
             SignUpEntry(startDate: "2026-09-22", firstName: "jan", lastName: "doe", item: "Eagle Board of Review",
                         email: "jan@example.org", customAnswers: ["Troop 1776", "7705550100", "lee leader"]),
         ], month: "2026-09")
-        try night.registerAdult(["First": "Morgan", "Last": "Member", "Email": "morgan@example.org", "UnitType": "Troop", "Unit": "5"])
-        var history = try #require(night.adultHistory.first)
-        history.boardHistory = "(2019-05-28)(2026-08-25)"
-        history.phone = "770-555-0110"
-        try night.updateAdult(history, history: true)
+        try night.registerAdult(["First": "Morgan", "Last": "Member", "Email": "morgan@example.org", "UnitType": "Troop", "Unit": "5",
+                                 "Phone": "770-555-0110"])
+        let signedIn = try #require(night.adultHistory.first?.boardHistory)
         // A pre-registration from before D-7 and D-8 may still hold both.
         var scheduled = try #require(night.scheduledYouth(matchingEmail: "jan@example.org"))
         scheduled.phone = "770-555-0100"
@@ -162,7 +160,7 @@ struct CheckInServerTests {
         #expect(adult.json["Last"] as? String == "Member")
         #expect(adult.json["Phone"] as? String == "770-555-0110", "an adult's phone still is")
         #expect(Set(adult.json.keys) == Set(CheckInServer.adultPrefillColumns))
-        #expect(!adult.body.contains("2019-05-28"), "board history stays in the app")
+        #expect(!signedIn.isEmpty && !adult.body.contains(signedIn), "board history stays in the app")
 
         #expect(try await send("/api/adult-lookup", method: .post, form: "email=nobody%40example.org").body == "{}")
         #expect(try await send("/api/adult-lookup", method: .post, form: "email=NONE").body == "{}")
