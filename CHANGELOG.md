@@ -7,8 +7,25 @@ Versions are CalVer: the release date.
 **Every youth in one list** (SPEC.md O-3, amended). The Event page lists the
 youth stacked Waiting, On a Board and Finished, each with its count, beside the
 room cards, instead of a sidebar entry per group that had to be picked before a
-youth could be found. The search looks through all three groups. A waiting
-youth still drags onto a free room.
+youth could be found. A waiting youth still drags onto a free room.
+
+**Find a person's room** (D-21). On the Event page the search finds a person,
+youth or adult, not a youth in the list: the room cards narrow to the rooms
+holding a match, or a room by that name, and a line above them says where
+anyone found in no room is (*is waiting*, *isn't on a board*, *has gone home*,
+*has finished*, *was postponed*), or that no one by that name has signed in.
+Return opens the first room found, or the youth.
+
+**Approved Proposals** (D-22), a page after Rooms (Option-Command-8): every
+project proposal approved at an earlier event in the data folder, however long
+ago, for a youth who comes to their board without the signed page. It shows
+who, their unit, when, the chair, the other members and the notes, never an
+email, phone number or birthdate; says which earlier events it read and names
+any it couldn't; and is read only.
+
+**The Adult History CSV no longer freezes the app.** After scrolling a long
+history, switching pages took seconds to minutes; the history, and Approved
+Proposals, are now plain AppKit tables.
 
 **No sidebar** (P-1, P-6, D-17), as in the Java and Windows versions: the page
 has the window's whole width. On the Event page the youth list is a 320-point

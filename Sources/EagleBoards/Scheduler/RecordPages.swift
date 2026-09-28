@@ -85,16 +85,47 @@ struct PreRegisteredPage: View {
 struct AdultHistoryPage: View {
     @Environment(AppModel.self) private var model
     let night: EventNight
-    @State private var selection: Set<Adult.ID> = []
+    @State private var selection: Set<String> = []
+
+    /// An adult in the history, and whether they have signed in today.
+    struct Row: Identifiable, Equatable {
+        let adult: Adult
+        let signedIn: Bool
+        var id: String { adult.id }
+    }
 
     var body: some View {
-        let rows = night.adultHistory.filter { matches(model.searchText, $0.fullName, $0.email, $0.unitName) }
-        // AppKit, not a SwiftUI Table: see AdultHistoryTable.
-        AdultHistoryTable(
+        let signedIn = Set(night.adults.map(\.id))
+        let rows = night.adultHistory
+            .filter { matches(model.searchText, $0.fullName, $0.email, $0.unitName) }
+            .map { Row(adult: $0, signedIn: signedIn.contains($0.id)) }
+        // AppKit, not a SwiftUI Table: see PlainTable.
+        PlainTable(
             rows: rows,
-            signedIn: Set(night.adults.map(\.id)),
+            columns: [
+                PlainColumn(id: "lastEvent", title: "Last Event", width: 110, style: .digits, ascendingFirst: false,
+                            text: { $0.adult.lastEvent }, checked: \.signedIn),
+                PlainColumn(id: "last", title: "Last", width: 130, text: { $0.adult.last }),
+                PlainColumn(id: "first", title: "First", width: 130, text: { $0.adult.first }),
+                PlainColumn(id: "unit", title: "Unit", width: 90, text: { $0.adult.unitDisplay }),
+                PlainColumn(id: "final", title: "Final", width: 70, style: .role, text: { $0.adult.finalBoardRoleText }),
+                PlainColumn(id: "project", title: "Project", width: 70, style: .role, text: { $0.adult.projectReviewRoleText }),
+                PlainColumn(id: "events", title: "Events", width: 55, style: .digits, text: { "\($0.adult.eventCount)" },
+                            toolTip: { $0.adult.boardHistory }, sortKey: { $0.adult.eventCount }),
+                PlainColumn(id: "email", title: "Email", width: 220, text: { $0.adult.email }),
+                PlainColumn(id: "phone", title: "Phone", width: 120, text: { $0.adult.phone }),
+            ],
+            sortedBy: "last",
+            name: "Adult History CSV",
             selection: $selection,
-            signIn: { model.signInFromHistory($0) }
+            doubleClick: { id in
+                if !signedIn.contains(id) { model.signInFromHistory([id]) }
+            },
+            menuItems: [
+                PlainMenuItem(title: "Sign In for Today",
+                              isEnabled: { !$0.isSubset(of: signedIn) },
+                              action: { model.signInFromHistory($0.subtracting(signedIn)) }),
+            ]
         )
         .overlay {
             if rows.isEmpty {
@@ -106,6 +137,65 @@ struct AdultHistoryPage: View {
                 }
             }
         }
+    }
+}
+
+/// Every project proposal approved at an earlier event (SPEC.md D-22), for a
+/// youth who comes to their board of review without the signed page: who,
+/// their unit, when, and by whom. Read from every dated folder before this
+/// event each time the page is shown, and read only; a mistake is corrected
+/// in the earlier event itself. The search looks through names and units.
+struct ApprovedProposalsPage: View {
+    @Environment(AppModel.self) private var model
+    let night: EventNight
+    @State private var found: ApprovedProposals?
+    @State private var selection: Set<String> = []
+
+    var body: some View {
+        let approvals = (found?.approvals ?? [])
+            .filter { matches(model.searchText, "\($0.first) \($0.last)", $0.unit) }
+        VStack(alignment: .leading, spacing: 0) {
+            if let found {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(found.summary)
+                    ForEach(found.unreadable, id: \.self) { problem in
+                        Label("Could not read \(problem)", systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                    }
+                }
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+            }
+            PlainTable(
+                rows: approvals,
+                columns: [
+                    PlainColumn(id: "last", title: "Last", width: 130, text: \.last),
+                    PlainColumn(id: "first", title: "First", width: 120, text: \.first),
+                    PlainColumn(id: "unit", title: "Unit", width: 100, text: \.unit),
+                    PlainColumn(id: "event", title: "Approved", width: 100, style: .digits, ascendingFirst: false, text: \.event),
+                    PlainColumn(id: "chair", title: "Chair", width: 150, text: \.chair),
+                    PlainColumn(id: "members", title: "Other Members", width: 240, text: { $0.otherMembers.joined(separator: ", ") }),
+                    PlainColumn(id: "notes", title: "Notes", width: 260, text: \.notes, toolTip: { $0.notes.isEmpty ? nil : $0.notes }),
+                ],
+                sortedBy: "last",
+                name: "Approved Proposals",
+                selection: $selection
+            )
+            .overlay {
+                if found != nil && approvals.isEmpty {
+                    if model.searchText.isEmpty {
+                        ContentUnavailableView("No Approved Proposals", systemImage: "checkmark.seal",
+                                               description: Text("None of the earlier events in this data folder approved a project proposal."))
+                    } else {
+                        ContentUnavailableView.search(text: model.searchText)
+                    }
+                }
+            }
+        }
+        // Read each time the page is shown: an earlier event does not change
+        // during this one, so nothing polls (D-15).
+        .task(id: night.night) { found = night.approvedProposals() }
     }
 }
 

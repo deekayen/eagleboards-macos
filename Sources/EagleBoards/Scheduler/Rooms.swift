@@ -3,6 +3,11 @@ import SwiftUI
 
 /// One card per room: who is in it, and how long the board has been at it.
 /// Drop a waiting youth on a free room to seat their board there.
+///
+/// The search finds a person's room (SPEC.md D-21): it narrows the cards to
+/// the rooms holding someone whose name matches, youth or board member, and
+/// any room named by it, and says above them where anyone it matched in no
+/// room is. Return opens the first room found, or the youth found.
 struct RoomsGrid: View {
     @Environment(AppModel.self) private var model
     let night: EventNight
@@ -11,8 +16,16 @@ struct RoomsGrid: View {
         if night.rooms.isEmpty {
             NoRoomsYet(night: night)
         } else {
-            let rooms = visibleRooms
+            let find = night.find(model.searchText)
+            let rooms = find.rooms
             ScrollView {
+                if let note = find.note {
+                    Label(note, systemImage: "person.fill.questionmark")
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding([.horizontal, .top], 12)
+                        .accessibilityAddTraits(.updatesFrequently)
+                }
                 TimelineView(.periodic(from: .now, by: 20)) { timeline in
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 10)], spacing: 10) {
                         ForEach(rooms) { room in
@@ -41,22 +54,21 @@ struct RoomsGrid: View {
                     .padding(12)
                 }
             }
-            .overlay {
-                if rooms.isEmpty {
-                    ContentUnavailableView.search(text: model.searchText)
-                }
-            }
         }
     }
+}
 
-    private var visibleRooms: [Room] {
-        let filter = model.searchText.trimmingCharacters(in: .whitespaces)
-        guard !filter.isEmpty else { return night.rooms }
-        return night.rooms.filter {
-            $0.name.localizedCaseInsensitiveContains(filter)
-                || $0.scoutName.localizedCaseInsensitiveContains(filter)
-                || $0.leaderNames.localizedCaseInsensitiveContains(filter)
-        }
+extension EventNight {
+    /// A find over the room cards (SPEC.md D-21): the rooms to show, in the
+    /// cards' order; who it found; and what to say about those in no room.
+    func find(_ query: String) -> (rooms: [Room], people: [PersonPlace], note: String?) {
+        let people = PersonFind.people(query, youth: scouts, adults: adults)
+        let shown = PersonFind.rooms(query, people: people, rooms: rooms)
+        return (
+            shown.map { names in rooms.filter { names.contains($0.name) } } ?? rooms,
+            people,
+            PersonFind.note(people: people, roomsFound: shown)
+        )
     }
 }
 

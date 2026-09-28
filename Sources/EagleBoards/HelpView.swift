@@ -26,7 +26,8 @@ struct HelpView: View {
                 }
 
                 section("Seat a board") {
-                    step("Event, the first page in the View menu, lists every youth in one column -- Waiting, On a Board, then Finished, each with its count -- with the room cards filling the rest of the window, so every room and its timer stay in view. Drag the line between them to widen the list. Search looks through all three. The inspector on the right follows the selected youth on every page; View › Show Inspector brings it back if it is hidden.")
+                    step("Event, the first page in the View menu, lists every youth in one column -- Waiting, On a Board, then Finished, each with its count -- with the room cards filling the rest of the window, so every room and its timer stay in view. Drag the line between them to widen the list. The inspector on the right follows the selected youth on every page; View › Show Inspector brings it back if it is hidden.")
+                    step("To find which room someone is in, type part of their name, youth or adult, in the search at the top right. The room cards narrow to the rooms holding a match, or a room by that name, and a line above them says where anyone found in no room is: is waiting, isn't on a board, has gone home, has finished or was postponed. Return opens the first room found, or the youth. Clear the search to see every room again.")
                     step("Select a waiting youth. The inspector proposes a board: a chair, enough members, and a free room of the right kind. It never picks adults from the youth's own unit. It picks with the whole waiting line in mind: it keeps adults who can chair free for the boards still to come, and uses adults whose troop rules them out for youth still waiting. If there aren't enough adults to do that it still proposes the best board it can.")
                     step("Change who sits on the board in the inspector: click someone in the free adults listed below the board to add them (type in Find an adult to narrow the list), and − takes them off. On the Adults page you can also Command-click several adults and choose Adult › Add to Board (Command-B), or drag them onto the board. A board you have changed is kept while you look at other youth; Suggest a Board replaces it with a proposal.")
                     step("To choose every board yourself, set Settings › General › When you select a waiting youth to Start with an empty board. Selecting a youth then picks only a free room.")
@@ -55,6 +56,7 @@ struct HelpView: View {
                     bullet("Pre-Registered: the youth who signed up on SignUpGenius for today.")
                     bullet("Adult History CSV: every adult who has ever signed in, across events, read-only and searched by name, email or unit. Last Event has a check for those signed in today; double-click someone to sign them in for today. A change to an adult's name, unit, contact or roles on the Adults page is made here too, so someone promoted to Chair tonight is a chair next time. Wood Badge is for today only.")
                     bullet("Rooms: what each room is used for today, and whose board is in it. Add Room at the foot adds one.")
+                    bullet("Approved Proposals: every project proposal approved at an earlier event in the data folder, however long ago, for a youth who comes without the signed page: who, their unit, when, the chair and the other members. Read only; the line above it says which events were read.")
                     bullet("Right-click a record to delete it; that asks first. File › Export List… (Shift-Command-E) saves the page's list as a spreadsheet.")
                 }
 
@@ -77,7 +79,7 @@ struct HelpView: View {
                     bullet("Board › Reset Board undoes seating: the youth waits again and the room and members are freed.")
                     bullet("Adult › Disable for Today takes adults out of the pool, for example when they have gone home. Enable for Today brings them back.")
                     bullet("Room › Move Board to Another Room… moves a board, or swaps two boards.")
-                    bullet("View › Event, Results, Adults, Youth, Pre-Registered, Adult History CSV and Rooms (Option-Command-1 to 7) choose the page; the one shown has a check.")
+                    bullet("View › Event, Results, Adults, Youth, Pre-Registered, Adult History CSV, Rooms and Approved Proposals (Option-Command-1 to 8) choose the page; the one shown has a check.")
                     bullet("File › Export Board Results saves every board and its result as a spreadsheet; File › Export List… saves the page's list.")
                 }
 

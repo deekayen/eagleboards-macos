@@ -746,6 +746,51 @@ struct BoardEventTests {
         #expect(night.adultHistory.first { $0.id == hand }?.first == "Harriet Ann", "and the corrected name in the history")
     }
 
+    // Java section 28 (SPEC.md D-22). Approved proposals from earlier events,
+    // for a youth who comes without the signed page: every dated folder
+    // before this event, however long ago; only Project rows whose Result is
+    // Approved; read afresh each time, nothing written; and never a
+    // birthdate, phone number or email.
+    @Test func approvedProposalsFromEarlierEvents() throws {
+        let header = "Type,ID,RegNum,Last,First,Email,Phone,UnitType,Unit,UnitName,DOB,BoardType,Leader,RegTime,"
+            + "LastUpdateTime,Flags,Room,Status,Result,BoardChair,BoardChairID,BoardMembers,BoardMembersIDs,Notes\n"
+        func row(_ last: String, _ first: String, _ unit: Int, _ type: String, _ result: String, chair: String = "Chris Chair",
+                 notes: String = "") -> String {
+            "SCOUT,SCOUT:\(last):\(first):\(unit),W1,\(last),\(first),\(first.lowercased())@example.org,555-0199,Troop,\(unit),"
+                + "Troop\(unit),1/2/2010,\(type),,,,,N/A,Completed,\(result),\(chair),ADULT:Chair:Chris:1,"
+                + "\(chair)~Morgan Member,ADULT:Chair:Chris:1~ADULT:Member:Morgan:2,\(notes)\n"
+        }
+        #expect(night.approvedProposals().summary == "No earlier events in this data folder.")
+
+        try scratch.write(header + row("Quill", "Ada", 3701, "Project", "Approved", notes: "Park benches~ phase one"),
+                          to: "2019-05-28/scouts.csv")
+        try scratch.write(header + row("Brook", "Ben", 3702, "Project", "Approved")
+                          + row("Final", "Fay", 3703, "Final", "Approved")
+                          + row("Later", "Lou", 3704, "Project", "Adjourned"),
+                          to: "2026-08-25/scouts.csv")
+        try scratch.write(header + row("Future", "Flo", 3705, "Project", "Approved"), to: "2026-10-27/scouts.csv")
+        try scratch.write(header + row("Undated", "Una", 3706, "Project", "Approved"), to: "notes/scouts.csv")
+        // A folder whose youth file can't be read: here a folder in its place.
+        try FileManager.default.createDirectory(at: scratch.url.appending(path: "2026-07-28/scouts.csv"),
+                                                withIntermediateDirectories: true)
+
+        let found = night.approvedProposals()
+        #expect(found.approvals.map(\.last) == ["Brook", "Quill"], "earlier events only, approved proposals only, by last name")
+        #expect(found.summary == "Read 2 earlier events, from 2019-05-28 to 2026-08-25.", "however long ago")
+        #expect(found.unreadable.count == 1 && found.unreadable[0].hasPrefix("2026-07-28"), "a folder that can't be read is named")
+        let ada = try #require(found.approvals.last)
+        #expect(ada.event == "2019-05-28" && ada.unit == "Troop 3701" && ada.chair == "Chris Chair")
+        #expect(ada.otherMembers == ["Morgan Member"] && ada.notes == "Park benches, phase one")
+        let shown = String(describing: found.approvals)
+        #expect(!shown.contains("@example.org") && !shown.contains("555-0199") && !shown.contains("1/2/2010"),
+                "never an email, a phone number or a birthdate (D-7, D-8)")
+
+        try scratch.write(header + row("Brook", "Ben", 3702, "Project", "Approved") + row("Cove", "Cal", 3707, "Project", "Approved"),
+                          to: "2026-08-25/scouts.csv")
+        #expect(night.approvedProposals().approvals.map(\.last) == ["Brook", "Cove", "Quill"], "read afresh each time")
+        #expect(try scratch.text("2019-05-28/scouts.csv").contains("555-0199"), "and nothing in an earlier folder is written")
+    }
+
     // Java section 19. What an adult says at sign-in.
     @Test func woodBadgeNoThanksAndTheYouthAnAdultCameToSupport() throws {
         let rsvp = try lateYouth("Galloway", "Tobias", unit: 3401)

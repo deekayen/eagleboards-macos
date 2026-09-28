@@ -175,6 +175,7 @@ final class AppModel {
         case preRegistered
         case adultHistory
         case rooms
+        case approvedProposals
 
         var title: String {
             switch self {
@@ -185,12 +186,13 @@ final class AppModel {
             case .preRegistered: "Pre-Registered"
             case .adultHistory: "Adult History CSV"
             case .rooms: "Rooms"
+            case .approvedProposals: "Approved Proposals"
             }
         }
 
         /// A table File › Export List saves. Results has Export Board Results
         /// instead.
-        var isList: Bool { self != .event && self != .results }
+        var isList: Bool { ![.event, .results, .approvedProposals].contains(self) }
     }
 
     var page: Page = .event
@@ -410,6 +412,18 @@ final class AppModel {
     /// A free room has no youth, so the youth selected before is let go:
     /// the inspector and Next Step must not go on acting on someone the
     /// operator has clicked away from.
+    /// Return in the search on the Event page (SPEC.md D-21): open the first
+    /// room found, or the youth found if they are in no room.
+    func openFirstFound() {
+        guard let night, page == .event else { return }
+        let find = night.find(searchText)
+        if let room = find.rooms.first, !searchText.trimmingCharacters(in: .whitespaces).isEmpty {
+            selectRoom(room.id)
+        } else if let youth = find.people.first(where: \.isYouth) {
+            selectYouth(youth.id)
+        }
+    }
+
     func selectRoom(_ id: Room.ID) {
         selectedRoomID = id
         let occupant = night?.room(id: id).flatMap { room in
@@ -885,7 +899,7 @@ final class AppModel {
     func exportList() {
         guard let night, page.isList else { return }
         let text = switch page {
-        case .event, .results: ""
+        case .event, .results, .approvedProposals: ""
         case .rooms: CSVFile.render(night.rooms)
         case .youth: CSVFile.render(night.scouts.map(\.forExport))
         case .preRegistered: CSVFile.render(night.scheduledScouts.map(\.forExport))

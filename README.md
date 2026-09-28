@@ -94,8 +94,13 @@ is where you work: every youth in one list, stacked **Waiting** (in sign-in
 order), **On a Board** (by room) and **Finished** (the most recent first), each
 with its count, and a card for every room filling the rest of the window, so a
 room's timer is never out of sight. Drag the line between them to widen the
-list. The search looks through all three groups. The inspector on the right
-follows the selected youth on every page. The other pages are the event's
+list. The inspector on the right follows the selected youth on every page.
+
+**Find a person's room.** Type part of anyone's name, youth or adult, in the
+search at the top right. The room cards narrow to the rooms holding a match, or
+a room by that name, and a line above them says where anyone found in no room
+is (*is waiting*, *isn't on a board*, *has gone home*, *has finished*, *was
+postponed*). **Return** opens the first room found, or the youth. The other pages are the event's
 records (see [The records](#the-records)).
 
 Select a waiting youth. Eagle Boards proposes a board in the inspector: a
@@ -174,6 +179,7 @@ members. There is no separate records window.
 | **Pre-Registered** (⌥⌘5) | The youth who signed up on SignUpGenius for today. |
 | **Adult History CSV** (⌥⌘6) | Every adult who has ever signed in, across events, read-only, searched by name, email or unit. **Last Event** has a check for those signed in today; double-click someone to sign them in. |
 | **Rooms** (⌥⌘7) | What each room is used for today, and whose board is in it. **Add Room** at the foot adds one. |
+| **Approved Proposals** (⌥⌘8) | Every project proposal approved at an earlier event in the data folder, however long ago, for a youth who comes without the signed page: who, their unit, when, the chair and the other members. Read only. |
 
 Right-click a record to delete it; that asks first. **File › Export List…**
 (⇧⌘E) saves the page's list as a spreadsheet.

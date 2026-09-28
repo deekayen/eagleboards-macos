@@ -3,8 +3,9 @@ import SwiftUI
 
 /// Every youth, in one list stacked by status (SPEC.md O-3): Waiting in
 /// sign-in order, On a Board by room, Finished with the most recent first,
-/// each headed with its count. Nothing is chosen to see a group, and the
-/// search looks through all three.
+/// each headed with its count. Nothing is chosen to see a group. The list has
+/// no find of its own: it is short enough to read, and the search finds a
+/// person's room over the room cards instead (D-21).
 ///
 /// Double-click or Return takes the next step. A waiting youth can be dragged
 /// onto a free room to seat their board there.
@@ -13,7 +14,7 @@ struct YouthList: View {
     let night: EventNight
 
     var body: some View {
-        let found = night.scouts.filter { matches(model.searchText, $0) }
+        let found = night.scouts
         let selection = Binding(get: { model.selectedYouthID }, set: { model.selectYouth($0) })
 
         TimelineView(.periodic(from: .now, by: 20)) { timeline in
@@ -36,8 +37,6 @@ struct YouthList: View {
             if night.scouts.isEmpty {
                 ContentUnavailableView("No Youth Yet", systemImage: "person.crop.circle.badge.clock",
                                        description: Text("Youth appear here the moment they sign in at the tablet."))
-            } else if found.isEmpty {
-                ContentUnavailableView.search(text: model.searchText)
             }
         }
     }
@@ -47,7 +46,7 @@ struct YouthList: View {
         let rows = group.sorted(found.filter(group.holds))
         Section {
             if rows.isEmpty {
-                Text(model.searchText.isEmpty ? group.emptyText : "No match")
+                Text(group.emptyText)
                     .foregroundStyle(.secondary)
             }
             // A list row is dragged through its item provider; .draggable on
@@ -66,13 +65,6 @@ struct YouthList: View {
             }
             .accessibilityElement(children: .combine)
         }
-    }
-
-    private func matches(_ search: String, _ youth: Scout) -> Bool {
-        let query = search.trimmingCharacters(in: .whitespaces)
-        guard !query.isEmpty else { return true }
-        return [youth.fullName, youth.unitName, youth.unitLabel, youth.leader, youth.room, youth.regNum, youth.boardChair, youth.boardMembers]
-            .contains { $0.localizedCaseInsensitiveContains(query) }
     }
 }
 

@@ -27,6 +27,7 @@ struct SchedulerView: View {
             .navigationTitle(title)
             .navigationSubtitle(nightSubtitle)
             .searchable(text: $model.searchText, placement: .toolbar, prompt: searchPrompt)
+            .onSubmit(of: .search) { model.openFirstFound() }
             .inspector(isPresented: $model.showsInspector) {
                 YouthInspector(night: night)
                     .inspectorColumnWidth(min: 300, ideal: 340, max: 480)
@@ -115,6 +116,8 @@ struct SchedulerView: View {
             AdultHistoryPage(night: night)
         case .rooms:
             RoomsPage(night: night)
+        case .approvedProposals:
+            ApprovedProposalsPage(night: night)
         }
     }
 
@@ -122,13 +125,14 @@ struct SchedulerView: View {
 
     private var searchPrompt: String {
         switch model.page {
-        case .event: "Name, unit, leader or room"
+        case .event: "Find a person or room"
         case .results: "Name, unit, member or result"
         case .adults: "Name, unit or room"
         case .youth: "Name, unit, leader or room"
         case .preRegistered: "Name, email, unit or leader"
         case .adultHistory: "Name, email or unit"
         case .rooms: "Room, youth or member"
+        case .approvedProposals: "Name or unit"
         }
     }
 

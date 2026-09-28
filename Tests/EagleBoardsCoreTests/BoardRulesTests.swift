@@ -666,3 +666,67 @@ struct CanJoinTests {
         #expect(!adult("Gone", "Home", unitName: "Troop1", room: disabledForTonightMarker).canJoin(.finalBoard))
     }
 }
+
+// SPEC.md D-21, with the Windows version's test cases
+// (SchedulerLogicTests.FindingAPersonSaysWhichRoomTheyAreInOrWhereTheyAreInstead).
+@Suite("Finding a person's room")
+struct PersonFindTests {
+    private func youth(_ first: String, _ last: String, _ status: BoardStatus, room: String = "") -> Scout {
+        var record = scout(first, last, status: status)
+        record.room = room
+        return record
+    }
+
+    private var signedIn: (youth: [Scout], adults: [Adult]) {
+        (
+            [
+                youth("Arthur", "Eldred", .inProgress, room: "101"),
+                youth("Bill", "Amend", .registered),
+                youth("Peter", "Agre", .completed, room: disabledForTonightMarker),
+                youth("Rob", "Corddry", .postponed),
+            ],
+            [
+                adult("Neil", "Armstrong", unitName: "Troop2", room: "101"),
+                adult("Jim", "Lovell", unitName: "Troop2"),
+                adult("Charles", "Duke", unitName: "Troop2", room: disabledForTonightMarker),
+            ]
+        )
+    }
+
+    private func say(_ query: String) -> String {
+        PersonFind.people(query, youth: signedIn.youth, adults: signedIn.adults)
+            .map { "\($0.name) \($0.whereabouts)\($0.room.map { " [\($0)]" } ?? "")" }
+            .joined(separator: "; ")
+    }
+
+    @Test func aPersonIsFoundInTheirRoomOrWhereTheyAreInstead() {
+        #expect(say("ar") == "Arthur Eldred is in room 101 [101]; Neil Armstrong is in room 101 [101]; Charles Duke has gone home",
+                "youth first, then adults, each by last name")
+        #expect(say("neil arm") == "Neil Armstrong is in room 101 [101]")
+        #expect(say("bill") == "Bill Amend is waiting")
+        #expect(say("AGRE") == "Peter Agre has finished")
+        #expect(say("rob c") == "Rob Corddry was postponed")
+        #expect(say("lovell") == "Jim Lovell isn't on a board")
+        #expect(say("Duke") == "Charles Duke has gone home")
+        #expect(say("  ").isEmpty && say("Spielberg").isEmpty)
+    }
+
+    @Test func theFindNarrowsTheRoomsAndSaysWhereTheRestAre() {
+        let rooms = [room("101", .finalBoard, scoutName: "Arthur Eldred"), room("102", .finalBoard), room("200A", .projectReview)]
+        func find(_ query: String) -> (rooms: Set<String>?, note: String?) {
+            let found = PersonFind.people(query, youth: signedIn.youth, adults: signedIn.adults)
+            let shown = PersonFind.rooms(query, people: found, rooms: rooms)
+            return (shown, PersonFind.note(people: found, roomsFound: shown))
+        }
+        #expect(find("").rooms == nil && find("").note == nil, "an empty find shows every room")
+        #expect(find("armstrong").rooms == ["101"] && find("armstrong").note == nil)
+        #expect(find("20").rooms == ["200A"], "a room by its name")
+        #expect(find("ar").rooms == ["101"] && find("ar").note == "Charles Duke has gone home.")
+        #expect(find("bill").rooms == [] && find("bill").note == "Bill Amend is waiting.")
+        #expect(find("Spielberg").note == "No one by that name has signed in.")
+        let crowd = (1...6).map { youth("Pat", "Waiting\($0)", .registered) }
+        let found = PersonFind.people("pat", youth: crowd, adults: [])
+        #expect(PersonFind.note(people: found, roomsFound: PersonFind.rooms("pat", people: found, rooms: rooms))
+                == "Pat Waiting1 is waiting. Pat Waiting2 is waiting. Pat Waiting3 is waiting. Pat Waiting4 is waiting. And 2 more.")
+    }
+}
