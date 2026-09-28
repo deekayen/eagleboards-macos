@@ -840,22 +840,36 @@ public final class EventNight {
     }
 
     /// Replace an adult record as edited on the People or Adult History page.
+    ///
+    /// An adult's name, unit, contact and roles (`Adult.signInColumns`) are
+    /// one set of facts on the two pages, as a sign-in carries them between
+    /// the two tables (SPEC.md P-6): a change to either is made to the same
+    /// adult in the other, so a chair promoted in the history is seated as a
+    /// chair tonight. Wood Badge, whom they came to support and their room
+    /// belong to this event alone.
     public func updateAdult(_ edited: Adult, history: Bool = false) throws {
         var record = edited
         record.refreshDerivedFields()
+        let tonightIndex = adults.firstIndex(where: { $0.id == edited.id })
+        let historyIndex = adultHistory.firstIndex(where: { $0.id == edited.id })
         if history {
-            guard let index = adultHistory.firstIndex(where: { $0.id == edited.id }) else {
+            guard let historyIndex else {
                 throw EventError("That history record no longer exists.")
             }
-            adultHistory[index] = record
-            try save(.adultHistory)
+            adultHistory[historyIndex] = record
+            if let tonightIndex {
+                adults[tonightIndex].copyFacts(from: record)
+            }
         } else {
-            guard let index = adults.firstIndex(where: { $0.id == edited.id }) else {
+            guard let tonightIndex else {
                 throw EventError("That adult no longer exists.")
             }
-            adults[index] = record
-            try save(.adults)
+            adults[tonightIndex] = record
+            if let historyIndex {
+                adultHistory[historyIndex].copyFacts(from: record)
+            }
         }
+        try save(.adults, .adultHistory)
     }
 
     public func deleteAdult(id: String, history: Bool = false) throws {

@@ -709,6 +709,20 @@ struct BoardEventTests {
         #expect(busyAdults == 0)
     }
 
+    // SPEC.md P-6. People and Adult History are one set of facts for an
+    // adult: a chair promoted in the history is seated as a chair tonight.
+    @Test func aChairPromotedInTheHistoryIsSeatedAsOne() throws {
+        refused("a plain member cannot chair") { try seat("101", finalYouth(1), chair: member(1), member(2), member(3)) }
+        var history = try #require(night.adultHistory.first { $0.id == member(1) })
+        history.finalBoardRoleText = BoardRole.chair.rawValue
+        try night.updateAdult(history, history: true)
+        #expect(night.adult(id: member(1))?.canChair(.finalBoard) == true)
+        try seat("101", finalYouth(1), chair: member(1), member(2), member(3))
+        #expect(night.scout(id: finalYouth(1))?.boardChairID == member(1))
+        #expect(night.adult(id: member(1))?.room == "101", "their room is tonight's alone")
+        #expect(night.adultHistory.first { $0.id == member(1) }?.room == "")
+    }
+
     // Java section 19. What an adult says at sign-in.
     @Test func woodBadgeNoThanksAndTheYouthAnAdultCameToSupport() throws {
         let rsvp = try lateYouth("Galloway", "Tobias", unit: 3401)

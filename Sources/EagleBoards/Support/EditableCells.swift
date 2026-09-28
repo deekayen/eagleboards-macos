@@ -2,9 +2,10 @@ import EagleBoardsCore
 import SwiftUI
 
 /// Text edited in place in a table row, on the pages that list the event's
-/// records (SPEC.md P-6). Nothing is saved until Return or the field loses
-/// focus, and Escape puts the value back. `save` returns false when the change
-/// was refused, and the field shows what is on file again.
+/// records (SPEC.md P-6). It is saved on Return, when the field loses focus,
+/// or when the page is left with it still open, so the next page never shows
+/// an older value; Escape puts the value back. `save` returns false when the
+/// change was refused, and the field shows what is on file again.
 struct EditableText: View {
     let value: String
     let name: String
@@ -38,6 +39,7 @@ struct EditableText: View {
                 text = value
                 isFocused = false
             }
+            .onDisappear(perform: commit)
     }
 
     private func commit() {

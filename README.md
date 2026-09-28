@@ -172,7 +172,7 @@ window.
 | **People** (⌥⌘3) | Tonight's adults. Promote someone to Chair, mark Wood Badge, or fix a name. **Add Adult** at the foot signs someone in by hand. |
 | **Youth** (⌥⌘4) | Every youth who signed in, in sign-in order. |
 | **Pre-Registered** (⌥⌘5) | The youth who signed up on SignUpGenius for today. |
-| **Adult History** (⌥⌘6) | Every adult who has ever signed in, across events, searched by name, email or unit. **Last Event** has a check for those signed in today; double-click someone to sign them in. |
+| **Adult History** (⌥⌘6) | Every adult who has ever signed in, across events, searched by name, email or unit. **Last Event** has a check for those signed in today; double-click someone to sign them in. An adult's name, unit, contact and roles are the same here and on People: change either and both follow. |
 | **Rooms** (⌥⌘7) | What each room is used for today, and whose board is in it. **Add Room** at the foot adds one. |
 
 Right-click a record to delete it; that asks first. **File › Export List…**

@@ -53,7 +53,7 @@ struct HelpView: View {
                     bullet("People: tonight's adults. Promote someone to Chair, mark Wood Badge, or fix a name. Add Adult at the foot signs someone in by hand.")
                     bullet("Youth: every youth who signed in, in sign-in order.")
                     bullet("Pre-Registered: the youth who signed up on SignUpGenius for today.")
-                    bullet("Adult History: every adult who has ever signed in, across events, searched by name, email or unit. Last Event has a check for those signed in today; double-click someone to sign them in for today.")
+                    bullet("Adult History: every adult who has ever signed in, across events, searched by name, email or unit. Last Event has a check for those signed in today; double-click someone to sign them in for today. An adult's name, unit, contact and roles are the same on People and Adult History: change them on either and both follow, so someone promoted to Chair in the history chairs tonight. Wood Badge is for today only.")
                     bullet("Rooms: what each room is used for today, and whose board is in it. Add Room at the foot adds one.")
                     bullet("Right-click a record to delete it; that asks first. File › Export List… (Shift-Command-E) saves the page's list as a spreadsheet.")
                 }

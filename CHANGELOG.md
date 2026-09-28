@@ -28,7 +28,10 @@ left and stays off the Undo stack. Who sits on a board and which room anyone is
 in stay read-only: they change through the Event page's steps. A Status cell
 offers Waiting, Completed and Postponed, never Seated or In review, and a board
 that is sitting keeps its status until Reset Board or Complete, so nobody is
-seated without a room and members. **Results** is
+seated without a room and members. An adult's name, unit, contact and roles
+are one set of facts on People and Adult History: a change on either is made on
+both, so a chair promoted in the history chairs tonight. A cell still open when
+the page is left is saved. **Results** is
 the boards, where a result or its notes is corrected. **People** is tonight's
 adults, where someone is promoted to Chair and Wood Badge is a Yes/No choice
 showing the mark. **Adult History** searches names, emails and units, and its

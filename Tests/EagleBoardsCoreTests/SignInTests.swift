@@ -189,6 +189,33 @@ struct SignInTests {
         #expect(reopened.adultHistory.count == 3, "the same history record, not a new one")
     }
 
+    // SPEC.md P-6: an adult's name, unit, contact and roles are one set of
+    // facts on People and Adult History; Wood Badge stays with the event.
+    @Test func peopleAndTheHistoryShareAnAdultsFacts() throws {
+        let adult = try night.registerAdult(["First": "Morgan", "Last": "Member", "UnitType": "Troop", "Unit": "9",
+                                             "Email": "morgan@example.org", "WoodBadge": "Y"])
+        var history = try #require(night.adultHistory.first { $0.id == adult.id })
+        history.finalBoardRoleText = "Chair"
+        history.phone = "555-0110"
+        try night.updateAdult(history, history: true)
+        let tonight = try #require(night.adult(id: adult.id))
+        #expect(tonight.canChair(.finalBoard) && tonight.phone == "555-0110", "a change on Adult History reaches People")
+        #expect(tonight.woodBadge == "Y", "Wood Badge stays with the event")
+
+        var edited = tonight
+        edited.email = ""
+        edited.unit = "19"
+        edited.woodBadge = ""
+        try night.updateAdult(edited)
+        let kept = try #require(night.adultHistory.first { $0.id == adult.id })
+        #expect(kept.email == "" && kept.unitName == "Troop19", "a change on People reaches the history, a cleared field too")
+        #expect(kept.boardHistory == "(2026-09-22)", "the history's own columns are left alone")
+
+        let reopened = try EventNight(folder: scratch.dataFolder, night: "2026-09-22")
+        #expect(reopened.adult(id: adult.id)?.canChair(.finalBoard) == true, "both files are saved")
+        #expect(reopened.adultHistory.first { $0.id == adult.id }?.unit == "19")
+    }
+
     @Test func signingInAgainDoesNotTakeAnAdultOffTheirBoard() throws {
         var adult = try night.registerAdult(["First": "Morgan", "Last": "Member", "UnitType": "Troop", "Unit": "9"])
         adult.room = "101"
