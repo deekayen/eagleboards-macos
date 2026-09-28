@@ -86,64 +86,16 @@ struct AdultHistoryPage: View {
     @Environment(AppModel.self) private var model
     let night: EventNight
     @State private var selection: Set<Adult.ID> = []
-    @State private var sortOrder = [KeyPathComparator(\Adult.last)]
 
     var body: some View {
-        let rows = night.adultHistory
-            .filter { matches(model.searchText, $0.fullName, $0.email, $0.unitName) }
-            .sorted(using: sortOrder)
-        let signedIn = Set(night.adults.map(\.id))
-
-        Table(of: Adult.self, selection: $selection, sortOrder: $sortOrder) {
-            Group {
-                TableColumn("Last Event", value: \Adult.lastEvent) { adult in
-                    HStack(spacing: 4) {
-                        Text(adult.lastEvent).monospacedDigit()
-                        if signedIn.contains(adult.id) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(.tint)
-                                .help("Signed in today")
-                                .accessibilityLabel("Signed in today")
-                        }
-                    }
-                }
-                .width(min: 90, ideal: 110, max: 130)
-                TableColumn("Last", value: \Adult.last)
-                TableColumn("First", value: \Adult.first)
-                TableColumn("Unit", value: \Adult.unitName) { adult in
-                    Text(adult.unitDisplay)
-                }
-                .width(min: 60, ideal: 90, max: 130)
-                TableColumn("Final", value: \Adult.finalBoardRoleText) { adult in
-                    RoleText(role: adult.finalBoardRoleText)
-                }
-                .width(min: 50, ideal: 70, max: 90)
-            }
-            Group {
-                TableColumn("Project", value: \Adult.projectReviewRoleText) { adult in
-                    RoleText(role: adult.projectReviewRoleText)
-                }
-                .width(min: 50, ideal: 70, max: 90)
-                TableColumn("Events", value: \Adult.boardHistory) { adult in
-                    Text("\(adult.boardHistory.filter { $0 == "(" }.count)")
-                        .monospacedDigit()
-                        .help(adult.boardHistory)
-                }
-                .width(min: 44, ideal: 50, max: 70)
-                TableColumn("Email", value: \Adult.email)
-                TableColumn("Phone", value: \Adult.phone)
-            }
-        } rows: {
-            ForEach(rows) { TableRow($0) }
-        }
-        .contextMenu(forSelectionType: Adult.ID.self) { ids in
-            if !ids.isEmpty {
-                Button("Sign In for Today") { model.signInFromHistory(ids) }
-                    .disabled(ids.isSubset(of: signedIn))
-            }
-        } primaryAction: { ids in
-            model.signInFromHistory(ids.subtracting(signedIn))
-        }
+        let rows = night.adultHistory.filter { matches(model.searchText, $0.fullName, $0.email, $0.unitName) }
+        // AppKit, not a SwiftUI Table: see AdultHistoryTable.
+        AdultHistoryTable(
+            rows: rows,
+            signedIn: Set(night.adults.map(\.id)),
+            selection: $selection,
+            signIn: { model.signInFromHistory($0) }
+        )
         .overlay {
             if rows.isEmpty {
                 if model.searchText.isEmpty {
@@ -214,13 +166,6 @@ struct RoomsPage: View {
                 }
             }
         }
-    }
-}
-
-private extension Adult {
-    /// The last event they signed in at, from `(2026-08-25)(2026-09-22)`.
-    var lastEvent: String {
-        boardHistory.split(separator: ")").last.map { $0.trimmingCharacters(in: ["("]) } ?? ""
     }
 }
 
