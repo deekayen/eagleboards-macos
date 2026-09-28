@@ -42,27 +42,30 @@ public struct ApprovedProposals: Equatable, Sendable {
     public let unreadable: [String]
 
     /// The line above the list: how many earlier events were read, from
-    /// which date to which.
+    /// which date to which, in the Windows version's words
+    /// (`EarlierEvents.ApprovedProposals.About`).
     public var summary: String {
         guard let first = eventsRead.first, let last = eventsRead.last else {
             return "No earlier events in this data folder."
         }
         return eventsRead.count == 1
-            ? "Read 1 earlier event, on \(first)."
-            : "Read \(eventsRead.count) earlier events, from \(first) to \(last)."
+            ? "Read from 1 earlier event, \(first)."
+            : "Read from \(eventsRead.count) earlier events, \(first) to \(last)."
     }
 }
 
 extension DataFolder {
     /// The approved proposals at every event in this folder dated before
     /// `date`, however long ago (SPEC.md D-22): a project can take more than a
-    /// year between its proposal and the board of review. Read afresh each
-    /// time; nothing in an earlier folder is written.
+    /// year between its proposal and the board of review. A folder with no
+    /// youth file held no event. Read afresh each time; nothing in an
+    /// earlier folder is written.
     public func approvedProposals(before date: String) -> ApprovedProposals {
         var approvals: [ApprovedProposal] = []
         var eventsRead: [String] = []
         var unreadable: [String] = []
-        for event in nights().filter({ $0 < date }).sorted() {
+        for event in nights().filter({ $0 < date }).sorted()
+        where FileManager.default.fileExists(atPath: youthURL(night: event).path) {
             do {
                 let youth = try CSVFile.read(Scout.self, from: youthURL(night: event))
                 eventsRead.append(event)

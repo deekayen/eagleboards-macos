@@ -773,10 +773,12 @@ struct BoardEventTests {
         // A folder whose youth file can't be read: here a folder in its place.
         try FileManager.default.createDirectory(at: scratch.url.appending(path: "2026-07-28/scouts.csv"),
                                                 withIntermediateDirectories: true)
+        // And a dated folder with no youth file, which held no event.
+        try FileManager.default.createDirectory(at: scratch.url.appending(path: "2020-01-01"), withIntermediateDirectories: true)
 
         let found = night.approvedProposals()
         #expect(found.approvals.map(\.last) == ["Brook", "Quill"], "earlier events only, approved proposals only, by last name")
-        #expect(found.summary == "Read 2 earlier events, from 2019-05-28 to 2026-08-25.", "however long ago")
+        #expect(found.summary == "Read from 2 earlier events, 2019-05-28 to 2026-08-25.", "however long ago")
         #expect(found.unreadable.count == 1 && found.unreadable[0].hasPrefix("2026-07-28"), "a folder that can't be read is named")
         let ada = try #require(found.approvals.last)
         #expect(ada.event == "2019-05-28" && ada.unit == "Troop 3701" && ada.chair == "Chris Chair")
@@ -789,6 +791,8 @@ struct BoardEventTests {
                           to: "2026-08-25/scouts.csv")
         #expect(night.approvedProposals().approvals.map(\.last) == ["Brook", "Cove", "Quill"], "read afresh each time")
         #expect(try scratch.text("2019-05-28/scouts.csv").contains("555-0199"), "and nothing in an earlier folder is written")
+        #expect(!FileManager.default.fileExists(atPath: scratch.url.appending(path: "2020-01-01/scouts.csv").path),
+                "not even a youth file where there was none")
     }
 
     // Java section 19. What an adult says at sign-in.
