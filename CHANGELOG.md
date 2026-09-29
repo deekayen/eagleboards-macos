@@ -2,7 +2,7 @@
 
 Versions are CalVer: the release date.
 
-## Unreleased
+## 2026.09.28
 
 **Fill the Rest** (SPEC.md D-12), beside Suggest a Board in the inspector and
 in the Board menu: keeps the adults you put on the board and adds a chair, if
