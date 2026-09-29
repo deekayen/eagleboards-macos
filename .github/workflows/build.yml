@@ -131,8 +131,8 @@ jobs:
           [ "$(status http://127.0.0.1:18123/adult-history-cells)" = 404 ] || fail "record endpoints must not exist"
           [ "$(status --data 'First=Casey&Last=Smoketest&UnitType=Troop&Unit=1&BoardType=Final&Email=NONE' http://127.0.0.1:18123/register-youth)" = 200 ] \
             || fail "registration refused"
-          night=$(date +%Y-%m-%d)
-          grep -q 'SCOUT:Smoketest:Casey:1' "$data/$night/scouts.csv" || fail "registration not written to disk"
-          head -1 "$data/$night/scouts.csv" | grep -q '^Type,ID,RegNum,Last,First,' || fail "scouts.csv header changed"
+          event=$(date +%Y-%m-%d)
+          grep -q 'SCOUT:Smoketest:Casey:1' "$data/$event/scouts.csv" || fail "registration not written to disk"
+          head -1 "$data/$event/scouts.csv" | grep -q '^Type,ID,RegNum,Last,First,' || fail "scouts.csv header changed"
           kill $pid
           echo "smoke test passed"

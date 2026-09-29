@@ -7,12 +7,12 @@ import Testing
 struct SignInTests {
     let scratch: ScratchFolder
     let clock = TestClock()
-    let night: EventNight
+    let event: BoardEvent
 
     init() throws {
         scratch = try ScratchFolder()
         let clock = self.clock
-        night = try EventNight(folder: scratch.dataFolder, night: "2026-09-22", clock: { clock.now })
+        event = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22", clock: { clock.now })
     }
 
     /// What an older cached sign-in page sends: a phone number and birthdate
@@ -22,43 +22,43 @@ struct SignInTests {
     }
 
     @Test func walkInsAndPreRegisteredAreNumberedSeparately() throws {
-        try night.mergeSignUps([
+        try event.mergeSignUps([
             SignUpEntry(startDate: "2026-09-22 19:00", firstName: "pat", lastName: "prereg", item: "Eagle Board of Review",
                         email: "Pat@Example.org", customAnswers: ["Troop 1776", "7705550100", "lee leader"]),
         ], month: "2026-09")
 
-        let walkIn = try night.registerYouth(youthForm("Wally", "Walkin", email: "wally@example.org"))
-        let preRegistered = try night.registerYouth(youthForm("Pat", "Prereg", email: "pat@example.org"))
-        let secondWalkIn = try night.registerYouth(youthForm("Wanda", "Walkin", email: "NONE"))
+        let walkIn = try event.registerYouth(youthForm("Wally", "Walkin", email: "wally@example.org"))
+        let preRegistered = try event.registerYouth(youthForm("Pat", "Prereg", email: "pat@example.org"))
+        let secondWalkIn = try event.registerYouth(youthForm("Wanda", "Walkin", email: "NONE"))
 
         #expect(walkIn.regNum == "W1")
         #expect(preRegistered.regNum == "P1", "matched by email, ignoring case")
         #expect(secondWalkIn.regNum == "W2")
-        #expect(night.scouts.allSatisfy { $0.status == .registered })
+        #expect(event.scouts.allSatisfy { $0.status == .registered })
     }
 
     @Test func signingInAgainChangesOnlyTheSignInFields() throws {
-        let first = try night.registerYouth(youthForm("Jan", "Doe", email: "jan@example.org"))
+        let first = try event.registerYouth(youthForm("Jan", "Doe", email: "jan@example.org"))
         #expect(first.phone == "" && first.dateOfBirth == "", "a new youth's are empty (D-7, D-8)")
-        try night.addRoom(named: "101", boardType: .finalBoard)
+        try event.addRoom(named: "101", boardType: .finalBoard)
         let board = try ["Chair", "Member", "Other"].enumerated().map { index, last in
-            try night.registerAdult(["First": "Pat", "Last": last, "UnitType": "Troop", "Unit": "\(index + 7)",
+            try event.registerAdult(["First": "Pat", "Last": last, "UnitType": "Troop", "Unit": "\(index + 7)",
                                      "FinalBoard": index == 0 ? "Chair" : "Member"])
         }
-        try night.seatBoard(roomID: "ROOM:101", scoutID: first.id, chairID: board[0].id, memberIDs: board.map(\.id))
-        var seatedCopy = try #require(night.scout(id: first.id))
+        try event.seatBoard(roomID: "ROOM:101", scoutID: first.id, chairID: board[0].id, memberIDs: board.map(\.id))
+        var seatedCopy = try #require(event.scout(id: first.id))
         // A number on file from before D-8.
         seatedCopy.phone = "770-555-0101"
-        try night.updateYouth(seatedCopy)
+        try event.updateYouth(seatedCopy)
 
         var again = youthForm("Jan", "Doe", email: "jan@example.org", boardType: "Project")
         again["Leader"] = "Lee Leader"
         again["Phone"] = "770-555-0199"
         again["Status"] = "Completed"
         again["Result"] = "Approved"
-        let updated = try night.registerYouth(again)
+        let updated = try event.registerYouth(again)
 
-        #expect(night.scouts.count == 1)
+        #expect(event.scouts.count == 1)
         #expect(updated.leader == "Lee Leader")
         #expect(updated.phone == "770-555-0101", "a phone number on file is left alone (D-8)")
         let file = try scratch.text("2026-09-22/scouts.csv")
@@ -71,21 +71,21 @@ struct SignInTests {
     }
 
     @Test func aNameIsRequired() {
-        #expect(throws: EventError.self) { try night.registerYouth(["Email": "x@example.org", "BoardType": "Final"]) }
-        #expect(throws: EventError.self) { try night.registerAdult(["First": "Only"]) }
-        #expect(night.scouts.isEmpty && night.adults.isEmpty)
+        #expect(throws: EventError.self) { try event.registerYouth(["Email": "x@example.org", "BoardType": "Final"]) }
+        #expect(throws: EventError.self) { try event.registerAdult(["First": "Only"]) }
+        #expect(event.scouts.isEmpty && event.adults.isEmpty)
     }
 
-    @Test func aNewAdultIsAddedToTheHistoryWithTonightsDate() throws {
-        let adult = try night.registerAdult([
+    @Test func aNewAdultIsAddedToTheHistoryWithTheEventsDate() throws {
+        let adult = try event.registerAdult([
             "First": "Morgan", "Last": "Member", "Email": "morgan@example.org", "UnitType": "Crew", "Unit": "55",
             "FinalBoard": "Chair", "ProjectReview": "Member",
         ])
         #expect(adult.id == "ADULT:Member:Morgan:55")
         #expect(adult.flags == "W", "new to the history")
-        #expect(night.adultHistory.count == 1)
-        #expect(night.adultHistory[0].boardHistory == "(\(Timestamp.dayStamp(for: clock.now)))")
-        #expect(night.adultHistory[0].canChair(.finalBoard))
+        #expect(event.adultHistory.count == 1)
+        #expect(event.adultHistory[0].boardHistory == "(\(Timestamp.dayStamp(for: clock.now)))")
+        #expect(event.adultHistory[0].canChair(.finalBoard))
     }
 
     @Test func aReturningAdultIsRecognizedAndTheirHistoryUpdated() throws {
@@ -94,7 +94,7 @@ struct SignInTests {
                 + "ADULT,ADULT:Member:Morgan:55,Member,Morgan,morgan@example.org,111,Crew,55,Crew55,Member,Member,,,,,(2026-08-25)\n",
             to: "Master_AdultHistory.csv"
         )
-        let reopened = try EventNight(folder: scratch.dataFolder, night: "2026-09-22", clock: { [clock] in clock.now })
+        let reopened = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22", clock: { [clock] in clock.now })
         let known = try #require(reopened.knownAdult(matchingEmail: " MORGAN@example.org "))
         #expect(known.phone == "111")
 
@@ -108,7 +108,7 @@ struct SignInTests {
         #expect(reopened.adultHistory[0].canChair(.projectReview))
         #expect(reopened.adultHistory[0].boardHistory == "(2026-08-25)(\(Timestamp.dayStamp(for: clock.now)))")
 
-        // Signing in twice in a night records the night once, and a form that
+        // Signing in twice in a day records the day once, and a form that
         // leaves the roles out does not demote a chair.
         let again = try reopened.registerAdult(["First": "Morgan", "Last": "Member", "UnitType": "Crew", "Unit": "55"])
         #expect(reopened.adultHistory[0].boardHistory.components(separatedBy: "(").count == 3)
@@ -122,7 +122,7 @@ struct SignInTests {
                 + "ADULT,ADULT:Chair:Chris:7,Chair,Chris,chris@example.org,,Troop,7,Troop7,Member,Chair,,,,,(2026-08-25)\n",
             to: "Master_AdultHistory.csv"
         )
-        let reopened = try EventNight(folder: scratch.dataFolder, night: "2026-09-22")
+        let reopened = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22")
         let chris = try reopened.registerAdult(["First": "Chris", "Last": "Chair", "UnitType": "Troop", "Unit": "7", "FinalBoard": "Nonsense"])
         #expect(chris.canChair(.finalBoard), "taken from the history")
         #expect(chris.role(for: .projectReview) == .member)
@@ -139,7 +139,7 @@ struct SignInTests {
             to: "Master_AdultHistory.csv"
         )
         let clock = self.clock
-        let reopened = try EventNight(folder: scratch.dataFolder, night: "2026-09-22", clock: { clock.now })
+        let reopened = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22", clock: { clock.now })
         let chris = try reopened.registerAdult(Adult.handSignInForm(
             first: "Chris", last: "Chair", email: "", phone: "", unitType: "Troop", unit: "7",
             finalBoard: nil, projectReview: .chair, woodBadge: true
@@ -173,7 +173,7 @@ struct SignInTests {
             to: "Master_AdultHistory.csv"
         )
         let clock = self.clock
-        let reopened = try EventNight(folder: scratch.dataFolder, night: "2026-09-22", clock: { clock.now })
+        let reopened = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22", clock: { clock.now })
         #expect(reopened.historyMatches(for: "chair").map(\.first) == ["Chris", "Pat"], "by last name, then first")
         #expect(reopened.historyMatches(for: "chair pat").map(\.first) == ["Pat"], "every word must match")
         #expect(reopened.historyMatches(for: "ANN@EXAMPLE").map(\.first) == ["Ann"])
@@ -191,42 +191,42 @@ struct SignInTests {
     }
 
     // SPEC.md P-6: an adult's name, unit, contact and roles are one set of
-    // facts in tonight's adults and the read-only adult history; an edit on
+    // facts in the event's adults and the read-only adult history; an edit on
     // the Adults page reaches the history, and Wood Badge stays with the event.
     @Test func anEditOnTheAdultsPageReachesTheHistory() throws {
-        let adult = try night.registerAdult(["First": "Morgan", "Last": "Member", "UnitType": "Troop", "Unit": "9",
+        let adult = try event.registerAdult(["First": "Morgan", "Last": "Member", "UnitType": "Troop", "Unit": "9",
                                              "Email": "morgan@example.org", "WoodBadge": "Y"])
-        var edited = try #require(night.adult(id: adult.id))
+        var edited = try #require(event.adult(id: adult.id))
         edited.finalBoardRoleText = "Chair"
         edited.email = ""
         edited.unit = "19"
         edited.woodBadge = ""
-        try night.updateAdult(edited)
-        let kept = try #require(night.adultHistory.first { $0.id == adult.id })
-        #expect(kept.canChair(.finalBoard), "a chair promoted tonight is one at the next sign-in")
+        try event.updateAdult(edited)
+        let kept = try #require(event.adultHistory.first { $0.id == adult.id })
+        #expect(kept.canChair(.finalBoard), "a chair promoted today is one at the next sign-in")
         #expect(kept.email == "" && kept.unitName == "Troop19", "a cleared field reaches the history too")
         #expect(kept.boardHistory == "(2026-09-22)", "the history's own columns are left alone")
 
-        let reopened = try EventNight(folder: scratch.dataFolder, night: "2026-09-22")
+        let reopened = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22")
         #expect(reopened.adult(id: adult.id)?.canChair(.finalBoard) == true, "both files are saved")
         #expect(reopened.adultHistory.first { $0.id == adult.id }?.unit == "19")
 
-        try night.deleteAdult(id: adult.id)
-        #expect(night.adult(id: adult.id) == nil && night.adultHistory.contains { $0.id == adult.id },
-                "taking someone off tonight's list leaves the history alone")
+        try event.deleteAdult(id: adult.id)
+        #expect(event.adult(id: adult.id) == nil && event.adultHistory.contains { $0.id == adult.id },
+                "taking someone off the event's list leaves the history alone")
     }
 
     @Test func signingInAgainDoesNotTakeAnAdultOffTheirBoard() throws {
-        var adult = try night.registerAdult(["First": "Morgan", "Last": "Member", "UnitType": "Troop", "Unit": "9"])
+        var adult = try event.registerAdult(["First": "Morgan", "Last": "Member", "UnitType": "Troop", "Unit": "9"])
         adult.room = "101"
-        try night.updateAdult(adult)
-        let again = try night.registerAdult(["First": "Morgan", "Last": "Member", "UnitType": "Troop", "Unit": "9", "Phone": "333"])
+        try event.updateAdult(adult)
+        let again = try event.registerAdult(["First": "Morgan", "Last": "Member", "UnitType": "Troop", "Unit": "9", "Phone": "333"])
         #expect(again.room == "101")
         #expect(again.phone == "333")
     }
 
     @Test func unitlessAdultsHaveNoUnitNumber() throws {
-        let adult = try night.registerAdult(["First": "Dana", "Last": "District", "UnitType": "District", "Unit": "12"])
+        let adult = try event.registerAdult(["First": "Dana", "Last": "District", "UnitType": "District", "Unit": "12"])
         #expect(adult.unit == "")
         #expect(adult.unitName == "District")
         #expect(adult.unitLabel == "District")
@@ -234,23 +234,23 @@ struct SignInTests {
     }
 
     @Test func unitDisplayAddsTheSpaceUnitNameLeavesOut() throws {
-        let adult = try night.registerAdult(["First": "Chris", "Last": "Chair", "UnitType": "Troop", "Unit": "7"])
+        let adult = try event.registerAdult(["First": "Chris", "Last": "Chair", "UnitType": "Troop", "Unit": "7"])
         #expect(adult.unitName == "Troop7")
         #expect(adult.unitDisplay == "Troop 7")
     }
 
     @Test func blankOrNoneEmailsNeverMatch() throws {
-        try night.registerAdult(["First": "No", "Last": "Email", "Email": "NONE", "UnitType": "Troop", "Unit": "1"])
-        #expect(night.knownAdult(matchingEmail: "none") == nil)
-        #expect(night.knownAdult(matchingEmail: "") == nil)
+        try event.registerAdult(["First": "No", "Last": "Email", "Email": "NONE", "UnitType": "Troop", "Unit": "1"])
+        #expect(event.knownAdult(matchingEmail: "none") == nil)
+        #expect(event.knownAdult(matchingEmail: "") == nil)
     }
 
     @Test func minutesRunFromTheLastChange() throws {
-        let youth = try night.registerYouth(youthForm("Jan", "Doe", email: "jan@example.org"))
+        let youth = try event.registerYouth(youthForm("Jan", "Doe", email: "jan@example.org"))
         clock.advance(minutes: 12)
-        #expect(night.scout(id: youth.id)?.minutesSinceLastUpdate(now: night.now) == 12)
-        try night.postponeBoard(scoutID: youth.id)
-        #expect(night.scout(id: youth.id)?.minutesSinceLastUpdate(now: night.now) == 0, "a status change restarts the clock")
+        #expect(event.scout(id: youth.id)?.minutesSinceLastUpdate(now: event.now) == 12)
+        try event.postponeBoard(scoutID: youth.id)
+        #expect(event.scout(id: youth.id)?.minutesSinceLastUpdate(now: event.now) == 0, "a status change restarts the clock")
     }
 }
 
@@ -258,53 +258,53 @@ struct SignInTests {
 @Suite("Rooms")
 struct RoomTests {
     let scratch: ScratchFolder
-    let night: EventNight
+    let event: BoardEvent
 
     init() throws {
         scratch = try ScratchFolder()
-        night = try EventNight(folder: scratch.dataFolder, night: "2026-09-22")
+        event = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22")
     }
 
     @Test func roomsAreUniqueAndNamed() throws {
-        try night.addRoom(named: " 101 ", boardType: .finalBoard)
-        #expect(night.room(id: "ROOM:101")?.name == "101")
-        #expect(throws: EventError.self) { try night.addRoom(named: "101", boardType: .projectReview) }
-        #expect(throws: EventError.self) { try night.addRoom(named: "  ", boardType: .projectReview) }
-        #expect(throws: EventError.self) { try night.addRoom(named: "1,2", boardType: .projectReview) }
+        try event.addRoom(named: " 101 ", boardType: .finalBoard)
+        #expect(event.room(id: "ROOM:101")?.name == "101")
+        #expect(throws: EventError.self) { try event.addRoom(named: "101", boardType: .projectReview) }
+        #expect(throws: EventError.self) { try event.addRoom(named: "  ", boardType: .projectReview) }
+        #expect(throws: EventError.self) { try event.addRoom(named: "1,2", boardType: .projectReview) }
 
-        #expect(throws: EventError.self) { try night.swapRooms("ROOM:101", "ROOM:101") }
+        #expect(throws: EventError.self) { try event.swapRooms("ROOM:101", "ROOM:101") }
     }
 
     @Test func swappingMovesTheYouthTheMembersAndTheCard() throws {
-        try night.addRoom(named: "101", boardType: .finalBoard)
-        try night.addRoom(named: "102", boardType: .finalBoard)
+        try event.addRoom(named: "101", boardType: .finalBoard)
+        try event.addRoom(named: "102", boardType: .finalBoard)
         for (first, role) in [("Chris", "Chair"), ("Morgan", "Member"), ("Taylor", "Member")] {
-            try night.registerAdult(["First": first, "Last": "Adult", "UnitType": "Troop", "Unit": first.count.description + "0", "FinalBoard": role])
+            try event.registerAdult(["First": first, "Last": "Adult", "UnitType": "Troop", "Unit": first.count.description + "0", "FinalBoard": role])
         }
-        let youth = try night.registerYouth(["First": "Jan", "Last": "Doe", "UnitType": "Troop", "Unit": "1776", "BoardType": "Final"])
-        let adultIDs = night.adults.map(\.id)
-        try night.seatBoard(roomID: "ROOM:101", scoutID: youth.id, chairID: adultIDs[0], memberIDs: adultIDs)
+        let youth = try event.registerYouth(["First": "Jan", "Last": "Doe", "UnitType": "Troop", "Unit": "1776", "BoardType": "Final"])
+        let adultIDs = event.adults.map(\.id)
+        try event.seatBoard(roomID: "ROOM:101", scoutID: youth.id, chairID: adultIDs[0], memberIDs: adultIDs)
 
-        try night.swapRooms("ROOM:101", "ROOM:102")
-        #expect(night.scout(id: youth.id)?.room == "102")
-        #expect(night.adults.allSatisfy { $0.room == "102" })
-        #expect(night.room(named: "102")?.scoutName == "Jan Doe")
-        #expect(night.room(named: "101")?.isFree == true)
-        #expect(throws: EventError.self) { try night.removeRoom(id: "ROOM:102") }
-        try night.removeRoom(id: "ROOM:101")
-        #expect(night.rooms.map(\.name) == ["102"])
+        try event.swapRooms("ROOM:101", "ROOM:102")
+        #expect(event.scout(id: youth.id)?.room == "102")
+        #expect(event.adults.allSatisfy { $0.room == "102" })
+        #expect(event.room(named: "102")?.scoutName == "Jan Doe")
+        #expect(event.room(named: "101")?.isFree == true)
+        #expect(throws: EventError.self) { try event.removeRoom(id: "ROOM:102") }
+        try event.removeRoom(id: "ROOM:101")
+        #expect(event.rooms.map(\.name) == ["102"])
     }
 
-    @Test func roomsCopyFromAnEarlierNightEmpty() throws {
+    @Test func roomsCopyFromAnEarlierEventEmpty() throws {
         try scratch.write(
             "Type,ID,Room,BoardType,Scout,Leaders,RegTime\nROOM,ROOM:101,101,Final,Old Youth,Old Adults,\nROOM,ROOM:200A,200A,Project,,,\n",
             to: "2026-08-25/rooms.csv"
         )
-        try night.addRoom(named: "101", boardType: .finalBoard)
-        #expect(try night.copyRooms(fromNight: "2026-08-25") == 1)
-        #expect(night.rooms.map(\.name) == ["101", "200A"])
-        #expect(night.rooms.allSatisfy { $0.isFree })
-        #expect(scratch.dataFolder.nights() == ["2026-09-22", "2026-08-25"])
+        try event.addRoom(named: "101", boardType: .finalBoard)
+        #expect(try event.copyRooms(fromEvent: "2026-08-25") == 1)
+        #expect(event.rooms.map(\.name) == ["101", "200A"])
+        #expect(event.rooms.allSatisfy { $0.isFree })
+        #expect(scratch.dataFolder.events() == ["2026-09-22", "2026-08-25"])
     }
 }
 
@@ -312,16 +312,16 @@ struct RoomTests {
 @Suite("SignUpGenius import")
 struct SignUpImportTests {
     let scratch: ScratchFolder
-    let night: EventNight
+    let event: BoardEvent
 
     init() throws {
         scratch = try ScratchFolder()
-        night = try EventNight(folder: scratch.dataFolder, night: "2026-09-22")
+        event = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22")
     }
 
     @Test func entriesBecomeHistoryAndPreRegistrations() throws {
-        try night.registerAdult(["First": "Known", "Last": "Adult", "Email": "known@example.org", "UnitType": "Troop", "Unit": "1", "Phone": "old"])
-        let summary = try night.mergeSignUps([
+        try event.registerAdult(["First": "Known", "Last": "Adult", "Email": "known@example.org", "UnitType": "Troop", "Unit": "1", "Phone": "old"])
+        let summary = try event.mergeSignUps([
             SignUpEntry(startDate: "2026-09-22 19:00", firstName: "known", lastName: "adult", item: "Adult Board Member",
                         email: "KNOWN@example.org", customAnswers: ["Troop 1", "(770) 555-0100"]),
             SignUpEntry(startDate: "2026-09-22 19:00", firstName: "new", lastName: "van dyke", item: "Adult Board Member",
@@ -335,29 +335,29 @@ struct SignUpImportTests {
         ], month: "2026-09")
 
         #expect(summary == .init(addedAdults: 1, updatedAdults: 1, addedYouth: 2, outsideThisMonth: 1))
-        #expect(night.knownAdult(matchingEmail: "known@example.org")?.phone == "770-555-0100")
+        #expect(event.knownAdult(matchingEmail: "known@example.org")?.phone == "770-555-0100")
 
-        let added = try #require(night.knownAdult(matchingEmail: "new@example.org"))
+        let added = try #require(event.knownAdult(matchingEmail: "new@example.org"))
         #expect(added.fullName == "New Van dyke")
         #expect(added.unitName == "Crew55")
         #expect(added.phone == "770-555-0101")
         #expect(added.role(for: .finalBoard) == .member && added.role(for: .projectReview) == .member)
 
-        let jan = try #require(night.scheduledYouth(matchingEmail: "jan@example.org"))
+        let jan = try #require(event.scheduledYouth(matchingEmail: "jan@example.org"))
         #expect(jan.id == "SCOUT:Doe:Jan:1776")
         #expect(jan.boardType == .finalBoard)
         #expect(jan.leader == "Lee Leader")
         #expect(jan.phone == "", "a youth's phone number is not imported (D-8)")
-        #expect(night.scheduledYouth(matchingEmail: "sam@example.org")?.boardType == .projectReview)
-        #expect(night.scheduledYouth(matchingEmail: "sam@example.org")?.unitName == "Post9")
+        #expect(event.scheduledYouth(matchingEmail: "sam@example.org")?.boardType == .projectReview)
+        #expect(event.scheduledYouth(matchingEmail: "sam@example.org")?.unitName == "Post9")
 
         // Importing the same sign-up again adds nobody.
-        let again = try night.mergeSignUps([
+        let again = try event.mergeSignUps([
             SignUpEntry(startDate: "2026-09-22", firstName: "jan", lastName: "doe", item: "Eagle Board of Review",
                         email: "jan@example.org", customAnswers: []),
         ], month: "2026-09")
         #expect(again.alreadyScheduledYouth == 1)
-        #expect(night.scheduledScouts.count == 2)
+        #expect(event.scheduledScouts.count == 2)
     }
 
     @Test(arguments: [

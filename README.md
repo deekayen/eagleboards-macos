@@ -186,7 +186,7 @@ members. There is no separate records window.
 | Page | What it holds |
 | --- | --- |
 | **Results** (⌥⌘2) | Every board and its result. Correct a result or its notes here. Double-click a board to see it on the Event page. |
-| **Adults** (⌥⌘3) | Tonight's adults. Promote someone to Chair, mark Wood Badge, or fix a name; a change to a name, unit, contact or role reaches the adult history too. **Add Adult** at the foot signs someone in by hand. |
+| **Adults** (⌥⌘3) | The event's adults. Promote someone to Chair, mark Wood Badge, or fix a name; a change to a name, unit, contact or role reaches the adult history too. **Add Adult** at the foot signs someone in by hand. |
 | **Youth** (⌥⌘4) | Every youth who signed in, in sign-in order. |
 | **Pre-Registered** (⌥⌘5) | The youth who signed up on SignUpGenius for today. |
 | **Adult History CSV** (⌥⌘6) | Every adult who has ever signed in, across events, read-only, searched by name, email or unit. **Last Event** has a check for those signed in today; double-click someone to sign them in. |

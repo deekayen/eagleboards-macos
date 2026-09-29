@@ -42,7 +42,7 @@ private struct GeneralSettings: View {
                 HStack {
                     Button("Choose…") { model.chooseDataFolderWithPanel() }
                     Button("Show in Finder") { model.showDataFolderInFinder() }
-                        .disabled(model.night == nil)
+                        .disabled(model.event == nil)
                 }
             }
             Section {
@@ -77,10 +77,10 @@ private struct TimerSettings: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        if let night = model.night {
+        if let event = model.event {
             Form {
                 Section {
-                    minutes("Convening, overdue after", \.conveneRedMinutes, night)
+                    minutes("Convening, overdue after", \.conveneRedMinutes, event)
                 } header: {
                     Text("Board convening (Seat Board to Start Review)")
                 } footer: {
@@ -90,8 +90,8 @@ private struct TimerSettings: View {
                         .foregroundStyle(.secondary)
                 }
                 Section {
-                    minutes("Running long after", \.finalYellowMinutes, night)
-                    minutes("Overdue after", \.finalRedMinutes, night)
+                    minutes("Running long after", \.finalYellowMinutes, event)
+                    minutes("Overdue after", \.finalRedMinutes, event)
                 } header: {
                     Text("Final board review (from Start Review)")
                 } footer: {
@@ -100,8 +100,8 @@ private struct TimerSettings: View {
                         .foregroundStyle(.secondary)
                 }
                 Section {
-                    minutes("Running long after", \.projectYellowMinutes, night)
-                    minutes("Overdue after", \.projectRedMinutes, night)
+                    minutes("Running long after", \.projectYellowMinutes, event)
+                    minutes("Overdue after", \.projectRedMinutes, event)
                 } header: {
                     Text("Proposal review (from Start Review)")
                 } footer: {
@@ -116,19 +116,19 @@ private struct TimerSettings: View {
         }
     }
 
-    private func minutes(_ label: String, _ keyPath: WritableKeyPath<Config, Int>, _ night: EventNight) -> some View {
-        Stepper(value: configBinding(keyPath, night), in: 0...240) {
-            LabeledContent(label, value: night.config[keyPath: keyPath] == 0 ? "off" : "\(night.config[keyPath: keyPath]) min")
+    private func minutes(_ label: String, _ keyPath: WritableKeyPath<Config, Int>, _ event: BoardEvent) -> some View {
+        Stepper(value: configBinding(keyPath, event), in: 0...240) {
+            LabeledContent(label, value: event.config[keyPath: keyPath] == 0 ? "off" : "\(event.config[keyPath: keyPath]) min")
         }
     }
 
-    private func configBinding(_ keyPath: WritableKeyPath<Config, Int>, _ night: EventNight) -> Binding<Int> {
+    private func configBinding(_ keyPath: WritableKeyPath<Config, Int>, _ event: BoardEvent) -> Binding<Int> {
         Binding(
-            get: { night.config[keyPath: keyPath] },
+            get: { event.config[keyPath: keyPath] },
             set: { newValue in
-                var edited = night.config
+                var edited = event.config
                 edited[keyPath: keyPath] = newValue
-                model.attempt("Could not save the settings") { try night.updateConfig(edited) }
+                model.attempt("Could not save the settings") { try event.updateConfig(edited) }
             }
         )
     }
@@ -170,7 +170,7 @@ private struct SignUpGeniusSettings: View {
             Section {
                 Toggle("Import when today's event is opened", isOn: $model.importOnOpen)
                 Button("Import Now") { Task { await model.importSignUps() } }
-                    .disabled(model.night == nil || model.isImporting || !model.hasSignUpGeniusKey)
+                    .disabled(model.event == nil || model.isImporting || !model.hasSignUpGeniusKey)
             }
         }
         .formStyle(.grouped)

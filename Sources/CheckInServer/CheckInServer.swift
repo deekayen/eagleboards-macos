@@ -13,9 +13,9 @@ import Hummingbird
 /// door get names and units; the email lookups get the fields their form fills
 /// in. Nobody can ask for a column by name.
 public enum CheckInServer {
-    /// Build the routes for an event night. Split out from `run` so tests can
+    /// Build the routes for an event. Split out from `run` so tests can
     /// drive them without opening a socket.
-    public static func router(for night: EventNight) -> Router<BasicRequestContext> {
+    public static func router(for event: BoardEvent) -> Router<BasicRequestContext> {
         let router = Router()
         router.middlewares.add(SecurityHeaders())
 
@@ -26,55 +26,55 @@ public enum CheckInServer {
         }
 
         router.get("/api/checked-in") { _, _ in
-            let lists = await CheckedInLists(night: night)
+            let lists = await CheckedInLists(event: event)
             return try jsonResponse(lists)
         }
 
         // The adult form's "I'm here supporting" list: RSVPs and the event's
         // walk-ins not yet finished. ID, name and unit only.
         router.get("/api/scout-choices") { _, _ in
-            let choices = await ScoutChoices(night: night)
+            let choices = await ScoutChoices(event: event)
             return try jsonResponse(choices.scouts)
         }
 
         router.post("/api/youth-lookup") { request, _ in
             let form = try await FormFields.decode(request)
-            let match = await night.scheduledYouth(matchingEmail: form["email"] ?? "")
+            let match = await event.scheduledYouth(matchingEmail: form["email"] ?? "")
             return try jsonResponse(match.map { pick(youthPrefillColumns, from: $0) } ?? [:])
         }
 
         router.post("/api/adult-lookup") { request, _ in
             let form = try await FormFields.decode(request)
-            let match = await night.knownAdult(matchingEmail: form["email"] ?? "")
+            let match = await event.knownAdult(matchingEmail: form["email"] ?? "")
             return try jsonResponse(match.map { pick(adultPrefillColumns, from: $0) } ?? [:])
         }
 
         router.post("/register-youth") { request, _ in
             let form = try await FormFields.decode(request)
-            return await outcome { try await night.registerYouth(form) }
+            return await outcome { try await event.registerYouth(form) }
         }
 
         router.post("/register-adult") { request, _ in
             let form = try await FormFields.decode(request)
-            return await outcome { try await night.registerAdult(form) }
+            return await outcome { try await event.registerAdult(form) }
         }
 
         return router
     }
 
-    /// Serve `night` until the surrounding task is cancelled.
+    /// Serve `event` until the surrounding task is cancelled.
     ///
     /// - Parameters:
     ///   - host: `0.0.0.0` to accept the sign-in tablets, `127.0.0.1` for this Mac only.
     ///   - port: `0` picks a free port, reported through `onRunning`.
     public static func run(
-        night: EventNight,
+        event: BoardEvent,
         host: String = "0.0.0.0",
         port: Int,
         onRunning: @escaping @Sendable (Int) async -> Void = { _ in }
     ) async throws {
         let application = Application(
-            router: router(for: night),
+            router: router(for: event),
             configuration: .init(address: .hostname(host, port: port), serverName: "Eagle Boards"),
             onServerRunning: { channel in
                 await onRunning(channel.localAddress?.port ?? port)
@@ -106,12 +106,12 @@ public enum CheckInServer {
         let adults: [Adult]
 
         @MainActor
-        init(night: EventNight) {
-            refreshSeconds = night.config.refreshSeconds
-            youth = night.scouts.map {
+        init(event: BoardEvent) {
+            refreshSeconds = event.config.refreshSeconds
+            youth = event.scouts.map {
                 Youth(time: Timestamp.hourMinute(ofRecordStamp: $0.regTime), last: $0.last, first: $0.first, unitType: $0.unitType, unit: $0.unit)
             }
-            adults = night.adults.map {
+            adults = event.adults.map {
                 Adult(last: $0.last, first: $0.first, unitType: $0.unitType, unit: $0.unit)
             }
         }
@@ -124,8 +124,8 @@ public enum CheckInServer {
         let scouts: [Youth]
 
         @MainActor
-        init(night: EventNight) {
-            scouts = night.scoutChoices().map {
+        init(event: BoardEvent) {
+            scouts = event.scoutChoices().map {
                 Youth(id: $0.id, first: $0.first, last: $0.last, unitType: $0.unitType, unit: $0.unit)
             }
         }

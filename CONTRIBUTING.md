@@ -21,7 +21,7 @@ without a window or a socket:
                                          |
                               +----------v-----------+
                               |  EagleBoardsCore     |  records, CSV files,
-                              |  EventNight          |  board rules, every
+                              |  BoardEvent          |  board rules, every
                               +----------+-----------+  lifecycle step
                                          |
                                   data folder on disk
@@ -29,11 +29,11 @@ without a window or a socket:
 
 | Target | What lives there |
 | --- | --- |
-| `EagleBoardsCore` | `Records.swift` (the record types), `DataFiles.swift` (the CSV and `config.properties` dialects), `BoardRules.swift` (composition rules, board suggestion, locating leaders, room timers), `EventNight.swift` (one night's state and every change to it), `SignUpGenius.swift`, `LaunchSettings.swift` (saved preferences and the development environment variables). No UI, no server. |
+| `EagleBoardsCore` | `Records.swift` (the record types), `DataFiles.swift` (the CSV and `config.properties` dialects), `BoardRules.swift` (composition rules, board suggestion, locating leaders, room timers), `BoardEvent.swift` (one event's state and every change to it), `SignUpGenius.swift`, `LaunchSettings.swift` (saved preferences and the development environment variables). No UI, no server. |
 | `CheckInServer` | The web server for the tablets, and the sign-in pages in `Resources/CheckIn`. It serves those pages and the five calls they make, and nothing else. |
-| `EagleBoards` | The SwiftUI app. `AppModel` holds which night is open, runs the server, and keeps the operator's work in progress. |
+| `EagleBoards` | The SwiftUI app. `AppModel` holds which event is open, runs the server, and keeps the operator's work in progress. |
 
-`EventNight` is `@MainActor` and `@Observable`. The windows read it directly;
+`BoardEvent` is `@MainActor` and `@Observable`. The windows read it directly;
 the server hops onto the main actor to register someone. So a sign-in shows
 up on the scheduler the moment it lands, with no polling, and there is only
 one thread that ever changes the data.
@@ -70,9 +70,9 @@ EAGLEBOARDS_DATA_FOLDER=/tmp/eb-scratch EAGLEBOARDS_PORT=18123 "build/Eagle Boar
 ```
 
 With `EAGLEBOARDS_DATA_FOLDER` set, SignUpGenius is off for the run: the app
-does not read the key from your keychain, so opening tonight cannot import the
-district's real sign-ups into the scratch folder or put an "Imported" notice in
-a screenshot. Set `EAGLEBOARDS_SIGNUPGENIUS=1` as well only when you mean to
+does not read the key from your keychain, so opening today's event cannot
+import the district's real sign-ups into the scratch folder or put an "Imported"
+notice in a screenshot. Set `EAGLEBOARDS_SIGNUPGENIUS=1` as well only when you mean to
 test the import itself, and never screenshot the result. Preferences given on
 the command line (`-importSignUpsOnOpen NO`, `-checkInPort 18123`) work too.
 
@@ -100,7 +100,7 @@ below. Run things locally to debug what CI found, or to iterate.
    while taking screenshots, or let it use the SignUpGenius key (see above).
 4. **The data files are the contract.** Both this app and the Java Eagle Board
    Scheduler read and write them, so a district can move between the two, or
-   fall back to the Java app on the night. Keep column names, column order,
+   fall back to the Java app at the event. Keep column names, column order,
    ID shapes and the comma dialect exactly as `FileFormatTests` pins them.
 5. **The network gets the sign-in pages and nothing more.** Every operator
    screen is a window. Anything the server returns is trimmed to what its page
@@ -108,7 +108,7 @@ below. Run things locally to debug what CI found, or to iterate.
    operator paths are 404. Keep it that way.
 6. **Board composition rules live in two places, on purpose.** `SeatingReview`
    explains them to the operator, and asks for confirmation where a rule
-   allows it. `EventNight.seatBoard` refuses the hard ones again, whatever
+   allows it. `BoardEvent.seatBoard` refuses the hard ones again, whatever
    called it. Both must agree:
    - **Size.** A board of review has three to six members (GTA 8.0.0.3): fewer
      refused, four to six confirmed, seven refused. A project proposal review
@@ -130,7 +130,7 @@ below. Run things locally to debug what CI found, or to iterate.
    youth waits (GTA 8.0.3.0 #8), and Start Review brings them in. Only an
    InProgress board can be completed. Seated and InProgress are reached only
    through those steps, which give the youth a room and members: the pages
-   show the status read-only, and `EventNight.updateYouth` refuses to set a
+   show the status read-only, and `BoardEvent.updateYouth` refuses to set a
    sitting status or to change a board that holds a room (Reset Board and
    Complete free it). `Verified`
    survives on legacy records only; nothing sets it.

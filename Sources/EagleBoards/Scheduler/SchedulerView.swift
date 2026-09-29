@@ -11,25 +11,25 @@ import SwiftUI
 /// inspector follows the selected youth on every page: the board being drawn
 /// up for them, or how it went.
 ///
-/// Nothing here polls. The event night is observed directly, so a youth who
+/// Nothing here polls. The event is observed directly, so a youth who
 /// signs in at the door appears the moment the tablet's request lands.
 struct SchedulerView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.undoManager) private var undoManager
     /// The youth list's width on the Event page, as the operator last left it.
     @AppStorage("youthListWidth") private var youthListWidth = 320.0
-    let night: EventNight
+    let event: BoardEvent
 
     var body: some View {
         @Bindable var model = model
 
         content
             .navigationTitle(title)
-            .navigationSubtitle(nightSubtitle)
+            .navigationSubtitle(eventSubtitle)
             .searchable(text: $model.searchText, placement: .toolbar, prompt: searchPrompt)
             .onSubmit(of: .search) { model.openFirstFound() }
             .inspector(isPresented: $model.showsInspector) {
-                YouthInspector(night: night)
+                YouthInspector(event: event)
                     .inspectorColumnWidth(min: 300, ideal: 340, max: 480)
                     .toolbar {
                         ToolbarItem {
@@ -45,15 +45,15 @@ struct SchedulerView: View {
             .toolbar { toolbar }
             .sheet(item: $model.sheet) { sheet in
                 switch sheet {
-                case .seatBoard(let scoutID): SeatBoardSheet(night: night, scoutID: scoutID)
-                case .changeMembers(let scoutID): ChangeMembersSheet(night: night, scoutID: scoutID)
-                case .completeBoard(let scoutID): CompleteBoardSheet(night: night, scoutID: scoutID)
-                case .addRoom: AddRoomSheet(night: night)
+                case .seatBoard(let scoutID): SeatBoardSheet(event: event, scoutID: scoutID)
+                case .changeMembers(let scoutID): ChangeMembersSheet(event: event, scoutID: scoutID)
+                case .completeBoard(let scoutID): CompleteBoardSheet(event: event, scoutID: scoutID)
+                case .addRoom: AddRoomSheet(event: event)
                 case .addAdult: AddAdultSheet()
-                case .swapRooms(let roomID): SwapRoomsSheet(night: night, firstRoomID: roomID)
+                case .swapRooms(let roomID): SwapRoomsSheet(event: event, firstRoomID: roomID)
                 case .renameRoom(let roomID):
-                    RenameRoomSheet(night: night, roomID: roomID, rename: { try model.renameRoom(roomID, to: $0) })
-                case .openNight: OpenNightSheet()
+                    RenameRoomSheet(event: event, roomID: roomID, rename: { try model.renameRoom(roomID, to: $0) })
+                case .openEvent: OpenEventSheet()
                 }
             }
             .confirmationDialog(
@@ -72,7 +72,7 @@ struct SchedulerView: View {
             .onChange(of: proposalInputs) { model.refreshProposals() }
             .onAppear { model.undoManager = undoManager }
             .onChange(of: model.waitingCount, initial: true) { model.attention.showWaiting(model.waitingCount) }
-            .task(id: night.night) {
+            .task(id: event.date) {
                 while !Task.isCancelled {
                     model.checkRoomTimers()
                     try? await Task.sleep(for: .seconds(30))
@@ -84,9 +84,9 @@ struct SchedulerView: View {
     /// What a proposed board is made from. When any of it changes, proposals
     /// the operator has not touched are made again.
     private var proposalInputs: [String] {
-        night.rooms.map { "\($0.id)|\($0.boardTypeText)|\($0.scoutName)" }
-            + night.adults.map { "\($0.id)|\($0.room)|\($0.finalBoardRoleText)|\($0.projectReviewRoleText)" }
-            + night.scouts.map { "\($0.id)|\($0.statusText)|\($0.boardTypeText)" }
+        event.rooms.map { "\($0.id)|\($0.boardTypeText)|\($0.scoutName)" }
+            + event.adults.map { "\($0.id)|\($0.room)|\($0.finalBoardRoleText)|\($0.projectReviewRoleText)" }
+            + event.scouts.map { "\($0.id)|\($0.statusText)|\($0.boardTypeText)" }
     }
 
     /// On the Event page, every youth beside the rooms -- both always on
@@ -98,26 +98,26 @@ struct SchedulerView: View {
         switch model.page {
         case .event:
             HStack(spacing: 0) {
-                YouthList(night: night)
+                YouthList(event: event)
                     .frame(width: youthListWidth)
                 ColumnResizer(width: $youthListWidth, range: 260...520, label: "Youth list width")
-                RoomsGrid(night: night)
+                RoomsGrid(event: event)
                     .frame(minWidth: 240, maxWidth: .infinity, maxHeight: .infinity)
             }
         case .results:
-            ResultsPage(night: night)
+            ResultsPage(event: event)
         case .adults:
-            AdultList(night: night)
+            AdultList(event: event)
         case .youth:
-            YouthPage(night: night)
+            YouthPage(event: event)
         case .preRegistered:
-            PreRegisteredPage(night: night)
+            PreRegisteredPage(event: event)
         case .adultHistory:
-            AdultHistoryPage(night: night)
+            AdultHistoryPage(event: event)
         case .rooms:
-            RoomsPage(night: night)
+            RoomsPage(event: event)
         case .approvedProposals:
-            ApprovedProposalsPage(night: night)
+            ApprovedProposalsPage(event: event)
         }
     }
 
@@ -136,8 +136,8 @@ struct SchedulerView: View {
         }
     }
 
-    private var nightSubtitle: String {
-        night.night == model.today ? "Today, \(night.night)" : "\(night.night) (an earlier event)"
+    private var eventSubtitle: String {
+        event.date == model.today ? "Today, \(event.date)" : "\(event.date) (an earlier event)"
     }
 
     @ToolbarContentBuilder

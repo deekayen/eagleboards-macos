@@ -285,7 +285,7 @@ public struct Adult: PersonRecord {
     public static let columns = [
         "Type", "ID", "Last", "First", "Email", "Phone", "UnitType", "Unit", "UnitName",
         "ProjectReview", "FinalBoard", "RegTime", "Room", "Flags", "Sel", "BoardHistory",
-        // Per night, set at sign-in and never carried into the adult history.
+        // Per event, set at sign-in and never carried into the adult history.
         // Appended, as in the Java version, so older files still line up.
         "WoodBadge", "Supporting",
     ]
@@ -294,7 +294,7 @@ public struct Adult: PersonRecord {
     public static let signInColumns = ["First", "Last", "Unit", "UnitType", "Email", "Phone", "ProjectReview", "FinalBoard"]
 
     /// Take another record's name, unit, contact and roles, cleared ones
-    /// too: what tonight's adults and the adult history share (SPEC.md P-6).
+    /// too: what the event's adults and the adult history share (SPEC.md P-6).
     public mutating func copyFacts(from other: Adult) {
         for column in Self.signInColumns {
             self[column] = other[column]
@@ -304,7 +304,7 @@ public struct Adult: PersonRecord {
 
     /// The sign-in form for an adult the operator adds by hand on the Adults
     /// page, for someone who would rather not use the tablet. It goes through
-    /// `EventNight.registerAdult` as the tablet's does. A nil role is left for
+    /// `BoardEvent.registerAdult` as the tablet's does. A nil role is left for
     /// the adult history to fill in, or Member for someone new, so adding a
     /// known chair cannot demote them. `historyID` is the history record the
     /// form was filled in from, as the tablet's email lookup carries it, so a
@@ -356,7 +356,7 @@ public struct Adult: PersonRecord {
         set { self["BoardHistory"] = newValue }
     }
 
-    /// "Y" when tonight counts toward a Wood Badge ticket item.
+    /// "Y" when this event counts toward a Wood Badge ticket item.
     public var woodBadge: String {
         get { self["WoodBadge"] }
         set { self["WoodBadge"] = newValue }
@@ -386,19 +386,19 @@ public struct Adult: PersonRecord {
     }
 
     /// Came to serve on any board: not here for a particular youth, or
-    /// counting tonight toward Wood Badge (then a volunteer first, whoever
+    /// counting this event toward Wood Badge (then a volunteer first, whoever
     /// else they came with).
     public var cameForAnyBoard: Bool { woodBadge == "Y" || supporting.isEmpty }
 
-    /// Stood down for the night with the Disable button.
-    public var isDisabledForTonight: Bool { room == disabledForTonightMarker }
+    /// Stood down for the event with the Disable button.
+    public var isDisabledForToday: Bool { room == disabledForTodayMarker }
     /// Sitting on a board right now.
-    public var isOnBoard: Bool { !room.isEmpty && !isDisabledForTonight }
+    public var isOnBoard: Bool { !room.isEmpty && !isDisabledForToday }
     /// Free to be put on a board.
     public var isAvailable: Bool { room.isEmpty }
 
     /// Could be added to a board of this type right now: free, and did not
-    /// say "No thanks" to it. The same refusals `EventNight.seatBoard` makes
+    /// say "No thanks" to it. The same refusals `BoardEvent.seatBoard` makes
     /// about a member, so the scheduler never offers someone it would refuse.
     public func canJoin(_ boardType: BoardType) -> Bool {
         isAvailable && role(for: boardType) != .unavailable

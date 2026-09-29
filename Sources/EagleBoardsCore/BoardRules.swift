@@ -4,7 +4,7 @@ import Foundation
 ///
 /// These are enforced twice, on purpose. `SeatingReview` walks the operator
 /// through them before a board is seated -- explaining each problem and, where
-/// the rule allows, asking for confirmation -- and `EventNight.seatBoard`
+/// the rule allows, asking for confirmation -- and `BoardEvent.seatBoard`
 /// refuses the hard ones again no matter how the request arrived. A board
 /// seated past a rule is only discovered later, from the record of a review
 /// that should not have happened. Both layers must agree.
@@ -84,7 +84,7 @@ public enum BoardRules {
         }
 
         for member in members {
-            if member.isDisabledForTonight {
+            if member.isDisabledForToday {
                 blocking.append("\(member.fullName) has been disabled for today. Use Enable if they are back.")
             } else if member.isOnBoard && member.room != currentRoom {
                 blocking.append("\(member.fullName) is already on the board in room \(member.room).")
@@ -250,7 +250,7 @@ public struct ChangeMembersReview: Sendable {
 ///
 /// It used to take the first qualified chair and the first adults whose role
 /// was Member, in sign-in order. A Final board's Member is often a project
-/// chair, so the first Final board of the night could take both project
+/// chair, so the first Final board of the event could take both project
 /// chairs and leave every project review without one; and it ignored the
 /// troops of the youth still waiting.
 ///
@@ -341,7 +341,7 @@ public struct BoardSuggestion: Sendable, Equatable {
     /// happened and keeps no member list, so the adult's earlier wait stands.
     ///
     /// Times are the records' `yyyy-MM-dd_HH:mm±hhmm` stamps, which sort as
-    /// text within one event night. The member list is comma-joined and read
+    /// text within one event. The member list is comma-joined and read
     /// back from the files with '~'; an ID whose name had a comma also holds a
     /// '~', so each whole ID is looked for between separators rather than
     /// splitting the list. The same helper is freeSinceTimes in the Java
@@ -384,7 +384,7 @@ public struct BoardSuggestion: Sendable, Equatable {
     }
 
     /// Choose from `adults` (in sign-in order), skipping anyone on a board,
-    /// disabled for tonight, Unavailable, or from the youth's own unit.
+    /// disabled for today, Unavailable, or from the youth's own unit.
     /// `freeSince` is from `freeSinceTimes`; an adult missing from it sorts first.
     public init(for scout: Scout, adults: [Adult], rooms: [Room], waiting: [Scout] = [], freeSince: [String: String] = [:]) {
         guard let boardType = scout.boardType else {
@@ -518,7 +518,7 @@ public enum AdultLocator {
         public var id: String { adult.id }
         /// Where to look: their board's room, or the main room.
         public var whereabouts: String {
-            adult.room.isEmpty ? "Main room" : adult.isDisabledForTonight ? "marked as gone home" : "Room \(adult.room)"
+            adult.room.isEmpty ? "Main room" : adult.isDisabledForToday ? "marked as gone home" : "Room \(adult.room)"
         }
     }
 

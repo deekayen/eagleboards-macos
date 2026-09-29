@@ -11,7 +11,7 @@ import SwiftUI
 struct SeatBoardSheet: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
-    let night: EventNight
+    let event: BoardEvent
     let scoutID: String
 
     @State private var roomID: String?
@@ -19,9 +19,9 @@ struct SeatBoardSheet: View {
     @State private var acknowledged: Set<String> = []
 
     var body: some View {
-        if let youth = night.scout(id: scoutID) {
+        if let youth = event.scout(id: scoutID) {
             let members = model.draftMembers(for: scoutID)
-            let room = roomID.flatMap { night.room(id: $0) }
+            let room = roomID.flatMap { event.room(id: $0) }
             let review = SeatingReview(scout: youth, members: members, room: room)
             let chairIsQualified = review.qualifiedChairs.contains { $0.id == chairID }
             let warningsCleared = review.warnings.allSatisfy { acknowledged.contains($0.id) }
@@ -141,7 +141,7 @@ struct SeatBoardSheet: View {
             .frame(width: 560, height: 640)
             .onAppear {
                 roomID = model.drafts[scoutID]?.roomID
-                    ?? night.rooms.first { $0.isFree && $0.boardType == youth.boardType }?.id
+                    ?? event.rooms.first { $0.isFree && $0.boardType == youth.boardType }?.id
                 chairID = review.qualifiedChairs.first?.id
             }
             .onChange(of: review.qualifiedChairs.map(\.id)) { _, chairs in
@@ -157,7 +157,7 @@ struct SeatBoardSheet: View {
 
     /// Free rooms first, then the rest, so the list reads as a choice.
     private var roomChoices: [Room] {
-        night.rooms.filter(\.isFree) + night.rooms.filter { !$0.isFree }
+        event.rooms.filter(\.isFree) + event.rooms.filter { !$0.isFree }
     }
 
     private func roomLabel(_ room: Room) -> String {
@@ -211,14 +211,14 @@ struct SheetLayout<Fields: View, Buttons: View>: View {
 struct CompleteBoardSheet: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
-    let night: EventNight
+    let event: BoardEvent
     let scoutID: String
 
     @State private var result: BoardResult = .approved
     @State private var notes = ""
 
     var body: some View {
-        let youth = night.scout(id: scoutID)
+        let youth = event.scout(id: scoutID)
         SheetLayout(
             title: "Complete \(youth.map { "\($0.fullName)'s" } ?? "the") Board",
             message: youth.map {
@@ -253,7 +253,7 @@ struct CompleteBoardSheet: View {
 struct AddRoomSheet: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
-    let night: EventNight
+    let event: BoardEvent
 
     @State private var name = ""
     @State private var boardType: BoardType = .finalBoard
@@ -296,7 +296,7 @@ struct AddRoomSheet: View {
 /// the new name, and its timer keeps running.
 struct RenameRoomSheet: View {
     @Environment(\.dismiss) private var dismiss
-    let night: EventNight
+    let event: BoardEvent
     let roomID: String
     /// Does the rename, undoably, and returns the room's new ID, which
     /// changes with its name.
@@ -306,7 +306,7 @@ struct RenameRoomSheet: View {
     @State private var problem: String?
 
     var body: some View {
-        let room = night.room(id: roomID)
+        let room = event.room(id: roomID)
         SheetLayout(
             title: "Rename Room \(room?.name ?? "")",
             message: room.flatMap { $0.isFree ? nil : "\($0.scoutName)'s board is in this room. It moves with the new name; nobody has to be reseated." }
@@ -339,15 +339,15 @@ struct RenameRoomSheet: View {
 struct SwapRoomsSheet: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
-    let night: EventNight
+    let event: BoardEvent
     let firstRoomID: String
 
     @State private var secondRoomID: String?
     @State private var mixedTypesConfirmed = false
 
     var body: some View {
-        let first = night.room(id: firstRoomID)
-        let second = secondRoomID.flatMap { night.room(id: $0) }
+        let first = event.room(id: firstRoomID)
+        let second = secondRoomID.flatMap { event.room(id: $0) }
         let mixedTypes = first != nil && second != nil && first?.boardType != second?.boardType
 
         SheetLayout(
@@ -359,7 +359,7 @@ struct SwapRoomsSheet: View {
                 LabeledContent("From", value: first.map(describe) ?? firstRoomID)
                 Picker("To", selection: $secondRoomID) {
                     Text("Choose a Room").tag(String?.none)
-                    ForEach(night.rooms.filter { $0.id != firstRoomID }) { room in
+                    ForEach(event.rooms.filter { $0.id != firstRoomID }) { room in
                         Text(describe(room)).tag(Optional(room.id))
                     }
                 }
@@ -388,7 +388,7 @@ struct SwapRoomsSheet: View {
 }
 
 /// Open another event, for its records or its report.
-struct OpenNightSheet: View {
+struct OpenEventSheet: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var chosen: String?
@@ -410,19 +410,19 @@ struct OpenNightSheet: View {
                 .keyboardShortcut(.cancelAction)
             Button("Open") {
                 if let chosen, let folder = model.dataFolder {
-                    model.open(folder: folder, night: chosen)
+                    model.open(folder: folder, event: chosen)
                     dismiss()
                 }
             }
             .keyboardShortcut(.defaultAction)
-            .disabled(chosen == nil || chosen == model.night?.night)
+            .disabled(chosen == nil || chosen == model.event?.date)
         }
-        .onAppear { chosen = model.night?.night }
+        .onAppear { chosen = model.event?.date }
     }
 
     /// Newest first, with today even before it has a folder.
     private var eventsOnFile: [String] {
-        let onFile = (model.dataFolder?.nights() ?? []).sorted(by: >)
+        let onFile = (model.dataFolder?.events() ?? []).sorted(by: >)
         return onFile.contains(model.today) ? onFile : [model.today] + onFile
     }
 }

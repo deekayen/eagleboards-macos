@@ -46,7 +46,7 @@ public enum PersonFind {
         let foundAdults = adults.filter { $0.fullName.localizedCaseInsensitiveContains(query) }
             .sorted { byName($0.last, $0.first, $1.last, $1.first) }
             .map { adult -> PersonPlace in
-                if adult.isDisabledForTonight {
+                if adult.isDisabledForToday {
                     return PersonPlace(id: adult.id, name: adult.fullName, isYouth: false, room: nil, whereabouts: "has gone home")
                 }
                 if adult.isOnBoard {

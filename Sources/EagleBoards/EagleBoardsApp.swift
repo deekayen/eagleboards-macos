@@ -86,31 +86,31 @@ struct EagleBoardsCommands: Commands {
 
     var body: some Commands {
         CommandGroup(after: .newItem) {
-            Button("Open Another Event…") { model.sheet = .openNight }
+            Button("Open Another Event…") { model.sheet = .openEvent }
                 .keyboardShortcut("o")
                 .disabled(model.dataFolder == nil)
             Menu("Open Recent Event") {
-                ForEach(recentNights, id: \.self) { name in
+                ForEach(recentEvents, id: \.self) { name in
                     Button(name == model.today ? "\(name) (Today)" : name) {
-                        if let folder = model.dataFolder { model.open(folder: folder, night: name) }
+                        if let folder = model.dataFolder { model.open(folder: folder, event: name) }
                     }
-                    .disabled(name == model.night?.night)
+                    .disabled(name == model.event?.date)
                 }
             }
-            .disabled(recentNights.isEmpty)
+            .disabled(recentEvents.isEmpty)
             Button("Choose Data Folder…") { model.chooseDataFolderWithPanel() }
             Button("Show Event Folder in Finder") { model.showDataFolderInFinder() }
-                .disabled(model.night == nil)
+                .disabled(model.event == nil)
             Divider()
             Button("Import Sign-Ups from SignUpGenius") { Task { await model.importSignUps() } }
                 .keyboardShortcut("i")
-                .disabled(model.night == nil || model.isImporting)
+                .disabled(model.event == nil || model.isImporting)
             Button("Export Board Results…") { model.exportReport() }
                 .keyboardShortcut("e")
-                .disabled(model.night == nil)
+                .disabled(model.event == nil)
             Button("Export List…") { model.exportList() }
                 .keyboardShortcut("e", modifiers: [.command, .shift])
-                .disabled(model.night == nil || !model.page.isList)
+                .disabled(model.event == nil || !model.page.isList)
         }
         InspectorCommands()
         // The pages (SPEC.md P-1, P-6): the event, and a page per table,
@@ -123,18 +123,18 @@ struct EagleBoardsCommands: Commands {
         }
         CommandMenu("Board") {
             YouthActionButtons(model: model)
-                .disabled(model.night == nil)
+                .disabled(model.event == nil)
         }
         CommandMenu("Adult") {
             Button("Add Adult…") { model.sheet = .addAdult }
-                .disabled(model.night == nil || model.sheet != nil)
+                .disabled(model.event == nil || model.sheet != nil)
             Divider()
             AdultActionButtons(model: model)
-                .disabled(model.night == nil)
+                .disabled(model.event == nil)
         }
         CommandMenu("Room") {
-            if let night = model.night {
-                RoomActionButtons(model: model, night: night)
+            if let event = model.event {
+                RoomActionButtons(model: model, event: event)
             } else {
                 Button("Add Room…") {}
                     .keyboardShortcut("n", modifiers: [.command, .shift])
@@ -164,23 +164,23 @@ struct EagleBoardsCommands: Commands {
         }
     }
 
-    /// The nights on file, newest first, and tonight even before it has a folder.
-    private var recentNights: [String] {
+    /// The events on file, newest first, and today's even before it has a folder.
+    private var recentEvents: [String] {
         guard let folder = model.dataFolder else { return [] }
-        let onFile = folder.nights().sorted(by: >)
-        let nights = onFile.contains(model.today) ? onFile : [model.today] + onFile
-        return Array(nights.prefix(10))
+        let onFile = folder.events().sorted(by: >)
+        let events = onFile.contains(model.today) ? onFile : [model.today] + onFile
+        return Array(events.prefix(10))
     }
 
     private func pageButton(_ page: AppModel.Page, _ key: KeyEquivalent) -> some View {
         Toggle(page.title, isOn: Binding(
-            get: { model.night != nil && model.page == page },
+            get: { model.event != nil && model.page == page },
             set: { _ in
                 openWindow(id: WindowID.scheduler)
                 model.show(page)
             }
         ))
         .keyboardShortcut(key, modifiers: [.command, .option])
-        .disabled(model.night == nil)
+        .disabled(model.event == nil)
     }
 }

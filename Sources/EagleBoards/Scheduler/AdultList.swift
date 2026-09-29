@@ -1,7 +1,7 @@
 import EagleBoardsCore
 import SwiftUI
 
-/// Every adult who has signed in tonight, the Adults page (SPEC.md P-6).
+/// Every adult who has signed in at this event, the Adults page (SPEC.md P-6).
 /// Select several with Command or Shift and add them to the board being drawn
 /// up, or drag them onto it in the inspector. Their details are edited in
 /// place, and it is here that someone is promoted to Chair; a changed cell is
@@ -13,13 +13,13 @@ import SwiftUI
 /// use the tablet.
 struct AdultList: View {
     @Environment(AppModel.self) private var model
-    let night: EventNight
+    let event: BoardEvent
     @State private var sortOrder = [KeyPathComparator(\Adult.last)]
 
     var body: some View {
         @Bindable var model = model
         let draft = model.draft
-        let rows = night.adults
+        let rows = event.adults
             .filter { matches(model.searchText, $0) }
             .sorted(using: sortOrder)
 
@@ -121,7 +121,7 @@ struct AdultList: View {
 
     private func supportedNames(_ adult: Adult) -> String {
         adult.supporting.split(separator: "|")
-            .compactMap { night.scout(id: String($0))?.fullName }
+            .compactMap { event.scout(id: String($0))?.fullName }
             .joined(separator: ", ")
     }
 
@@ -140,7 +140,7 @@ struct AdultStatusLabel: View {
     var isOnDraft = false
 
     var body: some View {
-        if adult.isDisabledForTonight {
+        if adult.isDisabledForToday {
             Label("Gone home", systemImage: "moon.zzz")
                 .foregroundStyle(.secondary)
                 .help("Disabled for today. Enable brings them back.")
@@ -169,7 +169,7 @@ struct AdultActionButtons: View {
         let youth = model.selectedYouth
         let draft = model.draft
         let ids = adultIDs ?? model.selectedAdultIDs
-        let adults = model.night?.adults.filter { ids.contains($0.id) } ?? []
+        let adults = model.event?.adults.filter { ids.contains($0.id) } ?? []
         let single = adults.count == 1 ? adults.first : nil
 
         Button(youth.map { "Add to \($0.first)'s Board" } ?? "Add to Board") {
@@ -190,7 +190,7 @@ struct AdultActionButtons: View {
         }
         Divider()
         Button("Enable for Today") { run { model.setAvailable(true) } }
-            .disabled(!adults.contains(where: \.isDisabledForTonight))
+            .disabled(!adults.contains(where: \.isDisabledForToday))
         Button("Disable for Today") { run { model.setAvailable(false) } }
             .disabled(!adults.contains(where: \.isAvailable))
     }
@@ -242,7 +242,7 @@ struct AddAdultSheet: View {
                     }
                 } else {
                     TextField("Signed in before?", text: $search, prompt: Text("Search the adult history by name, email or unit"))
-                    ForEach(model.night?.historyMatches(for: search, limit: 5) ?? []) { match in
+                    ForEach(model.event?.historyMatches(for: search, limit: 5) ?? []) { match in
                         Button {
                             fill(from: match)
                         } label: {

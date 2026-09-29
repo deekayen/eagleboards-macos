@@ -30,10 +30,10 @@ final class Attention {
     /// Announce each board that has just gone overdue, if the operator is
     /// working in another app. One in front of them already shows its alarm
     /// clock on the room.
-    func checkRooms(in night: EventNight, now: Date) {
-        for youth in night.scouts where youth.status == .seated || youth.status == .inProgress {
+    func checkRooms(in event: BoardEvent, now: Date) {
+        for youth in event.scouts where youth.status == .seated || youth.status == .inProgress {
             guard let minutes = youth.minutesSinceLastUpdate(now: now),
-                  RoomTimer.state(status: youth.status, boardType: youth.boardType, minutes: minutes, config: night.config) == .overdue
+                  RoomTimer.state(status: youth.status, boardType: youth.boardType, minutes: minutes, config: event.config) == .overdue
             else { continue }
             let key = "\(youth.id)|\(youth.statusText)|\(youth.lastUpdateTime)"
             guard announced.insert(key).inserted, canNotify, !NSApplication.shared.isActive else { continue }
@@ -48,7 +48,7 @@ final class Attention {
         }
     }
 
-    func forgetNight() {
+    func forgetEvent() {
         announced = []
         showWaiting(0)
     }

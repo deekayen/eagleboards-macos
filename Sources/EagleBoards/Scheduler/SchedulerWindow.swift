@@ -2,14 +2,14 @@ import EagleBoardsCore
 import SwiftUI
 
 /// The main window: the welcome screen until there is a data folder, then the
-/// scheduler for the open night.
+/// scheduler for the open event.
 struct SchedulerWindow: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
         Group {
-            if let night = model.night {
-                SchedulerView(night: night)
+            if let event = model.event {
+                SchedulerView(event: event)
             } else {
                 WelcomeView()
             }

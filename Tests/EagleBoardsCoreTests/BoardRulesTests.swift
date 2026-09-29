@@ -104,9 +104,9 @@ struct SeatingReviewTests {
 
     @Test func disabledAndBusyAndUnavailableAdultsBlock() {
         let chair = adult("Chris", "Chair", unitName: "Troop1", final: .chair)
-        let gone = adult("Gone", "Home", unitName: "Troop2", room: disabledForTonightMarker)
+        let gone = adult("Gone", "Home", unitName: "Troop2", room: disabledForTodayMarker)
         let busy = adult("Busy", "Elsewhere", unitName: "Troop3", room: "102")
-        let unavailable = adult("Not", "Tonight", unitName: "Troop4", final: .unavailable)
+        let unavailable = adult("Not", "Today", unitName: "Troop4", final: .unavailable)
         let review = SeatingReview(scout: scout(), members: [chair, gone, busy, unavailable], room: finalRoom)
         #expect(review.blockingProblems.contains { $0.contains("disabled for today") })
         #expect(review.blockingProblems.contains { $0.contains("room 102") })
@@ -156,7 +156,7 @@ struct BoardSuggestionTests {
             adult("Robin", "Sameunit", unitName: "Troop1234", final: .chair),
             adult("Busy", "Chair", unitName: "Troop7", final: .chair, room: "105"),
             adult("Chris", "Chair", unitName: "Troop1", final: .chair),
-            adult("Gone", "Home", unitName: "Troop8", room: disabledForTonightMarker),
+            adult("Gone", "Home", unitName: "Troop8", room: disabledForTodayMarker),
             adult("Morgan", "Member", unitName: "Troop2"),
             adult("Taylor", "Member", unitName: "Troop3"),
             adult("Extra", "Member", unitName: "Troop4"),
@@ -263,7 +263,7 @@ struct CanJoinTests {
 
     @Test func someoneOnABoardOrGoneHomeCannotJoin() {
         #expect(!adult("On", "Board", unitName: "Troop1", room: "201").canJoin(.finalBoard))
-        #expect(!adult("Gone", "Home", unitName: "Troop1", room: disabledForTonightMarker).canJoin(.finalBoard))
+        #expect(!adult("Gone", "Home", unitName: "Troop1", room: disabledForTodayMarker).canJoin(.finalBoard))
     }
 }
 
@@ -282,13 +282,13 @@ struct PersonFindTests {
             [
                 youth("Arthur", "Eldred", .inProgress, room: "101"),
                 youth("Bill", "Amend", .registered),
-                youth("Peter", "Agre", .completed, room: disabledForTonightMarker),
+                youth("Peter", "Agre", .completed, room: disabledForTodayMarker),
                 youth("Rob", "Corddry", .postponed),
             ],
             [
                 adult("Neil", "Armstrong", unitName: "Troop2", room: "101"),
                 adult("Jim", "Lovell", unitName: "Troop2"),
-                adult("Charles", "Duke", unitName: "Troop2", room: disabledForTonightMarker),
+                adult("Charles", "Duke", unitName: "Troop2", room: disabledForTodayMarker),
             ]
         )
     }

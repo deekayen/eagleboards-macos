@@ -12,7 +12,7 @@ import Testing
 /// So the event is capped at five concurrent boards no matter how many rooms
 /// are free -- the constraint the scheduler actually has to survive. The rule
 /// tests pin down the rules as pure functions; this pins down what the event
-/// night does with them: boards convening and starting, adults committed to
+/// does with them: boards convening and starting, adults committed to
 /// one room and released when the review finishes, boards postponed and reset,
 /// and the rules holding even for requests that skip the Seat Board sheet.
 ///
@@ -21,7 +21,7 @@ import Testing
 @Suite("A board event")
 struct BoardEventTests {
     let scratch: ScratchFolder
-    let night: EventNight
+    let event: BoardEvent
 
     let adultLastNames = """
         Abernathy Blackwood Castellano Duxbury Ellsworth Fairbanks Grimaldi Hollingsworth
@@ -59,13 +59,13 @@ struct BoardEventTests {
 
     init() throws {
         scratch = try ScratchFolder()
-        night = try EventNight(folder: scratch.dataFolder, night: "2026-09-22")
+        event = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22")
 
         for name in ["101", "102", "103", "104", "105", "106", "107"] {
-            try night.addRoom(named: name, boardType: .finalBoard)
+            try event.addRoom(named: name, boardType: .finalBoard)
         }
         for name in ["200A", "200B", "201A", "201B", "202"] {
-            try night.addRoom(named: name, boardType: .projectReview)
+            try event.addRoom(named: name, boardType: .projectReview)
         }
 
         try registerAdult(1, unit: 2001, project: "Chair", final: "Chair")
@@ -85,7 +85,7 @@ struct BoardEventTests {
         try registerAdult(30, unit: 1003, project: "Member", final: "Unavailable")
 
         for number in 1...14 {
-            try night.registerYouth([
+            try event.registerYouth([
                 "Last": youthLastNames[number - 1], "First": youthFirstNames[number - 1],
                 "Email": "s\(number)@example.org", "UnitType": "Troop", "Unit": "\(1000 + number)",
                 "BoardType": number <= 9 ? "Final" : "Project",
@@ -102,7 +102,7 @@ struct BoardEventTests {
     }
 
     private func registerAdult(_ number: Int, unit: Int, project: String, final: String) throws {
-        try night.registerAdult([
+        try event.registerAdult([
             "Last": adultLastNames[number - 1], "First": adultFirstNames[number - 1],
             "Email": "a\(number)@example.org", "UnitType": "Troop", "Unit": "\(unit)",
             "ProjectReview": project, "FinalBoard": final,
@@ -112,32 +112,32 @@ struct BoardEventTests {
     // MARK: - Helpers that read the event back
 
     private func seat(_ roomName: String, _ scoutID: String, chair: String, _ members: String...) throws {
-        try night.seatBoard(roomID: "ROOM:\(roomName)", scoutID: scoutID, chairID: chair, memberIDs: [chair] + members)
+        try event.seatBoard(roomID: "ROOM:\(roomName)", scoutID: scoutID, chairID: chair, memberIDs: [chair] + members)
     }
 
     private func refused(_ what: Comment, _ action: () throws -> Void) {
         #expect(throws: EventError.self, what, performing: action)
     }
 
-    private func count(_ status: BoardStatus) -> Int { night.scouts.filter { $0.status == status }.count }
-    private var busyAdults: Int { night.adults.filter(\.isOnBoard).count }
-    private var emptyRooms: Int { night.rooms.filter(\.isFree).count }
-    private func status(_ scoutID: String) -> BoardStatus? { night.scout(id: scoutID)?.status }
-    private func roomOf(_ scoutID: String) -> String? { night.scout(id: scoutID)?.room }
-    private func adultRoom(_ adultID: String) -> String? { night.adult(id: adultID)?.room }
+    private func count(_ status: BoardStatus) -> Int { event.scouts.filter { $0.status == status }.count }
+    private var busyAdults: Int { event.adults.filter(\.isOnBoard).count }
+    private var emptyRooms: Int { event.rooms.filter(\.isFree).count }
+    private func status(_ scoutID: String) -> BoardStatus? { event.scout(id: scoutID)?.status }
+    private func roomOf(_ scoutID: String) -> String? { event.scout(id: scoutID)?.room }
+    private func adultRoom(_ adultID: String) -> String? { event.adult(id: adultID)?.room }
 
     private func runBoard(_ scoutID: String) throws {
-        try night.startReview(scoutID: scoutID)
-        try night.completeBoard(scoutID: scoutID, result: .approved, notes: "")
+        try event.startReview(scoutID: scoutID)
+        try event.completeBoard(scoutID: scoutID, result: .approved, notes: "")
     }
 
     // MARK: - The event
 
     @Test func theEventAsSeeded() {
-        #expect(night.rooms.count == 12)
-        #expect(night.adults.count == 30)
-        #expect(night.scouts.count == 14)
-        #expect(night.adults.filter { $0.canChair(.finalBoard) || $0.canChair(.projectReview) }.count == 5)
+        #expect(event.rooms.count == 12)
+        #expect(event.adults.count == 30)
+        #expect(event.scouts.count == 14)
+        #expect(event.adults.filter { $0.canChair(.finalBoard) || $0.canChair(.projectReview) }.count == 5)
     }
 
     @Test func compositionRulesHoldWithoutTheSeatBoardSheet() {
@@ -150,16 +150,16 @@ struct BoardEventTests {
         refused("a Project chair may not chair a Final board") { try seat("101", finalYouth(1), chair: projectChair1, member(1), member(2)) }
         refused("a plain Member may not chair a project review") { try seat("200A", projectYouth(1), chair: member(1), member(2)) }
         refused("the chair must be sitting on the board") {
-            try night.seatBoard(roomID: "ROOM:101", scoutID: finalYouth(1), chairID: finalChair2, memberIDs: [member(1), member(2), member(3)])
+            try event.seatBoard(roomID: "ROOM:101", scoutID: finalYouth(1), chairID: finalChair2, memberIDs: [member(1), member(2), member(3)])
         }
         refused("an unknown chair") {
-            try night.seatBoard(roomID: "ROOM:101", scoutID: finalYouth(1), chairID: "NOBODY", memberIDs: [member(1), member(2), member(3)])
+            try event.seatBoard(roomID: "ROOM:101", scoutID: finalYouth(1), chairID: "NOBODY", memberIDs: [member(1), member(2), member(3)])
         }
         refused("a board with no members") {
-            try night.seatBoard(roomID: "ROOM:101", scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [])
+            try event.seatBoard(roomID: "ROOM:101", scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [])
         }
         refused("the same member listed twice does not make a board of three") {
-            try night.seatBoard(roomID: "ROOM:101", scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [chairOfEither, member(1), member(1)])
+            try event.seatBoard(roomID: "ROOM:101", scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [chairOfEither, member(1), member(1)])
         }
 
         #expect(count(.seated) == 0, "none of that seated anyone")
@@ -181,29 +181,29 @@ struct BoardEventTests {
 
     @Test func anAdultWhoLeavesIsOutUntilReEnabled() throws {
         try seatFiveBoards()
-        try night.setAvailable(false, adultID: member(11))
-        #expect(adultRoom(member(11)) == disabledForTonightMarker)
+        try event.setAvailable(false, adultID: member(11))
+        #expect(adultRoom(member(11)) == disabledForTodayMarker)
         refused("a disabled adult cannot be seated") { try seat("104", finalYouth(4), chair: chairOfEither, member(11), member(12)) }
-        refused("an adult on a board cannot be disabled") { try night.setAvailable(false, adultID: member(1)) }
+        refused("an adult on a board cannot be disabled") { try event.setAvailable(false, adultID: member(1)) }
 
-        try night.setAvailable(true, adultID: member(11))
+        try event.setAvailable(true, adultID: member(11))
         #expect(adultRoom(member(11)) == "")
     }
 
     @Test func conveneThenReviewThenComplete() throws {
         try seatFiveBoards()
         refused("a result cannot be recorded while the board is still convening") {
-            try night.completeBoard(scoutID: finalYouth(1), result: .approved, notes: "")
+            try event.completeBoard(scoutID: finalYouth(1), result: .approved, notes: "")
         }
         #expect(status(finalYouth(1)) == .seated)
 
-        try night.startReview(scoutID: finalYouth(1))
+        try event.startReview(scoutID: finalYouth(1))
         #expect(status(finalYouth(1)) == .inProgress)
-        refused("a review cannot be started twice") { try night.startReview(scoutID: finalYouth(1)) }
+        refused("a review cannot be started twice") { try event.startReview(scoutID: finalYouth(1)) }
 
-        try night.completeBoard(scoutID: finalYouth(1), result: .approved, notes: "Well prepared, thorough workbook")
+        try event.completeBoard(scoutID: finalYouth(1), result: .approved, notes: "Well prepared, thorough workbook")
         #expect(status(finalYouth(1)) == .completed)
-        #expect(night.scout(id: finalYouth(1))?.result == "Approved")
+        #expect(event.scout(id: finalYouth(1))?.result == "Approved")
     }
 
     @Test func completingAReviewReleasesItsAdults() throws {
@@ -213,7 +213,7 @@ struct BoardEventTests {
         #expect(adultRoom(member(1)) == "")
         #expect(adultRoom(member(2)) == "")
         #expect(busyAdults == 10)
-        #expect(night.room(named: "101")?.isFree == true)
+        #expect(event.room(named: "101")?.isFree == true)
 
         try seat("104", finalYouth(4), chair: chairOfEither, member(1), member(2))
         #expect(roomOf(finalYouth(4)) == "104")
@@ -226,44 +226,44 @@ struct BoardEventTests {
     /// generalizes to it through `restoreBoard` with no changes of its own.
     @Test func changeMembersCorrectsWhoSitsWithoutResettingTheRoom() throws {
         try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
-        let seated = try #require(night.scout(id: finalYouth(1)))
+        let seated = try #require(event.scout(id: finalYouth(1)))
 
         refused("only a seated or in-review board can have its members changed") {
-            try night.changeMembers(scoutID: finalYouth(2), chairID: finalChair2, memberIDs: [finalChair2, member(3)])
+            try event.changeMembers(scoutID: finalYouth(2), chairID: finalChair2, memberIDs: [finalChair2, member(3)])
         }
 
-        try night.changeMembers(scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [chairOfEither, member(1), member(3)])
-        let changed = try #require(night.scout(id: finalYouth(1)))
+        try event.changeMembers(scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [chairOfEither, member(1), member(3)])
+        let changed = try #require(event.scout(id: finalYouth(1)))
         #expect(changed.status == .seated, "still seated, not reseated")
         #expect(changed.lastUpdateTime == seated.lastUpdateTime, "the room timer keeps running")
         #expect(changed.boardMemberIDs.split(separator: ",").count == 3)
         #expect(adultRoom(member(2)) == "", "dropped off the board, freed")
         #expect(adultRoom(member(3)) == "101", "added to the board")
-        #expect(night.room(named: "101")?.leaderNames == changed.boardMembers)
+        #expect(event.room(named: "101")?.leaderNames == changed.boardMembers)
 
         try seat("102", finalYouth(2), chair: finalChair2, member(4), member(9))
         refused("a member already on another board cannot be added") {
-            try night.changeMembers(scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [chairOfEither, member(4)])
+            try event.changeMembers(scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [chairOfEither, member(4)])
         }
 
-        try night.startReview(scoutID: finalYouth(1))
-        let inReview = try #require(night.scout(id: finalYouth(1)))
-        try night.changeMembers(scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [chairOfEither, member(1), member(2)])
+        try event.startReview(scoutID: finalYouth(1))
+        let inReview = try #require(event.scout(id: finalYouth(1)))
+        try event.changeMembers(scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [chairOfEither, member(1), member(2)])
         #expect(status(finalYouth(1)) == .inProgress, "changing members mid-review does not end it")
-        #expect(night.scout(id: finalYouth(1))?.lastUpdateTime == inReview.lastUpdateTime, "the review timer keeps running too")
+        #expect(event.scout(id: finalYouth(1))?.lastUpdateTime == inReview.lastUpdateTime, "the review timer keeps running too")
 
         refused("the chair must stay one of the members") {
-            try night.changeMembers(scoutID: finalYouth(1), chairID: member(5), memberIDs: [chairOfEither, member(1), member(2)])
+            try event.changeMembers(scoutID: finalYouth(1), chairID: member(5), memberIDs: [chairOfEither, member(1), member(2)])
         }
         refused("a board of one is below the Final minimum") {
-            try night.changeMembers(scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [chairOfEither])
+            try event.changeMembers(scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [chairOfEither])
         }
 
-        try night.restoreBoard(inReview)
+        try event.restoreBoard(inReview)
         #expect(adultRoom(member(3)) == "101", "back on the board after undo, as it was mid-review")
         #expect(adultRoom(member(2)) == "", "not on the board being restored to, so freed by the undo")
         #expect(adultRoom(member(1)) == "101")
-        #expect(night.scout(id: finalYouth(1))?.boardMemberIDs.split(separator: ",").count == 3)
+        #expect(event.scout(id: finalYouth(1))?.boardMemberIDs.split(separator: ",").count == 3)
     }
 
     /// Java event test section 21, the cases the test above leaves out: the
@@ -272,16 +272,16 @@ struct BoardEventTests {
     @Test func changeMembersHandsTheChairOnAndCompleteReleasesTheNewBoard() throws {
         try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
 
-        try night.changeMembers(scoutID: finalYouth(1), chairID: finalChair3, memberIDs: [finalChair3, member(1), member(3)])
+        try event.changeMembers(scoutID: finalYouth(1), chairID: finalChair3, memberIDs: [finalChair3, member(1), member(3)])
         #expect(adultRoom(chairOfEither) == "", "the chair who left is free")
         #expect(adultRoom(member(2)) == "", "the member not kept is free")
         #expect(adultRoom(finalChair3) == "101" && adultRoom(member(3)) == "101", "the new chair and member are in the room")
-        #expect(night.scout(id: finalYouth(1))?.boardChairID == finalChair3, "the new chair is recorded")
+        #expect(event.scout(id: finalYouth(1))?.boardChairID == finalChair3, "the new chair is recorded")
 
         refused("a plain member may not take the chair") {
-            try night.changeMembers(scoutID: finalYouth(1), chairID: member(1), memberIDs: [finalChair3, member(1), member(3)])
+            try event.changeMembers(scoutID: finalYouth(1), chairID: member(1), memberIDs: [finalChair3, member(1), member(3)])
         }
-        #expect(night.scout(id: finalYouth(1))?.boardChairID == finalChair3, "the refusal changed nothing")
+        #expect(event.scout(id: finalYouth(1))?.boardChairID == finalChair3, "the refusal changed nothing")
 
         try runBoard(finalYouth(1))
         #expect(adultRoom(finalChair3) == "" && adultRoom(member(1)) == "" && adultRoom(member(3)) == "",
@@ -291,35 +291,35 @@ struct BoardEventTests {
 
     @Test func postponeAndReset() throws {
         try seatFiveBoards()
-        try night.postponeBoard(scoutID: finalYouth(9))
+        try event.postponeBoard(scoutID: finalYouth(9))
         #expect(status(finalYouth(9)) == .postponed)
 
-        refused("a youth whose board has convened cannot be postponed") { try night.postponeBoard(scoutID: finalYouth(2)) }
+        refused("a youth whose board has convened cannot be postponed") { try event.postponeBoard(scoutID: finalYouth(2)) }
         #expect(status(finalYouth(2)) == .seated)
 
         let busyBefore = busyAdults
-        try night.resetBoard(scoutID: finalYouth(2))
+        try event.resetBoard(scoutID: finalYouth(2))
         #expect(status(finalYouth(2)) == .registered)
         #expect(roomOf(finalYouth(2)) == "")
         #expect(adultRoom(finalChair2) == "")
         #expect(busyAdults == busyBefore - 3, "the chair and both members are released")
 
-        try night.startReview(scoutID: projectYouth(1))
-        try night.resetBoard(scoutID: projectYouth(1))
+        try event.startReview(scoutID: projectYouth(1))
+        try event.resetBoard(scoutID: projectYouth(1))
         #expect(status(projectYouth(1)) == .registered)
         #expect(adultRoom(projectChair1) == "")
 
-        refused("a waiting youth has nothing to reset") { try night.resetBoard(scoutID: finalYouth(2)) }
+        refused("a waiting youth has nothing to reset") { try event.resetBoard(scoutID: finalYouth(2)) }
     }
 
     @Test func theWholeEventFiveChairsAtATime() throws {
         try seatFiveBoards()
         try runBoard(finalYouth(1))
         try seat("104", finalYouth(4), chair: chairOfEither, member(1), member(2))
-        try night.postponeBoard(scoutID: finalYouth(9))
-        try night.resetBoard(scoutID: finalYouth(2))
-        try night.startReview(scoutID: projectYouth(1))
-        try night.resetBoard(scoutID: projectYouth(1))
+        try event.postponeBoard(scoutID: finalYouth(9))
+        try event.resetBoard(scoutID: finalYouth(2))
+        try event.startReview(scoutID: projectYouth(1))
+        try event.resetBoard(scoutID: projectYouth(1))
 
         // Explicit rather than greedy: assert the outcome expected, not
         // whatever the scheduler managed on the day.
@@ -346,19 +346,19 @@ struct BoardEventTests {
 
         // The record is what the district keeps, so a wrong chair on it is the
         // failure that outlives the event.
-        for youth in night.scouts where youth.status == .completed {
-            let chair = night.adult(id: youth.boardChairID)
+        for youth in event.scouts where youth.status == .completed {
+            let chair = event.adult(id: youth.boardChairID)
             #expect(chair != nil && youth.boardType.map { chair!.canChair($0) } == true, "\(youth.fullName) had a qualified chair")
         }
 
-        // And it is all on disk: a fresh open of the folder sees the same night.
-        let reopened = try EventNight(folder: scratch.dataFolder, night: "2026-09-22")
+        // And it is all on disk: a fresh open of the folder sees the same event.
+        let reopened = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22")
         #expect(reopened.scouts.filter { $0.status == .completed }.count == 13)
         #expect(reopened.adults.filter(\.isOnBoard).isEmpty)
         #expect(reopened.rooms.allSatisfy { $0.isFree })
     }
 
-    // MARK: - What goes wrong on the night
+    // MARK: - What goes wrong at the event
     //
     // Carried over from sections 9-18 of the Java project's
     // test-board-event.sh. Where a Java case cannot arise here, the test
@@ -366,20 +366,20 @@ struct BoardEventTests {
 
     @discardableResult
     private func lateYouth(_ last: String, _ first: String, unit: Int, _ boardType: String = "Final") throws -> String {
-        try night.registerYouth([
+        try event.registerYouth([
             "Last": last, "First": first, "Email": "x\(unit)@example.org",
             "UnitType": "Troop", "Unit": "\(unit)", "BoardType": boardType,
         ])
         return "SCOUT:\(last):\(first):\(unit)"
     }
 
-    private func result(_ scoutID: String) -> String? { night.scout(id: scoutID)?.result }
+    private func result(_ scoutID: String) -> String? { event.scout(id: scoutID)?.result }
 
     /// What the Results and Youth pages do: change a youth's fields and save them.
     private func editYouth(_ scoutID: String, _ change: (inout Scout) -> Void) throws {
-        var record = try #require(night.scout(id: scoutID))
+        var record = try #require(event.scout(id: scoutID))
         change(&record)
-        try night.updateYouth(record)
+        try event.updateYouth(record)
     }
 
     // Java section 9. Unknown ids and occupied rooms. (Missing parameters and
@@ -390,9 +390,9 @@ struct BoardEventTests {
         refused("an unknown room") { try seat("999", finalYouth(1), chair: chairOfEither, member(1), member(2)) }
         refused("an unknown youth") { try seat("101", "SCOUT:Nobody:Here:0", chair: chairOfEither, member(1), member(2)) }
         refused("an unknown member") { try seat("101", finalYouth(1), chair: chairOfEither, member(1), "ADULT:Nobody:Here:0") }
-        refused("an unknown youth cannot be started") { try night.startReview(scoutID: "SCOUT:Nobody:Here:0") }
+        refused("an unknown youth cannot be started") { try event.startReview(scoutID: "SCOUT:Nobody:Here:0") }
         refused("an unknown youth cannot be completed") {
-            try night.completeBoard(scoutID: "SCOUT:Nobody:Here:0", result: .approved, notes: "")
+            try event.completeBoard(scoutID: "SCOUT:Nobody:Here:0", result: .approved, notes: "")
         }
         #expect(busyAdults == 0)
 
@@ -407,34 +407,34 @@ struct BoardEventTests {
     @Test func eachStepOnlyFromTheStatusBeforeIt() throws {
         try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
         try runBoard(finalYouth(1))
-        try night.postponeBoard(scoutID: finalYouth(9))
+        try event.postponeBoard(scoutID: finalYouth(9))
 
         refused("a Completed youth cannot be seated again") { try seat("102", finalYouth(1), chair: finalChair2, member(3), member(4)) }
         refused("a Postponed youth cannot be seated") { try seat("102", finalYouth(9), chair: finalChair2, member(3), member(4)) }
-        refused("a waiting youth cannot be started") { try night.startReview(scoutID: finalYouth(2)) }
-        refused("a Completed youth cannot be started") { try night.startReview(scoutID: finalYouth(1)) }
-        refused("a waiting youth cannot be completed") { try night.completeBoard(scoutID: finalYouth(2), result: .approved, notes: "") }
+        refused("a waiting youth cannot be started") { try event.startReview(scoutID: finalYouth(2)) }
+        refused("a Completed youth cannot be started") { try event.startReview(scoutID: finalYouth(1)) }
+        refused("a waiting youth cannot be completed") { try event.completeBoard(scoutID: finalYouth(2), result: .approved, notes: "") }
         refused("a Completed youth cannot be completed again") {
-            try night.completeBoard(scoutID: finalYouth(1), result: .notApproved, notes: "")
+            try event.completeBoard(scoutID: finalYouth(1), result: .notApproved, notes: "")
         }
-        refused("a Completed youth cannot be reset") { try night.resetBoard(scoutID: finalYouth(1)) }
-        refused("a Postponed youth cannot be reset") { try night.resetBoard(scoutID: finalYouth(9)) }
-        refused("a Completed youth cannot be postponed") { try night.postponeBoard(scoutID: finalYouth(1)) }
+        refused("a Completed youth cannot be reset") { try event.resetBoard(scoutID: finalYouth(1)) }
+        refused("a Postponed youth cannot be reset") { try event.resetBoard(scoutID: finalYouth(9)) }
+        refused("a Completed youth cannot be postponed") { try event.postponeBoard(scoutID: finalYouth(1)) }
         #expect(result(finalYouth(1)) == "Approved", "the result survived all of that")
 
         try seat("102", finalYouth(2), chair: finalChair2, member(3), member(4))
-        try night.startReview(scoutID: finalYouth(2))
+        try event.startReview(scoutID: finalYouth(2))
         do {
-            try night.postponeBoard(scoutID: finalYouth(2))
+            try event.postponeBoard(scoutID: finalYouth(2))
             Issue.record("a review under way cannot be postponed")
         } catch let refusal as EventError {
             #expect(refusal.message.hasSuffix("is 'In review'."), "the alert says the badge's word, not the stored InProgress")
         }
-        try night.completeBoard(scoutID: finalYouth(2), result: .adjourned, notes: "")
+        try event.completeBoard(scoutID: finalYouth(2), result: .adjourned, notes: "")
         #expect(result(finalYouth(2)) == "Adjourned")
         try seat("200A", projectYouth(1), chair: projectChair1, member(7))
-        try night.startReview(scoutID: projectYouth(1))
-        try night.completeBoard(scoutID: projectYouth(1), result: .notApproved, notes: "")
+        try event.startReview(scoutID: projectYouth(1))
+        try event.completeBoard(scoutID: projectYouth(1), result: .notApproved, notes: "")
         #expect(result(projectYouth(1)) == "NotApproved")
         #expect(busyAdults == 0)
     }
@@ -442,38 +442,38 @@ struct BoardEventTests {
     // Java section 11.
     @Test func signingInAgainMidBoardChangesNothing() throws {
         try seat("102", finalYouth(2), chair: finalChair2, member(3), member(4))
-        try night.startReview(scoutID: finalYouth(2))
+        try event.startReview(scoutID: finalYouth(2))
         try registerAdult(8, unit: 2008, project: "Member", final: "Member")  // member(3)
         try registerAdult(2, unit: 2002, project: "Member", final: "Chair")   // finalChair2
         #expect(adultRoom(member(3)) == "102", "a member who signs in again stays in their room")
         #expect(adultRoom(finalChair2) == "102", "so does the chair")
-        #expect(night.adult(id: finalChair2)?.canChair(.finalBoard) == true)
+        #expect(event.adult(id: finalChair2)?.canChair(.finalBoard) == true)
 
-        try night.registerYouth([
+        try event.registerYouth([
             "Last": "Bram", "First": "Beauregard", "Email": "again@example.org",
             "UnitType": "Troop", "Unit": "1002", "BoardType": "Final",
         ])
         #expect(status(finalYouth(2)) == .inProgress, "a youth who signs in again is still under review")
         #expect(roomOf(finalYouth(2)) == "102")
-        #expect(night.scouts.filter { $0.id == finalYouth(2) }.count == 1, "and is still one youth, not two")
-        try night.completeBoard(scoutID: finalYouth(2), result: .approved, notes: "")
+        #expect(event.scouts.filter { $0.id == finalYouth(2) }.count == 1, "and is still one youth, not two")
+        try event.completeBoard(scoutID: finalYouth(2), result: .approved, notes: "")
         #expect(adultRoom(member(3)) == "")
     }
 
     // Java section 12.
     @Test func aBoardMovesToAnotherRoom() throws {
         try seat("103", finalYouth(4), chair: finalChair3, member(5), member(6))
-        try night.swapRooms("ROOM:103", "ROOM:106")
+        try event.swapRooms("ROOM:103", "ROOM:106")
         #expect(roomOf(finalYouth(4)) == "106")
         #expect([finalChair3, member(5), member(6)].map(adultRoom) == ["106", "106", "106"])
-        #expect(night.room(named: "103")?.isFree == true)
+        #expect(event.room(named: "103")?.isFree == true)
 
         try seat("103", finalYouth(5), chair: chairOfEither, member(1), member(2))
-        try night.swapRooms("ROOM:103", "ROOM:106")
+        try event.swapRooms("ROOM:103", "ROOM:106")
         #expect(roomOf(finalYouth(4)) == "103" && roomOf(finalYouth(5)) == "106", "each youth took the other's room")
         #expect(adultRoom(finalChair3) == "103" && adultRoom(chairOfEither) == "106", "each chair went with their own board")
-        refused("swapping with a room that does not exist") { try night.swapRooms("ROOM:103", "ROOM:nope") }
-        refused("swapping a room with itself") { try night.swapRooms("ROOM:103", "ROOM:103") }
+        refused("swapping with a room that does not exist") { try event.swapRooms("ROOM:103", "ROOM:nope") }
+        refused("swapping a room with itself") { try event.swapRooms("ROOM:103", "ROOM:103") }
 
         try runBoard(finalYouth(4))
         #expect(adultRoom(finalChair3) == "" && adultRoom(chairOfEither) == "106", "releasing only its own adults")
@@ -486,54 +486,54 @@ struct BoardEventTests {
     // is in the room, and a rename carries the board with it (below).
     @Test func aRoomInUseCannotBeRemoved() throws {
         try seat("104", finalYouth(6), chair: chairOfEither, member(1), member(2))
-        refused("a room with a board in it cannot be removed") { try night.removeRoom(id: "ROOM:104") }
+        refused("a room with a board in it cannot be removed") { try event.removeRoom(id: "ROOM:104") }
         try runBoard(finalYouth(6))
-        try night.removeRoom(id: "ROOM:104")
-        #expect(night.room(named: "104") == nil)
+        try event.removeRoom(id: "ROOM:104")
+        #expect(event.room(named: "104") == nil)
     }
 
     @Test func anEmptyRoomIsRenamed() throws {
-        let newID = try night.renameRoom(id: "ROOM:104", to: "  104 Annex ")
+        let newID = try event.renameRoom(id: "ROOM:104", to: "  104 Annex ")
         #expect(newID == "ROOM:104 Annex", "the ID follows the name, trimmed")
-        #expect(night.room(named: "104") == nil)
-        #expect(night.room(id: newID)?.boardType == .finalBoard, "and keeps what it is used for")
+        #expect(event.room(named: "104") == nil)
+        #expect(event.room(id: newID)?.boardType == .finalBoard, "and keeps what it is used for")
         try seat("104 Annex", finalYouth(1), chair: chairOfEither, member(1), member(2))
         #expect(adultRoom(chairOfEither) == "104 Annex")
-        try night.addRoom(named: "104", boardType: .finalBoard)  // the old name is free again
+        try event.addRoom(named: "104", boardType: .finalBoard)  // the old name is free again
 
-        let reopened = try EventNight(folder: scratch.dataFolder, night: "2026-09-22")
+        let reopened = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22")
         #expect(reopened.room(id: newID)?.scoutName == "Alexander Aldridge", "the rename is on disk")
     }
 
     @Test func aBoardMovesWithItsRoomWhenTheRoomIsRenamed() throws {
         try seat("104", finalYouth(6), chair: chairOfEither, member(1), member(2))
-        try night.startReview(scoutID: finalYouth(6))
-        let clockBefore = night.scout(id: finalYouth(6))?["LastUpdateTime"]
+        try event.startReview(scoutID: finalYouth(6))
+        let clockBefore = event.scout(id: finalYouth(6))?["LastUpdateTime"]
 
-        let newID = try night.renameRoom(id: "ROOM:104", to: "Library")
+        let newID = try event.renameRoom(id: "ROOM:104", to: "Library")
         #expect(roomOf(finalYouth(6)) == "Library", "the youth moves with the room")
         #expect([chairOfEither, member(1), member(2)].map(adultRoom) == ["Library", "Library", "Library"],
                 "and so does every member")
-        #expect(night.room(id: newID)?.scoutName == "Finnegan Fenwick", "the card still names the youth")
+        #expect(event.room(id: newID)?.scoutName == "Finnegan Fenwick", "the card still names the youth")
         #expect(status(finalYouth(6)) == .inProgress, "the review carries on")
-        #expect(night.scout(id: finalYouth(6))?["LastUpdateTime"] == clockBefore, "and its timer was not restarted")
+        #expect(event.scout(id: finalYouth(6))?["LastUpdateTime"] == clockBefore, "and its timer was not restarted")
         refused("the renamed room is still occupied") { try seat("Library", finalYouth(7), chair: finalChair2, member(3), member(4)) }
         refused("its adults are still committed") { try seat("105", finalYouth(7), chair: chairOfEither, member(3), member(4)) }
 
-        try night.completeBoard(scoutID: finalYouth(6), result: .approved, notes: "")
+        try event.completeBoard(scoutID: finalYouth(6), result: .approved, notes: "")
         #expect(busyAdults == 0, "completing releases every member, none stranded on the old name")
-        #expect(night.room(id: newID)?.isFree == true)
+        #expect(event.room(id: newID)?.isFree == true)
     }
 
     @Test func aRoomCannotBeRenamedToSomethingItCannotBe() throws {
-        refused("an empty name") { try night.renameRoom(id: "ROOM:104", to: "  ") }
-        refused("a name with a comma") { try night.renameRoom(id: "ROOM:104", to: "104, east") }
-        refused("a name another room has") { try night.renameRoom(id: "ROOM:104", to: "105") }
-        refused("N/A, which marks adults who have gone home") { try night.renameRoom(id: "ROOM:104", to: disabledForTonightMarker) }
-        refused("a room that does not exist") { try night.renameRoom(id: "ROOM:nope", to: "999") }
-        refused("nor can a room be added as N/A") { try night.addRoom(named: disabledForTonightMarker, boardType: .finalBoard) }
-        #expect(try night.renameRoom(id: "ROOM:104", to: "104") == "ROOM:104", "renaming to its own name changes nothing")
-        #expect(night.rooms.count == 12)
+        refused("an empty name") { try event.renameRoom(id: "ROOM:104", to: "  ") }
+        refused("a name with a comma") { try event.renameRoom(id: "ROOM:104", to: "104, east") }
+        refused("a name another room has") { try event.renameRoom(id: "ROOM:104", to: "105") }
+        refused("N/A, which marks adults who have gone home") { try event.renameRoom(id: "ROOM:104", to: disabledForTodayMarker) }
+        refused("a room that does not exist") { try event.renameRoom(id: "ROOM:nope", to: "999") }
+        refused("nor can a room be added as N/A") { try event.addRoom(named: disabledForTodayMarker, boardType: .finalBoard) }
+        #expect(try event.renameRoom(id: "ROOM:104", to: "104") == "ROOM:104", "renaming to its own name changes nothing")
+        #expect(event.rooms.count == 12)
     }
 
     // Java section 14. Here the ids are an array, so the comma never split
@@ -545,13 +545,13 @@ struct BoardEventTests {
             "Last": "Whitmore, Jr.", "First": "Lysander", "Email": "a31@example.org",
             "UnitType": "Troop", "Unit": "2031", "ProjectReview": "Member", "FinalBoard": "Member",
         ]
-        try night.registerAdult(form)
+        try event.registerAdult(form)
         let junior = "ADULT:Whitmore~ Jr.:Lysander:2031"
-        #expect(night.adult(id: junior) != nil, "their id carries no comma")
+        #expect(event.adult(id: junior) != nil, "their id carries no comma")
         try seat("101", finalYouth(7), chair: chairOfEither, member(1), junior)
         #expect(adultRoom(junior) == "101")
 
-        let reopened = try EventNight(folder: scratch.dataFolder, night: "2026-09-22")
+        let reopened = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22")
         #expect(reopened.adult(id: junior)?.room == "101", "and are the same person after a restart")
         try reopened.registerAdult(form)
         #expect(reopened.adults.filter { $0.first == "Lysander" }.count == 1, "signing in again does not make a second one")
@@ -561,17 +561,17 @@ struct BoardEventTests {
     }
 
     // Java section 15 (two operators seating the same chair at once) has no
-    // counterpart: EventNight is @MainActor, so every change runs one at a time.
+    // counterpart: BoardEvent is @MainActor, so every change runs one at a time.
 
     // Java section 16.
     @Test func theAppRestartsInTheMiddleOfTheEvent() throws {
         try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
-        try night.startReview(scoutID: finalYouth(1))
+        try event.startReview(scoutID: finalYouth(1))
         try seat("102", finalYouth(2), chair: finalChair2, member(3), member(4))
 
-        let reopened = try EventNight(folder: scratch.dataFolder, night: "2026-09-22")
-        #expect(reopened.scouts.count == night.scouts.count, "no youth lost or duplicated")
-        #expect(reopened.adults.count == night.adults.count, "no adult lost or duplicated")
+        let reopened = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22")
+        #expect(reopened.scouts.count == event.scouts.count, "no youth lost or duplicated")
+        #expect(reopened.adults.count == event.adults.count, "no adult lost or duplicated")
         #expect(reopened.scout(id: finalYouth(1))?.status == .inProgress)
         #expect(reopened.scout(id: finalYouth(2))?.status == .seated)
         #expect(reopened.adults.filter(\.isOnBoard).count == 6)
@@ -588,34 +588,34 @@ struct BoardEventTests {
     // Java section 17. A room's type steers the Seat Board sheet only; the
     // size and chair rules and the timers follow the youth's board type.
     @Test func aRoomSwitchedBetweenProjectAndFinal() throws {
-        try night.setBoardType(.finalBoard, forRoom: "ROOM:201A")
+        try event.setBoardType(.finalBoard, forRoom: "ROOM:201A")
         refused("a Final board of 2 is still refused in a room switched to Final") {
             try seat("201A", finalYouth(1), chair: chairOfEither, member(1))
         }
         try seat("201A", finalYouth(1), chair: chairOfEither, member(1), member(2))
 
-        try night.setBoardType(.projectReview, forRoom: "ROOM:106")
+        try event.setBoardType(.projectReview, forRoom: "ROOM:106")
         refused("a Member still cannot chair a project review in a room switched to Project") {
             try seat("106", projectYouth(1), chair: member(3), member(4))
         }
         refused("nor can a Final-only chair") { try seat("106", projectYouth(1), chair: finalChair2, member(3)) }
         try seat("106", projectYouth(1), chair: projectChair1, member(3))
 
-        try night.setBoardType(.projectReview, forRoom: "ROOM:102")
+        try event.setBoardType(.projectReview, forRoom: "ROOM:102")
         try seat("102", finalYouth(2), chair: finalChair2, member(5), member(6))  // on purpose, as the sheet allows
 
-        try night.startReview(scoutID: finalYouth(1))
-        try night.setBoardType(.projectReview, forRoom: "ROOM:201A")
-        try night.setBoardType(.finalBoard, forRoom: "ROOM:106")
-        #expect(night.room(named: "201A")?.scoutName == "Alexander Aldridge", "switching a room keeps the board in it")
+        try event.startReview(scoutID: finalYouth(1))
+        try event.setBoardType(.projectReview, forRoom: "ROOM:201A")
+        try event.setBoardType(.finalBoard, forRoom: "ROOM:106")
+        #expect(event.room(named: "201A")?.scoutName == "Alexander Aldridge", "switching a room keeps the board in it")
         #expect(adultRoom(chairOfEither) == "201A")
         #expect(status(finalYouth(1)) == .inProgress)
-        #expect(night.scout(id: finalYouth(1))?.boardType == .finalBoard)
+        #expect(event.scout(id: finalYouth(1))?.boardType == .finalBoard)
 
-        try night.completeBoard(scoutID: finalYouth(1), result: .approved, notes: "")
+        try event.completeBoard(scoutID: finalYouth(1), result: .approved, notes: "")
         try runBoard(projectYouth(1))
         try runBoard(finalYouth(2))
-        #expect([finalYouth(1), projectYouth(1), finalYouth(2)].map { night.scout(id: $0)?.boardChairID }
+        #expect([finalYouth(1), projectYouth(1), finalYouth(2)].map { event.scout(id: $0)?.boardChairID }
             == [chairOfEither, projectChair1, finalChair2], "every board kept the chair it was seated with")
         #expect(busyAdults == 0)
     }
@@ -635,7 +635,7 @@ struct BoardEventTests {
         try editYouth(finalYouth(1)) { $0.result = "NotApproved" }
         #expect(result(finalYouth(1)) == "NotApproved")
         #expect(status(finalYouth(1)) == .completed)
-        #expect(night.scout(id: finalYouth(1))?.boardChairID == chairOfEither)
+        #expect(event.scout(id: finalYouth(1))?.boardChairID == chairOfEither)
         #expect(busyAdults == 0)
 
         // The right result on the wrong youth.
@@ -643,7 +643,7 @@ struct BoardEventTests {
         let wrong = try lateYouth("Esterbrook", "Quentin", unit: 3303)
         try seat("102", wrong, chair: finalChair2, member(3), member(4))
         try runBoard(wrong)
-        let board = try #require(night.scout(id: wrong))
+        let board = try #require(event.scout(id: wrong))
         try editYouth(right) {
             $0.status = .completed
             $0.result = "Approved"
@@ -657,13 +657,13 @@ struct BoardEventTests {
             $0.boardMembers = ""
         }
         #expect(status(right) == .completed && result(right) == "Approved")
-        #expect(night.scout(id: right)?.boardChair == board.boardChair)
+        #expect(event.scout(id: right)?.boardChair == board.boardChair)
         #expect(status(wrong) == .registered && result(wrong) == "")
         refused("the reviewed youth cannot be seated again") { try seat("103", right, chair: finalChair3, member(5), member(6)) }
         try seat("103", wrong, chair: finalChair3, member(5), member(6))
-        try night.startReview(scoutID: wrong)
-        try night.completeBoard(scoutID: wrong, result: .notApproved, notes: "")
-        #expect(result(wrong) == "NotApproved" && night.scout(id: wrong)?.boardChairID == finalChair3)
+        try event.startReview(scoutID: wrong)
+        try event.completeBoard(scoutID: wrong, result: .notApproved, notes: "")
+        #expect(result(wrong) == "NotApproved" && event.scout(id: wrong)?.boardChairID == finalChair3)
         #expect(result(right) == "Approved")
 
         // Completed by mistake, when the youth was really sent away unprepared.
@@ -675,7 +675,7 @@ struct BoardEventTests {
             $0.result = ""
         }
         #expect(status(sent) == .postponed && result(sent) == "")
-        refused("a youth sent away cannot be seated again that night") { try seat("104", sent, chair: chairOfEither, member(1), member(2)) }
+        refused("a youth sent away cannot be seated again at that event") { try seat("104", sent, chair: chairOfEither, member(1), member(2)) }
         #expect(busyAdults == 0)
     }
 
@@ -685,65 +685,65 @@ struct BoardEventTests {
     @Test func aTableCannotSeatStartOrEndABoard() throws {
         refused("a waiting youth is not seated from a table") { try editYouth(finalYouth(1)) { $0.status = .seated } }
         refused("nor put in review") { try editYouth(finalYouth(1)) { $0.status = .inProgress } }
-        #expect(status(finalYouth(1)) == .registered && night.scout(id: finalYouth(1))?.room == "")
+        #expect(status(finalYouth(1)) == .registered && event.scout(id: finalYouth(1))?.room == "")
 
         try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
         refused("a seated board is not sent back to waiting from a table") {
             try editYouth(finalYouth(1)) { $0.status = .registered }
         }
-        try night.startReview(scoutID: finalYouth(1))
+        try event.startReview(scoutID: finalYouth(1))
         refused("nor a review completed") { try editYouth(finalYouth(1)) { $0.status = .completed } }
         refused("nor postponed") { try editYouth(finalYouth(1)) { $0.status = .postponed } }
         try editYouth(finalYouth(1)) { $0.notes = "Strong answers" }
-        #expect(night.scout(id: finalYouth(1))?.notes == "Strong answers", "the rest of a sitting board's record still corrects")
+        #expect(event.scout(id: finalYouth(1))?.notes == "Strong answers", "the rest of a sitting board's record still corrects")
         #expect(status(finalYouth(1)) == .inProgress && busyAdults == 3, "and the room and members stay with it")
 
-        try night.completeBoard(scoutID: finalYouth(1), result: .approved, notes: "")
+        try event.completeBoard(scoutID: finalYouth(1), result: .approved, notes: "")
         try editYouth(finalYouth(2)) { $0.status = .postponed }
         #expect(status(finalYouth(2)) == .postponed, "a status that holds no room still corrects")
         #expect(busyAdults == 0)
     }
 
     // Java section 26 (SPEC.md P-6). An adult's facts are edited on the
-    // Adults page and kept in the history, which is read-only: EventNight has
+    // Adults page and kept in the history, which is read-only: BoardEvent has
     // no call that edits it (Java's /adult-history-update refuses one).
     @Test func aChairPromotedOnTheAdultsPageIsSeatedAsOne() throws {
-        #expect(night.adultHistory.first { $0.id == member(1) }?.finalBoardRoleText == "Member")
+        #expect(event.adultHistory.first { $0.id == member(1) }?.finalBoardRoleText == "Member")
         refused("a plain member cannot chair") { try seat("101", finalYouth(1), chair: member(1), member(2), member(3)) }
-        var promoted = try #require(night.adult(id: member(1)))
+        var promoted = try #require(event.adult(id: member(1)))
         promoted.finalBoardRoleText = BoardRole.chair.rawValue
         promoted.phone = "555-0106"
         promoted.woodBadge = "Y"
-        try night.updateAdult(promoted)
-        let history = try #require(night.adultHistory.first { $0.id == member(1) })
+        try event.updateAdult(promoted)
+        let history = try #require(event.adultHistory.first { $0.id == member(1) })
         #expect(history.canChair(.finalBoard), "and is a chair in the history too, for their next sign-in")
         #expect(history.phone == "555-0106", "their contact follows too")
-        #expect(history.woodBadge == "", "but Wood Badge stays with tonight")
+        #expect(history.woodBadge == "", "but Wood Badge stays with the event")
         try seat("101", finalYouth(1), chair: member(1), member(2), member(3))
-        #expect(night.scout(id: finalYouth(1))?.boardChairID == member(1), "the promoted chair is seated as one")
-        #expect(night.adult(id: member(1))?.room == "101" && history.room == "", "their room is tonight's alone")
+        #expect(event.scout(id: finalYouth(1))?.boardChairID == member(1), "the promoted chair is seated as one")
+        #expect(event.adult(id: member(1))?.room == "101" && history.room == "", "their room is this event's alone")
     }
 
     // Java section 27. Add Adult, for someone who won't use the tablet, signs
     // them in as the tablet does; filled in from the adult history it carries
     // that record's ID, so a name corrected in the sheet is the same adult.
     @Test func anAdultSignedInByHandFromTheHistory() throws {
-        try night.registerAdult([
+        try event.registerAdult([
             "Last": "Handley", "First": "Harriet", "Email": "hh@example.org", "UnitType": "Troop", "Unit": "3601",
             "ProjectReview": "Member", "FinalBoard": "Chair",
         ])
         let hand = "ADULT:Handley:Harriet:3601"
-        try night.deleteAdult(id: hand)
-        #expect(night.adult(id: hand) == nil, "an adult taken off tonight's list")
-        let historyCount = night.adultHistory.count
-        let back = try night.registerAdult(Adult.handSignInForm(
+        try event.deleteAdult(id: hand)
+        #expect(event.adult(id: hand) == nil, "an adult taken off the event's list")
+        let historyCount = event.adultHistory.count
+        let back = try event.registerAdult(Adult.handSignInForm(
             historyID: hand, first: "Harriet Ann", last: "Handley", email: "hh@example.org", phone: "",
             unitType: "Troop", unit: "3601", finalBoard: .chair, projectReview: .member, woodBadge: false
         ))
         #expect(back.id == hand && back.first == "Harriet Ann", "is signed in by hand as the same adult")
         #expect(back.canChair(.finalBoard), "still a chair")
-        #expect(night.adultHistory.count == historyCount, "with no second history record")
-        #expect(night.adultHistory.first { $0.id == hand }?.first == "Harriet Ann", "and the corrected name in the history")
+        #expect(event.adultHistory.count == historyCount, "with no second history record")
+        #expect(event.adultHistory.first { $0.id == hand }?.first == "Harriet Ann", "and the corrected name in the history")
     }
 
     // Java section 28 (SPEC.md D-22). Approved proposals from earlier events,
@@ -760,7 +760,7 @@ struct BoardEventTests {
                 + "Troop\(unit),1/2/2010,\(type),,,,,N/A,Completed,\(result),\(chair),ADULT:Chair:Chris:1,"
                 + "\(chair)~Morgan Member,ADULT:Chair:Chris:1~ADULT:Member:Morgan:2,\(notes)\n"
         }
-        #expect(night.approvedProposals().summary == "No earlier events in this data folder.")
+        #expect(event.approvedProposals().summary == "No earlier events in this data folder.")
 
         try scratch.write(header + row("Quill", "Ada", 3701, "Project", "Approved", notes: "Park benches~ phase one"),
                           to: "2019-05-28/scouts.csv")
@@ -776,7 +776,7 @@ struct BoardEventTests {
         // And a dated folder with no youth file, which held no event.
         try FileManager.default.createDirectory(at: scratch.url.appending(path: "2020-01-01"), withIntermediateDirectories: true)
 
-        let found = night.approvedProposals()
+        let found = event.approvedProposals()
         #expect(found.approvals.map(\.last) == ["Brook", "Quill"], "earlier events only, approved proposals only, by last name")
         #expect(found.summary == "Read from 2 earlier events, 2019-05-28 to 2026-08-25.", "however long ago")
         #expect(found.unreadable.count == 1 && found.unreadable[0].hasPrefix("2026-07-28"), "a folder that can't be read is named")
@@ -789,7 +789,7 @@ struct BoardEventTests {
 
         try scratch.write(header + row("Brook", "Ben", 3702, "Project", "Approved") + row("Cove", "Cal", 3707, "Project", "Approved"),
                           to: "2026-08-25/scouts.csv")
-        #expect(night.approvedProposals().approvals.map(\.last) == ["Brook", "Cove", "Quill"], "read afresh each time")
+        #expect(event.approvedProposals().approvals.map(\.last) == ["Brook", "Cove", "Quill"], "read afresh each time")
         #expect(try scratch.text("2019-05-28/scouts.csv").contains("555-0199"), "and nothing in an earlier folder is written")
         #expect(!FileManager.default.fileExists(atPath: scratch.url.appending(path: "2020-01-01/scouts.csv").path),
                 "not even a youth file where there was none")
@@ -803,75 +803,75 @@ struct BoardEventTests {
             "ProjectReview": "Member", "FinalBoard": "Member",
             "WoodBadge": "Y", "Supporting": "\(rsvp)|SCOUT:Nobody:Here:0",
         ]
-        try night.registerAdult(form)
+        try event.registerAdult(form)
         let leader = "ADULT:Hargrove:Ines:3401"
-        #expect(night.adult(id: leader)?.woodBadge == "Y", "Wood Badge is recorded")
-        #expect(night.adult(id: leader)?.supporting == "\(rsvp)|SCOUT:Nobody:Here:0", "and whom they came to support")
-        let history = try #require(night.adultHistory.first { $0.id == leader })
+        #expect(event.adult(id: leader)?.woodBadge == "Y", "Wood Badge is recorded")
+        #expect(event.adult(id: leader)?.supporting == "\(rsvp)|SCOUT:Nobody:Here:0", "and whom they came to support")
+        let history = try #require(event.adultHistory.first { $0.id == leader })
         #expect(history.woodBadge.isEmpty && history.supporting.isEmpty, "neither is kept for next month")
 
         form["WoodBadge"] = "yes"
         form["Supporting"] = ""
-        try night.registerAdult(form)
-        #expect(night.adult(id: leader)?.supporting == "", "signing in again says what is true now")
-        #expect(night.adult(id: leader)?.woodBadge == "", "and Wood Badge is Y or nothing")
+        try event.registerAdult(form)
+        #expect(event.adult(id: leader)?.supporting == "", "signing in again says what is true now")
+        #expect(event.adult(id: leader)?.woodBadge == "", "and Wood Badge is Y or nothing")
 
         // "No thanks" is stored as Unavailable; Seat Board refuses them there.
-        try night.registerAdult([
+        try event.registerAdult([
             "Last": "Ibarra", "First": "Juno", "Email": "a42@example.org", "UnitType": "Troop", "Unit": "3402",
             "ProjectReview": "Unavailable", "FinalBoard": "Member",
         ])
         let noProject = "ADULT:Ibarra:Juno:3402"
-        #expect(night.adult(id: noProject)?.projectReviewRoleText == "Unavailable")
+        #expect(event.adult(id: noProject)?.projectReviewRoleText == "Unavailable")
         let project = try lateYouth("Jaramillo", "Kai", unit: 3403, "Project")
         refused("they are not seated on a proposal review") { try seat("200A", project, chair: projectChair1, noProject) }
         #expect(busyAdults == 0)
         try seat("101", rsvp, chair: chairOfEither, member(1), noProject)  // a Final board is fine
-        try night.resetBoard(scoutID: rsvp)
+        try event.resetBoard(scoutID: rsvp)
 
         // The sign-in list: RSVPs not yet here, and this event's youth who are
         // not done yet.
         try CSVFile.write([Scout(fields: [
             "Type": "SCOUT", "ID": "SCOUT:Rsvp:Only:3999", "Last": "Rsvp", "First": "Only",
             "UnitType": "Troop", "Unit": "3999", "BoardType": "Final",
-        ])], to: scratch.dataFolder.scheduledYouthURL(night: "2026-09-22"))
-        try night.postponeBoard(scoutID: finalYouth(9))
-        let reopened = try EventNight(folder: scratch.dataFolder, night: "2026-09-22")
+        ])], to: scratch.dataFolder.scheduledYouthURL(event: "2026-09-22"))
+        try event.postponeBoard(scoutID: finalYouth(9))
+        let reopened = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22")
         let choices = reopened.scoutChoices().map(\.id)
         #expect(choices.contains("SCOUT:Rsvp:Only:3999"), "an RSVP not yet signed in can be chosen")
-        #expect(choices.contains(rsvp), "so can someone signed in tonight")
+        #expect(choices.contains(rsvp), "so can someone signed in at this event")
         #expect(!choices.contains(finalYouth(9)), "but not someone done for the event")
     }
 
     // Java section 19, linking after both have signed in.
     @Test func anOperatorLinksAnAdultToAYouthAfterBothSignedIn() throws {
-        try night.setSupporting(true, adultID: member(1), scoutID: finalYouth(1))
-        #expect(night.adult(id: member(1))?.supporting == finalYouth(1))
-        try night.setSupporting(true, adultID: member(1), scoutID: finalYouth(1))
-        #expect(night.adult(id: member(1))?.supporting == finalYouth(1), "pressing it twice links once")
+        try event.setSupporting(true, adultID: member(1), scoutID: finalYouth(1))
+        #expect(event.adult(id: member(1))?.supporting == finalYouth(1))
+        try event.setSupporting(true, adultID: member(1), scoutID: finalYouth(1))
+        #expect(event.adult(id: member(1))?.supporting == finalYouth(1), "pressing it twice links once")
 
         try seat("101", finalYouth(1), chair: chairOfEither, member(2), member(3))
         try runBoard(finalYouth(1))
-        #expect(night.adult(id: member(1))?.supporting == finalYouth(1), "the link survives the youth's board")
+        #expect(event.adult(id: member(1))?.supporting == finalYouth(1), "the link survives the youth's board")
 
-        try night.setSupporting(false, adultID: member(1), scoutID: finalYouth(1))
-        #expect(night.adult(id: member(1))?.supporting == "", "and can be undone")
+        try event.setSupporting(false, adultID: member(1), scoutID: finalYouth(1))
+        #expect(event.adult(id: member(1))?.supporting == "", "and can be undone")
 
-        refused("an unknown adult") { try night.setSupporting(true, adultID: "ADULT:Nobody:Here:0", scoutID: finalYouth(2)) }
-        refused("an unknown youth") { try night.setSupporting(true, adultID: member(1), scoutID: "SCOUT:Nobody:Here:0") }
-        try night.setSupporting(false, adultID: member(1), scoutID: "SCOUT:Nobody:Here:0")  // clearing a stale link is fine
+        refused("an unknown adult") { try event.setSupporting(true, adultID: "ADULT:Nobody:Here:0", scoutID: finalYouth(2)) }
+        refused("an unknown youth") { try event.setSupporting(true, adultID: member(1), scoutID: "SCOUT:Nobody:Here:0") }
+        try event.setSupporting(false, adultID: member(1), scoutID: "SCOUT:Nobody:Here:0")  // clearing a stale link is fine
     }
 
     @Test func startReviewNamesWhoCameToSupportTheYouthAndWhereTheyAre() throws {
-        try night.registerAdult([
+        try event.registerAdult([
             "Last": "Scoutmaster", "First": "Sam", "Email": "sm@example.org", "UnitType": "Troop", "Unit": "1001",
             "ProjectReview": "Member", "FinalBoard": "Member", "Supporting": finalYouth(1),
         ])
         let scoutmaster = "ADULT:Scoutmaster:Sam:1001"
         try seat("102", finalYouth(2), chair: finalChair2, member(3), scoutmaster)  // sitting on another board
         try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
-        let youth = try #require(night.scout(id: finalYouth(1)))
-        let first = try #require(AdultLocator.locate(for: youth, among: night.adults).first)
+        let youth = try #require(event.scout(id: finalYouth(1)))
+        let first = try #require(AdultLocator.locate(for: youth, among: event.adults).first)
         #expect(first.adult.id == scoutmaster && first.relation == .supporting)
         #expect(first.whereabouts == "Room 102", "so someone can fetch them from their board")
     }
@@ -895,18 +895,18 @@ struct BoardEventTests {
     @Test func aYouthsPhoneNumberIsNotKeptButOneOnFileStays() throws {
         // A pre-registration given a birthdate and a phone number by hand, as
         // a file from before D-7 and D-8 would have them.
-        try night.mergeSignUps([
+        try event.mergeSignUps([
             SignUpEntry(startDate: "2026-09-22 19:00", firstName: "lena", lastName: "lookup", item: "Eagle Board of Review",
                         email: "Lena.Lookup@Example.org", customAnswers: ["Troop 4401", "555-0100", ""]),
         ], month: "2026-09")
-        var lena = try #require(night.scheduledYouth(matchingEmail: "  lena.lookup@EXAMPLE.org "))
+        var lena = try #require(event.scheduledYouth(matchingEmail: "  lena.lookup@EXAMPLE.org "))
         #expect(lena.phone == "", "SignUpGenius puts no phone number on a youth")
         lena.dateOfBirth = "2010-05-06"
         lena.phone = "555-0100"
-        try night.updateYouth(lena, scheduled: true)
+        try event.updateYouth(lena, scheduled: true)
         let scheduledFile = try scratch.text("2026-09-22/scouts_scheduled.csv")
         #expect(scheduledFile.contains("555-0100") && scheduledFile.contains("2010-05-06"), "both stay on file")
-        let scheduledList = CSVFile.render(night.scheduledScouts.map(\.forExport))
+        let scheduledList = CSVFile.render(event.scheduledScouts.map(\.forExport))
         #expect(!scheduledList.contains("555-0100") && !scheduledList.contains("2010-05-06"),
                 "but the pre-registrations exported from the Pre-Registered page leave them out")
 
@@ -915,10 +915,10 @@ struct BoardEventTests {
             "Last": "Oldpage", "First": "Olive", "Email": "op@example.org", "Phone": "555-0101",
             "UnitType": "Troop", "Unit": "4402", "BoardType": "Final", "DOB": "2011-02-03",
         ]
-        try night.registerYouth(form)
+        try event.registerYouth(form)
         let olive = "SCOUT:Oldpage:Olive:4402"
         func onFile() throws -> String {
-            let youth = try #require(CSVFile.read(Scout.self, from: scratch.dataFolder.youthURL(night: "2026-09-22"))
+            let youth = try #require(CSVFile.read(Scout.self, from: scratch.dataFolder.youthURL(event: "2026-09-22"))
                 .first(where: { $0.id == olive }))
             return "\(youth.dateOfBirth)|\(youth.phone)"
         }
@@ -929,71 +929,71 @@ struct BoardEventTests {
             $0.phone = "555-0101"
         }
         #expect(try onFile() == "2011-02-03|555-0101", "one already on file stays on file")
-        let report = Reports.csv(night.scouts, columns: Reports.boardResultColumns)
+        let report = Reports.csv(event.scouts, columns: Reports.boardResultColumns)
         #expect(!report.contains("2011-02-03") && !report.contains("555-0101"), "but the board results report never shows it")
-        let youthList = CSVFile.render(night.scouts.map(\.forExport))
+        let youthList = CSVFile.render(event.scouts.map(\.forExport))
         #expect(!youthList.contains("2011-02-03") && !youthList.contains("555-0101"), "nor a list exported from the Youth page")
         #expect(CSVFile.parse(Scout.self, text: youthList).first(where: { $0.id == olive })?.first == "Olive",
                 "which keeps the columns, so they still line up")
 
         form["Phone"] = "555-0199"
         form["DOB"] = "2012-12-12"
-        try night.registerYouth(form)
+        try event.registerYouth(form)
         #expect(try onFile() == "2011-02-03|555-0101", "and signing in again neither changes nor blanks it")
 
-        // An adult's number is kept, tonight and in the history the adult
+        // An adult's number is kept, at this event and in the history the adult
         // lookup reads.
-        try night.registerAdult([
+        try event.registerAdult([
             "Last": "Phoneon", "First": "Adele", "Email": "adele@example.org", "Phone": "555-0102",
             "UnitType": "Troop", "Unit": "4403", "ProjectReview": "Member", "FinalBoard": "Member",
         ])
-        #expect(night.adult(id: "ADULT:Phoneon:Adele:4403")?.phone == "555-0102")
-        #expect(night.knownAdult(matchingEmail: "adele@example.org")?.phone == "555-0102")
+        #expect(event.adult(id: "ADULT:Phoneon:Adele:4403")?.phone == "555-0102")
+        #expect(event.knownAdult(matchingEmail: "adele@example.org")?.phone == "555-0102")
     }
 
     // MARK: - Undo
 
     /// Undo of each step is restoreBoard with the record from before it.
     @Test func eachStepIsUndoneAndRedone() throws {
-        let waiting = try #require(night.scout(id: finalYouth(1)))
+        let waiting = try #require(event.scout(id: finalYouth(1)))
         try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
-        let seated = try #require(night.scout(id: finalYouth(1)))
+        let seated = try #require(event.scout(id: finalYouth(1)))
 
-        try night.restoreBoard(waiting)
+        try event.restoreBoard(waiting)
         #expect(status(finalYouth(1)) == .registered)
         #expect(roomOf(finalYouth(1)) == "")
         #expect(adultRoom(chairOfEither) == "")
-        #expect(night.room(named: "101")?.isFree == true)
+        #expect(event.room(named: "101")?.isFree == true)
 
-        try night.restoreBoard(seated)
+        try event.restoreBoard(seated)
         #expect(status(finalYouth(1)) == .seated)
         #expect(adultRoom(member(2)) == "101")
-        #expect(night.room(named: "101")?.scoutName == seated.fullName)
+        #expect(event.room(named: "101")?.scoutName == seated.fullName)
 
-        try night.startReview(scoutID: finalYouth(1))
-        let inReview = try #require(night.scout(id: finalYouth(1)))
-        try night.restoreBoard(seated)
+        try event.startReview(scoutID: finalYouth(1))
+        let inReview = try #require(event.scout(id: finalYouth(1)))
+        try event.restoreBoard(seated)
         #expect(status(finalYouth(1)) == .seated)
-        #expect(night.scout(id: finalYouth(1))?.lastUpdateTime == seated.lastUpdateTime, "the convening timer resumes")
-        try night.restoreBoard(inReview)
+        #expect(event.scout(id: finalYouth(1))?.lastUpdateTime == seated.lastUpdateTime, "the convening timer resumes")
+        try event.restoreBoard(inReview)
 
-        try night.completeBoard(scoutID: finalYouth(1), result: .adjourned, notes: "Come back next month")
+        try event.completeBoard(scoutID: finalYouth(1), result: .adjourned, notes: "Come back next month")
         #expect(adultRoom(chairOfEither) == "")
-        try night.restoreBoard(inReview)
+        try event.restoreBoard(inReview)
         #expect(status(finalYouth(1)) == .inProgress)
-        #expect(night.scout(id: finalYouth(1))?.result == "")
-        #expect(night.scout(id: finalYouth(1))?.notes == "")
+        #expect(event.scout(id: finalYouth(1))?.result == "")
+        #expect(event.scout(id: finalYouth(1))?.notes == "")
         #expect(adultRoom(chairOfEither) == "101", "the members are back on the board")
-        #expect(night.room(named: "101")?.isFree == false)
+        #expect(event.room(named: "101")?.isFree == false)
 
-        try night.resetBoard(scoutID: finalYouth(1))
-        try night.restoreBoard(inReview)
+        try event.resetBoard(scoutID: finalYouth(1))
+        try event.restoreBoard(inReview)
         #expect(status(finalYouth(1)) == .inProgress)
         #expect(adultRoom(member(1)) == "101")
 
-        let other = try #require(night.scout(id: finalYouth(2)))
-        try night.postponeBoard(scoutID: finalYouth(2))
-        try night.restoreBoard(other)
+        let other = try #require(event.scout(id: finalYouth(2)))
+        try event.postponeBoard(scoutID: finalYouth(2))
+        try event.restoreBoard(other)
         #expect(status(finalYouth(2)) == .registered)
     }
 
@@ -1001,25 +1001,25 @@ struct BoardEventTests {
     /// been given to another board, the old board stays as it is.
     @Test func undoIsRefusedOnceTheEventHasMovedOn() throws {
         try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
-        let seated = try #require(night.scout(id: finalYouth(1)))
-        try night.resetBoard(scoutID: finalYouth(1))
+        let seated = try #require(event.scout(id: finalYouth(1)))
+        try event.resetBoard(scoutID: finalYouth(1))
 
         try seat("101", finalYouth(2), chair: finalChair2, member(3), member(4))
-        refused("room 101 has another board now") { try night.restoreBoard(seated) }
+        refused("room 101 has another board now") { try event.restoreBoard(seated) }
         #expect(status(finalYouth(1)) == .registered)
-        #expect(night.room(named: "101")?.scoutName == night.scout(id: finalYouth(2))?.fullName)
+        #expect(event.room(named: "101")?.scoutName == event.scout(id: finalYouth(2))?.fullName)
 
-        try night.resetBoard(scoutID: finalYouth(2))
+        try event.resetBoard(scoutID: finalYouth(2))
         try seat("102", finalYouth(3), chair: finalChair3, member(1), member(5))
-        refused("a member is on another board now") { try night.restoreBoard(seated) }
+        refused("a member is on another board now") { try event.restoreBoard(seated) }
         #expect(adultRoom(member(1)) == "102")
 
-        try night.resetBoard(scoutID: finalYouth(3))
-        try night.setAvailable(false, adultID: member(2))
-        refused("a member has gone home") { try night.restoreBoard(seated) }
+        try event.resetBoard(scoutID: finalYouth(3))
+        try event.setAvailable(false, adultID: member(2))
+        refused("a member has gone home") { try event.restoreBoard(seated) }
 
-        try night.setAvailable(true, adultID: member(2))
-        try night.restoreBoard(seated)
+        try event.setAvailable(true, adultID: member(2))
+        try event.restoreBoard(seated)
         #expect(status(finalYouth(1)) == .seated)
     }
 

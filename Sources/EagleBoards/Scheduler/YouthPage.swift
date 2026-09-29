@@ -10,11 +10,11 @@ import SwiftUI
 /// A youth's birthdate and phone number are never shown here (D-7, D-8).
 struct YouthPage: View {
     @Environment(AppModel.self) private var model
-    let night: EventNight
+    let event: BoardEvent
     @State private var sortOrder = [KeyPathComparator(\Scout.queueOrder)]
 
     var body: some View {
-        let rows = night.scouts
+        let rows = event.scouts
             .filter { matches(model.searchText, $0) }
             .sorted(using: sortOrder)
         let selection = Binding(get: { model.selectedYouthID }, set: { model.selectYouth($0) })

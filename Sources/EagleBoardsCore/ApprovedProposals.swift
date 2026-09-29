@@ -64,10 +64,10 @@ extension DataFolder {
         var approvals: [ApprovedProposal] = []
         var eventsRead: [String] = []
         var unreadable: [String] = []
-        for event in nights().filter({ $0 < date }).sorted()
-        where FileManager.default.fileExists(atPath: youthURL(night: event).path) {
+        for event in events().filter({ $0 < date }).sorted()
+        where FileManager.default.fileExists(atPath: youthURL(event: event).path) {
             do {
-                let youth = try CSVFile.read(Scout.self, from: youthURL(night: event))
+                let youth = try CSVFile.read(Scout.self, from: youthURL(event: event))
                 eventsRead.append(event)
                 approvals += youth
                     .filter { $0.boardType == .projectReview && BoardResult(rawValue: $0.result) == .approved }
@@ -86,10 +86,10 @@ extension DataFolder {
     }
 }
 
-extension EventNight {
+extension BoardEvent {
     /// The approved proposals from the events before this one: before its
     /// folder's date, or today if the folder isn't named by a date.
     public func approvedProposals() -> ApprovedProposals {
-        folder.approvedProposals(before: Timestamp.isDayStamp(night) ? night : Timestamp.dayStamp(for: now))
+        folder.approvedProposals(before: Timestamp.isDayStamp(date) ? date : Timestamp.dayStamp(for: now))
     }
 }

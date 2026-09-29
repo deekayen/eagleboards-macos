@@ -8,7 +8,7 @@ import SwiftUI
 struct ChangeMembersSheet: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
-    let night: EventNight
+    let event: BoardEvent
     let scoutID: String
 
     @State private var memberIDs: [String] = []
@@ -17,8 +17,8 @@ struct ChangeMembersSheet: View {
     @State private var search = ""
 
     var body: some View {
-        if let youth = night.scout(id: scoutID), let boardType = youth.boardType {
-            let members = memberIDs.compactMap { night.adult(id: $0) }
+        if let youth = event.scout(id: scoutID), let boardType = youth.boardType {
+            let members = memberIDs.compactMap { event.adult(id: $0) }
             let review = ChangeMembersReview(scout: youth, members: members)
             let chairIsQualified = review.qualifiedChairs.contains { $0.id == chairID }
             let warningsCleared = review.warnings.allSatisfy { acknowledged.contains($0.id) }
@@ -105,7 +105,7 @@ struct ChangeMembersSheet: View {
                         }
                     }
 
-                    FreeAdultsToAddSection(youth: youth, night: night, boardType: boardType, memberIDs: $memberIDs, search: $search)
+                    FreeAdultsToAddSection(youth: youth, event: event, boardType: boardType, memberIDs: $memberIDs, search: $search)
                 }
                 .formStyle(.grouped)
 
@@ -146,14 +146,14 @@ struct ChangeMembersSheet: View {
 /// again after being removed by hand. Click one to add them.
 private struct FreeAdultsToAddSection: View {
     let youth: Scout
-    let night: EventNight
+    let event: BoardEvent
     let boardType: BoardType
     @Binding var memberIDs: [String]
     @Binding var search: String
 
     var body: some View {
         let query = search.trimmingCharacters(in: .whitespaces)
-        let candidates = night.adults
+        let candidates = event.adults
             .filter { ($0.canJoin(boardType) || $0.room == youth.room) && !memberIDs.contains($0.id) }
             .filter { query.isEmpty || $0.fullName.localizedCaseInsensitiveContains(query)
                 || $0.unitName.localizedCaseInsensitiveContains(query) || $0.unitLabel.localizedCaseInsensitiveContains(query) }

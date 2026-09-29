@@ -6,22 +6,22 @@ import SwiftUI
 /// is seated, the result when it is done, and who came with them.
 struct YouthInspector: View {
     @Environment(AppModel.self) private var model
-    let night: EventNight
+    let event: BoardEvent
 
     var body: some View {
         if let youth = model.selectedYouth {
             TimelineView(.periodic(from: .now, by: 20)) { timeline in
                 Form {
-                    YouthHeader(youth: youth, night: night, now: timeline.date)
+                    YouthHeader(youth: youth, event: event, now: timeline.date)
                     switch youth.status {
                     case .registered, .verified, nil:
-                        DraftBoardSections(youth: youth, night: night)
+                        DraftBoardSections(youth: youth, event: event)
                     case .seated, .inProgress:
-                        SittingBoardSection(youth: youth, night: night, now: timeline.date)
+                        SittingBoardSection(youth: youth, event: event, now: timeline.date)
                     case .completed, .postponed:
                         ResultSection(youth: youth)
                     }
-                    WithThemSection(youth: youth, night: night)
+                    WithThemSection(youth: youth, event: event)
                 }
                 .formStyle(.grouped)
             }
@@ -35,7 +35,7 @@ struct YouthInspector: View {
 
 private struct YouthHeader: View {
     let youth: Scout
-    let night: EventNight
+    let event: BoardEvent
     let now: Date
 
     var body: some View {
@@ -75,13 +75,13 @@ private struct YouthHeader: View {
 private struct DraftBoardSections: View {
     @Environment(AppModel.self) private var model
     let youth: Scout
-    let night: EventNight
+    let event: BoardEvent
     @State private var isTargeted = false
 
     var body: some View {
         if let draft = model.draft, let boardType = youth.boardType {
             let members = model.draftMembers(for: youth.id)
-            let room = draft.roomID.flatMap { night.room(id: $0) }
+            let room = draft.roomID.flatMap { event.room(id: $0) }
             let review = SeatingReview(scout: youth, members: members, room: room)
 
             Section {
@@ -139,7 +139,7 @@ private struct DraftBoardSections: View {
                 }
             }
 
-            FreeAdultsSection(youth: youth, night: night, boardType: boardType, draftIDs: Set(draft.memberIDs))
+            FreeAdultsSection(youth: youth, event: event, boardType: boardType, draftIDs: Set(draft.memberIDs))
         } else if youth.boardType == nil {
             Section {
                 Label("\(youth.fullName) has no board type. Set Final or Project in the Board column of the Youth page.",
@@ -155,7 +155,7 @@ private struct DraftBoardSections: View {
 
     /// Free rooms of the right kind first, then other free rooms.
     private func roomChoices(for boardType: BoardType) -> [Room] {
-        let free = night.rooms.filter(\.isFree)
+        let free = event.rooms.filter(\.isFree)
         return free.filter { $0.boardType == boardType } + free.filter { $0.boardType != boardType }
     }
 
@@ -202,7 +202,7 @@ private struct MemberRow: View {
     }
 
     private var busy: String? {
-        if member.isDisabledForTonight { return "Gone home" }
+        if member.isDisabledForToday { return "Gone home" }
         if member.isOnBoard { return "On the board in room \(member.room)" }
         if member.role(for: boardType) == .unavailable { return "No thanks to \(boardType.label)s" }
         return nil
@@ -239,14 +239,14 @@ private struct ReviewNotes: View {
 private struct FreeAdultsSection: View {
     @Environment(AppModel.self) private var model
     let youth: Scout
-    let night: EventNight
+    let event: BoardEvent
     let boardType: BoardType
     let draftIDs: Set<Adult.ID>
     @State private var search = ""
 
     var body: some View {
         let query = search.trimmingCharacters(in: .whitespaces)
-        let free = night.adults
+        let free = event.adults
             .filter { $0.canJoin(boardType) && !draftIDs.contains($0.id) }
             .filter { query.isEmpty || $0.fullName.localizedCaseInsensitiveContains(query)
                 || $0.unitName.localizedCaseInsensitiveContains(query) || $0.unitLabel.localizedCaseInsensitiveContains(query) }
@@ -298,7 +298,7 @@ private struct FreeAdultsSection: View {
 private struct SittingBoardSection: View {
     @Environment(AppModel.self) private var model
     let youth: Scout
-    let night: EventNight
+    let event: BoardEvent
     let now: Date
 
     var body: some View {
@@ -307,7 +307,7 @@ private struct SittingBoardSection: View {
                 HStack {
                     Text(youth.room)
                     if let minutes = youth.minutesSinceLastUpdate(now: now),
-                       let state = RoomTimer.state(status: youth.status, boardType: youth.boardType, minutes: minutes, config: night.config) {
+                       let state = RoomTimer.state(status: youth.status, boardType: youth.boardType, minutes: minutes, config: event.config) {
                         TimerBadge(minutes: minutes, state: state)
                     }
                 }
@@ -376,11 +376,11 @@ private struct ResultSection: View {
 private struct WithThemSection: View {
     @Environment(AppModel.self) private var model
     let youth: Scout
-    let night: EventNight
+    let event: BoardEvent
 
     var body: some View {
-        let people = AdultLocator.locate(for: youth, among: night.adults)
-        let others = night.adults
+        let people = AdultLocator.locate(for: youth, among: event.adults)
+        let others = event.adults
             .filter { !$0.supports(youth.id) }
             .sorted { ($0.last, $0.first) < ($1.last, $1.first) }
 

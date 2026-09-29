@@ -12,7 +12,7 @@ public struct EventError: LocalizedError, Equatable, Sendable {
     public var errorDescription: String? { message }
 }
 
-/// One event night: everyone who has signed in, the rooms, and every board.
+/// One event: everyone who has signed in, the rooms, and every board.
 ///
 /// All state lives on the main actor. The scheduler window reads it directly,
 /// and the check-in server hops onto the main actor to register someone, so a
@@ -21,16 +21,16 @@ public struct EventError: LocalizedError, Equatable, Sendable {
 /// quitting at any moment loses nothing.
 @MainActor
 @Observable
-public final class EventNight {
+public final class BoardEvent {
     public let folder: DataFolder
-    /// `YYYY-MM-DD`, the name of this night's folder.
-    public let night: String
+    /// `YYYY-MM-DD`, the name of this event's folder.
+    public let date: String
 
-    /// Youth who have signed in tonight (`scouts.csv`).
+    /// Youth who have signed in at this event (`scouts.csv`).
     public private(set) var scouts: [Scout] = []
-    /// Youth pre-registered for tonight, from SignUpGenius (`scouts_scheduled.csv`).
+    /// Youth pre-registered for this event, from SignUpGenius (`scouts_scheduled.csv`).
     public private(set) var scheduledScouts: [Scout] = []
-    /// Adults who have signed in tonight (`adults.csv`).
+    /// Adults who have signed in at this event (`adults.csv`).
     public private(set) var adults: [Adult] = []
     /// Every adult who has ever signed in (`Master_AdultHistory.csv`).
     public private(set) var adultHistory: [Adult] = []
@@ -39,22 +39,22 @@ public final class EventNight {
 
     @ObservationIgnored private let clock: @Sendable () -> Date
 
-    /// Opens (creating if needed) the night's folder inside `folder`.
-    public init(folder: DataFolder, night: String, clock: @escaping @Sendable () -> Date = { Date() }) throws {
+    /// Opens (creating if needed) the event's folder inside `folder`.
+    public init(folder: DataFolder, date: String, clock: @escaping @Sendable () -> Date = { Date() }) throws {
         self.folder = folder
-        self.night = night
+        self.date = date
         self.clock = clock
 
-        try FileManager.default.createDirectory(at: folder.nightFolder(night), withIntermediateDirectories: true)
-        scouts = try CSVFile.read(Scout.self, from: folder.youthURL(night: night))
-        scheduledScouts = try CSVFile.read(Scout.self, from: folder.scheduledYouthURL(night: night))
-        adults = try CSVFile.read(Adult.self, from: folder.adultsURL(night: night))
+        try FileManager.default.createDirectory(at: folder.eventFolder(date), withIntermediateDirectories: true)
+        scouts = try CSVFile.read(Scout.self, from: folder.youthURL(event: date))
+        scheduledScouts = try CSVFile.read(Scout.self, from: folder.scheduledYouthURL(event: date))
+        adults = try CSVFile.read(Adult.self, from: folder.adultsURL(event: date))
         adultHistory = try CSVFile.read(Adult.self, from: folder.adultHistoryURL)
-        rooms = try CSVFile.read(Room.self, from: folder.roomsURL(night: night))
+        rooms = try CSVFile.read(Room.self, from: folder.roomsURL(event: date))
         config = try PropertiesFile.read(from: folder.configURL)
 
         // Leave a complete, readable folder behind even if nothing happens
-        // tonight -- the Java app created every file at startup too.
+        // at this event -- the Java app created every file at startup too.
         for table in Table.allCases where !FileManager.default.fileExists(atPath: url(of: table).path) {
             try save(table)
         }
@@ -70,11 +70,11 @@ public final class EventNight {
 
     public func url(of table: Table) -> URL {
         switch table {
-        case .youth: folder.youthURL(night: night)
-        case .scheduledYouth: folder.scheduledYouthURL(night: night)
-        case .adults: folder.adultsURL(night: night)
+        case .youth: folder.youthURL(event: date)
+        case .scheduledYouth: folder.scheduledYouthURL(event: date)
+        case .adults: folder.adultsURL(event: date)
         case .adultHistory: folder.adultHistoryURL
-        case .rooms: folder.roomsURL(night: night)
+        case .rooms: folder.roomsURL(event: date)
         case .config: folder.configURL
         }
     }
@@ -201,8 +201,8 @@ public final class EventNight {
 
     /// An adult signs in at the check-in station.
     ///
-    /// Tonight's record is created or updated, and so is the adult's permanent
-    /// history record, which gains tonight's date. Signing in again does not
+    /// The event's record is created or updated, and so is the adult's permanent
+    /// history record, which gains today's date. Signing in again does not
     /// take them off a board they are already sitting on.
     @discardableResult
     public func registerAdult(_ form: [String: String]) throws -> Adult {
@@ -224,56 +224,56 @@ public final class EventNight {
         }
         incoming.assignIDIfNeeded()
         incoming.refreshDerivedFields()
-        // Tonight-only answers. Anything but "Y" is no.
+        // Answers for this event only. Anything but "Y" is no.
         incoming.woodBadge = form["WoodBadge"] == "Y" ? "Y" : ""
         incoming.supporting = (form["Supporting"] ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
 
-        var tonight: Adult
-        let tonightIndex: Int
+        var record: Adult
+        let eventIndex: Int
         if let index = adults.firstIndex(where: { $0.id == incoming.id }) {
             adults[index].update(from: incoming, columns: Adult.signInColumns)
             // The latest sign-in says what is true now.
             adults[index].woodBadge = incoming.woodBadge
             adults[index].supporting = incoming.supporting
-            tonightIndex = index
+            eventIndex = index
         } else {
             adults.append(incoming)
-            tonightIndex = adults.count - 1
+            eventIndex = adults.count - 1
         }
-        tonight = adults[tonightIndex]
+        record = adults[eventIndex]
 
         // Still no role: whatever the history says, or Member.
-        let historyMatch = adultHistory.firstIndex(where: { $0.id == tonight.id })
-        for column in roleColumns where tonight[column].isEmpty {
+        let historyMatch = adultHistory.firstIndex(where: { $0.id == record.id })
+        for column in roleColumns where record[column].isEmpty {
             let known = historyMatch.map { adultHistory[$0][column] } ?? ""
-            tonight[column] = BoardRole(rawValue: known) != nil ? known : BoardRole.member.rawValue
+            record[column] = BoardRole(rawValue: known) != nil ? known : BoardRole.member.rawValue
         }
 
         let dayMark = "(\(Timestamp.dayStamp(for: now)))"
         if let historyIndex = historyMatch {
-            adultHistory[historyIndex].update(from: tonight, columns: Adult.signInColumns)
-            tonight.flags = "P"
+            adultHistory[historyIndex].update(from: record, columns: Adult.signInColumns)
+            record.flags = "P"
             if !adultHistory[historyIndex].boardHistory.hasSuffix(dayMark) {
                 adultHistory[historyIndex].boardHistory += dayMark
             }
         } else {
-            var history = tonight
+            var history = record
             history.regTime = Timestamp.recordStamp(for: now)
             history.room = ""
             history.flags = ""
             history["Sel"] = ""
             // The history pre-fills next month's form; whom someone came to
             // support, and whether it counted toward Wood Badge, are for
-            // tonight only.
+            // this event only.
             history.woodBadge = ""
             history.supporting = ""
             history.boardHistory += dayMark
             adultHistory.append(history)
-            tonight.flags = "W"
+            record.flags = "W"
         }
-        adults[tonightIndex] = tonight
+        adults[eventIndex] = record
         try save(.adults, .adultHistory)
-        return tonight
+        return record
     }
 
     // MARK: - The board lifecycle
@@ -299,11 +299,11 @@ public final class EventNight {
         guard scout.status?.isWaitingForBoard == true else {
             throw EventError("\(scout.fullName) cannot be seated from status '\(scout.statusLabel)'.")
         }
-        // disabledForTonightMarker ("N/A") is what Complete leaves in a youth's
+        // disabledForTodayMarker ("N/A") is what Complete leaves in a youth's
         // room. A Registered youth holding it had a result recorded against them
         // by mistake and was set back on the Youth page: they have no room
         // and must be seatable for their real board.
-        guard scout.room.isEmpty || scout.room == disabledForTonightMarker || scout.room == room.name else {
+        guard scout.room.isEmpty || scout.room == disabledForTodayMarker || scout.room == room.name else {
             throw EventError("\(scout.fullName) is already assigned to room \(scout.room).")
         }
         guard let boardType = scout.boardType else {
@@ -323,7 +323,7 @@ public final class EventNight {
             guard let member = adult(id: memberID) else {
                 throw EventError("There is no adult '\(memberID)'.")
             }
-            if member.isDisabledForTonight {
+            if member.isDisabledForToday {
                 throw EventError("\(member.fullName) has been disabled for today.")
             }
             if !member.room.isEmpty {
@@ -411,7 +411,7 @@ public final class EventNight {
             guard let member = adult(id: memberID) else {
                 throw EventError("There is no adult '\(memberID)'.")
             }
-            if member.isDisabledForTonight {
+            if member.isDisabledForToday {
                 throw EventError("\(member.fullName) has been disabled for today.")
             }
             if !member.room.isEmpty && member.room != scout.room {
@@ -492,14 +492,14 @@ public final class EventNight {
         }
         releaseRoom(at: roomIndex)
         scouts[scoutIndex].status = .completed
-        scouts[scoutIndex].room = disabledForTonightMarker
+        scouts[scoutIndex].room = disabledForTodayMarker
         scouts[scoutIndex].notes = notes
         scouts[scoutIndex].result = result.rawValue
         scouts[scoutIndex].markUpdated(at: now)
         try save(.youth, .rooms, .adults)
     }
 
-    /// Put a waiting youth's board off to another night.
+    /// Put a waiting youth's board off to another event.
     public func postponeBoard(scoutID: String) throws {
         guard let index = scouts.firstIndex(where: { $0.id == scoutID }) else {
             throw EventError("There is no youth '\(scoutID)'.")
@@ -566,7 +566,7 @@ public final class EventNight {
                 guard let member = adult(id: memberID) else {
                     throw EventError("There is no adult '\(memberID)'.")
                 }
-                if member.isDisabledForTonight {
+                if member.isDisabledForToday {
                     throw EventError("\(member.fullName) has gone home since.")
                 }
                 guard member.room.isEmpty || member.room == currentRoom else {
@@ -622,8 +622,8 @@ public final class EventNight {
         }
         // An adult's room holds this marker when they have gone home, so a
         // room by that name would look like it held every one of them.
-        guard name != disabledForTonightMarker else {
-            throw EventError("\(disabledForTonightMarker) cannot be a room name.")
+        guard name != disabledForTodayMarker else {
+            throw EventError("\(disabledForTodayMarker) cannot be a room name.")
         }
         guard room(id: Room.roomID(for: name)) == nil else {
             throw EventError("Room \(name) already exists.")
@@ -727,11 +727,11 @@ public final class EventNight {
         try save(.rooms, .youth, .adults)
     }
 
-    /// Add the rooms from an earlier night that tonight does not have yet,
+    /// Add the rooms from an earlier event that this event does not have yet,
     /// empty, so the room list does not have to be typed in every month.
     @discardableResult
-    public func copyRooms(fromNight earlierNight: String) throws -> Int {
-        let earlierRooms = try CSVFile.read(Room.self, from: folder.roomsURL(night: earlierNight))
+    public func copyRooms(fromEvent earlierEvent: String) throws -> Int {
+        let earlierRooms = try CSVFile.read(Room.self, from: folder.roomsURL(event: earlierEvent))
         var added = 0
         for earlier in earlierRooms where !earlier.name.isEmpty && room(id: Room.roomID(for: earlier.name)) == nil {
             var copy = Room.blank(at: now)
@@ -749,25 +749,25 @@ public final class EventNight {
 
     // MARK: - Adults
 
-    /// Enable or Disable: stand an adult down for the night, or bring them back.
+    /// Enable or Disable: stand an adult down for the event, or bring them back.
     public func setAvailable(_ available: Bool, adultID: String) throws {
         guard let index = adults.firstIndex(where: { $0.id == adultID }) else {
             throw EventError("There is no adult '\(adultID)'.")
         }
         let adult = adults[index]
         if available {
-            guard adult.isDisabledForTonight else {
+            guard adult.isDisabledForToday else {
                 throw EventError("\(adult.fullName) is not disabled.")
             }
             adults[index].room = ""
         } else {
-            if adult.isDisabledForTonight {
+            if adult.isDisabledForToday {
                 throw EventError("\(adult.fullName) is already disabled.")
             }
             guard adult.room.isEmpty else {
                 throw EventError("\(adult.fullName) is on the board in room \(adult.room). Reset or complete that board first.")
             }
-            adults[index].room = disabledForTonightMarker
+            adults[index].room = disabledForTodayMarker
         }
         try save(.adults)
     }
@@ -841,29 +841,29 @@ public final class EventNight {
         }
     }
 
-    /// Replace one of tonight's adults as edited on the Adults page.
+    /// Replace one of the event's adults as edited on the Adults page.
     ///
     /// An adult's name, unit, contact and roles (`Adult.signInColumns`) are
-    /// one set of facts in tonight's adults and the adult history, as a
+    /// one set of facts in the event's adults and the adult history, as a
     /// sign-in carries them between the two tables (SPEC.md P-6): the change
     /// is made to the same adult in the history too, so someone promoted to
-    /// Chair tonight is a chair the next time they sign in. Wood Badge, whom
+    /// Chair today is a chair the next time they sign in. Wood Badge, whom
     /// they came to support and their room belong to this event alone. The
     /// history itself is read-only: a sign-in writes it, and this reaches it.
     public func updateAdult(_ edited: Adult) throws {
         var record = edited
         record.refreshDerivedFields()
-        guard let tonightIndex = adults.firstIndex(where: { $0.id == edited.id }) else {
+        guard let eventIndex = adults.firstIndex(where: { $0.id == edited.id }) else {
             throw EventError("That adult no longer exists.")
         }
-        adults[tonightIndex] = record
+        adults[eventIndex] = record
         if let historyIndex = adultHistory.firstIndex(where: { $0.id == edited.id }) {
             adultHistory[historyIndex].copyFacts(from: record)
         }
         try save(.adults, .adultHistory)
     }
 
-    /// Take an adult off tonight's list. The adult history keeps them.
+    /// Take an adult off the event's list. The adult history keeps them.
     public func deleteAdult(id: String) throws {
         if let adult = adult(id: id), adult.isOnBoard {
             throw EventError("\(adult.fullName) is on the board in room \(adult.room). Reset or complete that board first.")
@@ -900,11 +900,11 @@ public final class EventNight {
         }
     }
 
-    /// Merge SignUpGenius sign-ups into the adult history and tonight's
+    /// Merge SignUpGenius sign-ups into the adult history and the event's
     /// pre-registrations.
     ///
     /// Only entries dated in `month` (`YYYY-MM`) are used -- by calendar month,
-    /// as the Java app did, so two board nights in one month both import. An
+    /// as the Java app did, so two board events in one month both import. An
     /// adult is matched to the history by email: one match gets their phone
     /// updated, none adds them as a Member for both board types, and more than
     /// one is left alone rather than guessed at.

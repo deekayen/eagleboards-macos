@@ -11,12 +11,12 @@ import SwiftUI
 /// shown here (D-7, D-8).
 struct PreRegisteredPage: View {
     @Environment(AppModel.self) private var model
-    let night: EventNight
+    let event: BoardEvent
     @State private var selection: Scout.ID?
     @State private var sortOrder = [KeyPathComparator(\Scout.last)]
 
     var body: some View {
-        let rows = night.scheduledScouts
+        let rows = event.scheduledScouts
             .filter { matches(model.searchText, $0.fullName, $0.email, $0.unitName, $0.leader) }
             .sorted(using: sortOrder)
 
@@ -81,10 +81,10 @@ struct PreRegisteredPage: View {
 /// name, email or unit. A sign-in writes it, and a change on the Adults page
 /// reaches the same adult here. Last Event has a check for those signed in
 /// today; double-click someone, or choose Sign In for Today, to put them on
-/// tonight's list without the tablet.
+/// the event's list without the tablet.
 struct AdultHistoryPage: View {
     @Environment(AppModel.self) private var model
-    let night: EventNight
+    let event: BoardEvent
     @State private var selection: Set<String> = []
 
     /// An adult in the history, and whether they have signed in today.
@@ -95,8 +95,8 @@ struct AdultHistoryPage: View {
     }
 
     var body: some View {
-        let signedIn = Set(night.adults.map(\.id))
-        let rows = night.adultHistory
+        let signedIn = Set(event.adults.map(\.id))
+        let rows = event.adultHistory
             .filter { matches(model.searchText, $0.fullName, $0.email, $0.unitName) }
             .map { Row(adult: $0, signedIn: signedIn.contains($0.id)) }
         // AppKit, not a SwiftUI Table: see PlainTable.
@@ -147,7 +147,7 @@ struct AdultHistoryPage: View {
 /// in the earlier event itself. The search looks through names and units.
 struct ApprovedProposalsPage: View {
     @Environment(AppModel.self) private var model
-    let night: EventNight
+    let event: BoardEvent
     @State private var found: ApprovedProposals?
     @State private var selection: Set<String> = []
 
@@ -195,7 +195,7 @@ struct ApprovedProposalsPage: View {
         }
         // Read each time the page is shown: an earlier event does not change
         // during this one, so nothing polls (D-15).
-        .task(id: night.night) { found = night.approvedProposals() }
+        .task(id: event.date) { found = event.approvedProposals() }
     }
 }
 
@@ -204,12 +204,12 @@ struct ApprovedProposalsPage: View {
 /// change from the Event page's room cards (Room › Rename…, Move Board…).
 struct RoomsPage: View {
     @Environment(AppModel.self) private var model
-    let night: EventNight
+    let event: BoardEvent
     @State private var sortOrder = [KeyPathComparator(\Room.name)]
 
     var body: some View {
         @Bindable var model = model
-        let rows = night.rooms
+        let rows = event.rooms
             .filter { matches(model.searchText, $0.name, $0.scoutName, $0.leaderNames) }
             .sorted(using: sortOrder)
 
@@ -231,7 +231,7 @@ struct RoomsPage: View {
             ForEach(rows) { TableRow($0) }
         }
         .contextMenu(forSelectionType: Room.ID.self) { ids in
-            if let id = ids.first, let room = night.room(id: id) {
+            if let id = ids.first, let room = event.room(id: id) {
                 Button("Remove Room") {
                     model.selectedRoomID = id
                     model.removeSelectedRoom()

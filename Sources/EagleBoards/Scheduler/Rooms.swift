@@ -10,13 +10,13 @@ import SwiftUI
 /// room is. Return opens the first room found, or the youth found.
 struct RoomsGrid: View {
     @Environment(AppModel.self) private var model
-    let night: EventNight
+    let event: BoardEvent
 
     var body: some View {
-        if night.rooms.isEmpty {
-            NoRoomsYet(night: night)
+        if event.rooms.isEmpty {
+            NoRoomsYet(event: event)
         } else {
-            let find = night.find(model.searchText)
+            let find = event.find(model.searchText)
             let rooms = find.rooms
             ScrollView {
                 if let note = find.note {
@@ -29,7 +29,7 @@ struct RoomsGrid: View {
                 TimelineView(.periodic(from: .now, by: 20)) { timeline in
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 10)], spacing: 10) {
                         ForEach(rooms) { room in
-                            RoomCard(room: room, night: night, now: timeline.date, isSelected: room.id == model.selectedRoomID)
+                            RoomCard(room: room, event: event, now: timeline.date, isSelected: room.id == model.selectedRoomID)
                                 // A double click alongside the single one, not
                                 // before it: an exclusive double click makes
                                 // every single click wait to see if it is one.
@@ -40,14 +40,14 @@ struct RoomsGrid: View {
                                 // action, as a double click would take it.
                                 .accessibilityAction { model.selectRoom(room.id) }
                                 .accessibilityActions {
-                                    if let step = night.occupant(of: room)?.status?.nextStep {
+                                    if let step = event.occupant(of: room)?.status?.nextStep {
                                         Button(step.title) {
                                             model.selectRoom(room.id)
                                             model.performNextStep()
                                         }
                                     }
                                 }
-                                .contextMenu { RoomActionButtons(model: model, night: night, roomID: room.id) }
+                                .contextMenu { RoomActionButtons(model: model, event: event, roomID: room.id) }
                                 .youthDropDestination(room: room)
                         }
                     }
@@ -58,7 +58,7 @@ struct RoomsGrid: View {
     }
 }
 
-extension EventNight {
+extension BoardEvent {
     /// A find over the room cards (SPEC.md D-21): the rooms to show, in the
     /// cards' order; who it found; and what to say about those in no room.
     func find(_ query: String) -> (rooms: [Room], people: [PersonPlace], note: String?) {
@@ -72,7 +72,7 @@ extension EventNight {
     }
 }
 
-extension EventNight {
+extension BoardEvent {
     /// The youth whose board is in this room right now.
     func occupant(of room: Room) -> Scout? {
         guard !room.isFree else { return nil }
@@ -110,15 +110,15 @@ private struct YouthDropTarget: ViewModifier {
 
 struct RoomCard: View {
     let room: Room
-    let night: EventNight
+    let event: BoardEvent
     let now: Date
     let isSelected: Bool
 
     var body: some View {
-        let occupant = night.occupant(of: room)
+        let occupant = event.occupant(of: room)
         let minutes = occupant?.minutesSinceLastUpdate(now: now)
         let timer = occupant.flatMap { youth in
-            minutes.flatMap { RoomTimer.state(status: youth.status, boardType: youth.boardType, minutes: $0, config: night.config) }
+            minutes.flatMap { RoomTimer.state(status: youth.status, boardType: youth.boardType, minutes: $0, config: event.config) }
         }
 
         VStack(alignment: .leading, spacing: 4) {
@@ -239,10 +239,10 @@ struct TimerBadge: View {
 /// Shown until the first room is added, offering last month's list.
 struct NoRoomsYet: View {
     @Environment(AppModel.self) private var model
-    let night: EventNight
+    let event: BoardEvent
 
     var body: some View {
-        let earlierNights = night.folder.nights().filter { $0 < night.night }
+        let earlierEvents = event.folder.events().filter { $0 < event.date }
         ContentUnavailableView {
             Label("No Rooms Yet", systemImage: "door.left.hand.closed")
         } description: {
@@ -250,21 +250,21 @@ struct NoRoomsYet: View {
         } actions: {
             HStack {
                 Button("Add Room…") { model.sheet = .addRoom }
-                if !earlierNights.isEmpty {
-                    CopyRoomsMenu(night: night)
+                if !earlierEvents.isEmpty {
+                    CopyRoomsMenu(event: event)
                 }
             }
         }
     }
 }
 
-/// Add an earlier night's rooms, empty. Rooms tonight already has are skipped.
+/// Add an earlier event's rooms, empty. Rooms this event already has are skipped.
 struct CopyRoomsMenu: View {
     @Environment(AppModel.self) private var model
-    let night: EventNight
+    let event: BoardEvent
 
     var body: some View {
-        CopyRoomsItems(model: model, night: night)
+        CopyRoomsItems(model: model, event: event)
     }
 }
 
@@ -272,19 +272,19 @@ struct CopyRoomsMenu: View {
 /// environment to read the model from.
 struct CopyRoomsItems: View {
     let model: AppModel
-    let night: EventNight
+    let event: BoardEvent
 
     var body: some View {
-        let earlierNights = night.folder.nights().filter { $0 < night.night }
+        let earlierEvents = event.folder.events().filter { $0 < event.date }
         Menu("Copy Rooms From") {
-            ForEach(earlierNights.prefix(12), id: \.self) { earlier in
+            ForEach(earlierEvents.prefix(12), id: \.self) { earlier in
                 Button(earlier) {
-                    model.attempt("Could not copy the rooms") { _ = try night.copyRooms(fromNight: earlier) }
+                    model.attempt("Could not copy the rooms") { _ = try event.copyRooms(fromEvent: earlier) }
                 }
             }
         }
         .fixedSize()
-        .disabled(earlierNights.isEmpty)
+        .disabled(earlierEvents.isEmpty)
         .help("Add the rooms from an earlier event, empty. Rooms already here are skipped.")
     }
 }
@@ -293,16 +293,16 @@ struct CopyRoomsItems: View {
 /// card.
 struct RoomActionButtons: View {
     let model: AppModel
-    let night: EventNight
+    let event: BoardEvent
     /// Nil acts on the selected room.
     var roomID: Room.ID?
 
     var body: some View {
-        let room = (roomID ?? model.selectedRoomID).flatMap { night.room(id: $0) }
+        let room = (roomID ?? model.selectedRoomID).flatMap { event.room(id: $0) }
 
         Button("Add Room…") { model.sheet = .addRoom }
             .keyboardShortcut("n", modifiers: [.command, .shift])
-        CopyRoomsItems(model: model, night: night)
+        CopyRoomsItems(model: model, event: event)
         Divider()
         Button("Rename…") { run(room) { model.sheet = .renameRoom(roomID: $0.id) } }
             .disabled(room == nil)

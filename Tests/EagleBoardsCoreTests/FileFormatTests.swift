@@ -4,7 +4,7 @@ import Testing
 
 /// The data files must stay readable by the Java Eagle Board Scheduler and
 /// vice versa, so a district can move between the two -- or fall back to the
-/// Java app on the night -- without converting anything.
+/// Java app at the event -- without converting anything.
 @Suite("Data files")
 struct FileFormatTests {
     /// The exact header lines the Java app writes.
@@ -15,7 +15,7 @@ struct FileFormatTests {
     }
 
     /// Adults files written before WoodBadge and Supporting were appended.
-    @Test func anOlderAdultsFileWithoutTonightsAnswersStillReads() throws {
+    @Test func anOlderAdultsFileWithoutThisEventsAnswersStillReads() throws {
         let older = """
             Type,ID,Last,First,Email,Phone,UnitType,Unit,UnitName,ProjectReview,FinalBoard,RegTime,Room,Flags,Sel,BoardHistory
             ADULT,ADULT:Able:Ann:2001,Able,Ann,,,Troop,2001,Troop2001,Member,Chair,,101,P,,(2026-08-25)
@@ -117,12 +117,12 @@ struct FileFormatTests {
     @MainActor
     @Test func aNewFolderGetsEveryFile() throws {
         let scratch = try ScratchFolder()
-        _ = try EventNight(folder: scratch.dataFolder, night: "2026-09-22")
+        _ = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22")
         for file in ["config.properties", "Master_AdultHistory.csv", "2026-09-22/scouts.csv", "2026-09-22/adults.csv",
                      "2026-09-22/rooms.csv", "2026-09-22/scouts_scheduled.csv"] {
             #expect(FileManager.default.fileExists(atPath: scratch.url.appending(path: file).path), "\(file) exists")
         }
-        #expect(scratch.dataFolder.nights() == ["2026-09-22"])
+        #expect(scratch.dataFolder.events() == ["2026-09-22"])
     }
 }
 
@@ -151,7 +151,7 @@ struct TimestampTests {
         #expect(Timestamp.minutesSince(recordStamp: "yesterday", now: later) == nil)
     }
 
-    @Test func dayStampsNameNightFolders() {
+    @Test func dayStampsNameEventFolders() {
         #expect(Timestamp.isDayStamp("2026-09-22"))
         #expect(!Timestamp.isDayStamp("2026-9-22"))
         #expect(!Timestamp.isDayStamp("notes-2026"))

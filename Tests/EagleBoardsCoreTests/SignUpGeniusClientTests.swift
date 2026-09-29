@@ -32,7 +32,7 @@ final class StubbedSignUpGenius: URLProtocol, @unchecked Sendable {
 
 @Suite("SignUpGenius client", .serialized)
 struct SignUpGeniusClientTests {
-    @Test func findsTheEagleBoardSignUpCoveringTonightEvenOnItsFirstDay() async throws {
+    @Test func findsTheEagleBoardSignUpCoveringTodayEvenOnItsFirstDay() async throws {
         StubbedSignUpGenius.bodies = [
             "created/active": """
                 {"data": [
@@ -97,7 +97,7 @@ struct SignUpGeniusLiveTests {
             let signup = try await client.findActiveSignup(today: Timestamp.dayStamp(for: Date()))
             _ = try await client.filledSlots(signupID: signup.id)
         } catch let refusal as EventError where refusal.message.contains("no active Eagle board sign-up") {
-            // The key works and the list parsed; there is simply no board night today.
+            // The key works and the list parsed; there is simply no board event today.
         }
     }
 }

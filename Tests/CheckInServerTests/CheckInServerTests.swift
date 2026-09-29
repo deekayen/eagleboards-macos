@@ -10,11 +10,11 @@ import Testing
 @Suite("Check-in server")
 struct CheckInServerTests {
     let scratch: ScratchFolder
-    let night: EventNight
+    let event: BoardEvent
 
     init() throws {
         scratch = try ScratchFolder()
-        night = try EventNight(folder: DataFolder(root: scratch.url), night: "2026-09-22")
+        event = try BoardEvent(folder: DataFolder(root: scratch.url), date: "2026-09-22")
     }
 
     struct Reply: Sendable {
@@ -27,7 +27,7 @@ struct CheckInServerTests {
     }
 
     private func send(_ uri: String, method: HTTPRequest.Method = .get, form: String? = nil) async throws -> Reply {
-        let application = Application(router: CheckInServer.router(for: night))
+        let application = Application(router: CheckInServer.router(for: event))
         return try await application.test(.router) { client in
             let response = try await client.execute(
                 uri: uri,
@@ -88,10 +88,10 @@ struct CheckInServerTests {
         )
         #expect(reply.status == .ok)
         #expect(reply.body == "OK.")
-        #expect(night.scouts.count == 1)
-        #expect(night.scouts.first?.leader == "Lee Leader")
-        #expect(night.scouts.first?.dateOfBirth == "", "a birthdate from an older cached page is not kept (D-7)")
-        #expect(night.scouts.first?.phone == "", "nor is a phone number (D-8)")
+        #expect(event.scouts.count == 1)
+        #expect(event.scouts.first?.leader == "Lee Leader")
+        #expect(event.scouts.first?.dateOfBirth == "", "a birthdate from an older cached page is not kept (D-7)")
+        #expect(event.scouts.first?.phone == "", "nor is a phone number (D-8)")
 
         let lists = try await send("/api/checked-in")
         #expect(lists.status == .ok)
@@ -114,14 +114,14 @@ struct CheckInServerTests {
         #expect(youth[0]["id"] == "SCOUT:Doe:Jan:1776")
         #expect(!reply.body.contains("jan@example.org"))
         #expect(!reply.body.contains("770-555-0100"))
-        #expect(night.scouts.first?.phone == "", "a phone number from an older cached page is not kept (D-8)")
+        #expect(event.scouts.first?.phone == "", "a phone number from an older cached page is not kept (D-8)")
     }
 
     @Test func aRefusalComesBackInWords() async throws {
         let reply = try await send("/register-adult", method: .post, form: "First=&Last=")
         #expect(reply.status == .badRequest)
         #expect(reply.body.contains("first and last name"))
-        #expect(night.adults.isEmpty)
+        #expect(event.adults.isEmpty)
     }
 
     @Test func anAdultSignsIn() async throws {
@@ -130,23 +130,23 @@ struct CheckInServerTests {
             form: "Email=morgan%40example.org&First=Morgan&Last=Member&Phone=555&UnitType=District&Unit=&FinalBoard=Chair&ProjectReview=Member"
         )
         #expect(reply.status == .ok)
-        #expect(night.adults.first?.unitName == "District")
-        #expect(night.adultHistory.count == 1)
+        #expect(event.adults.first?.unitName == "District")
+        #expect(event.adultHistory.count == 1)
     }
 
     @Test func lookupsFillTheFormAndNothingMore() async throws {
-        try night.mergeSignUps([
+        try event.mergeSignUps([
             SignUpEntry(startDate: "2026-09-22", firstName: "jan", lastName: "doe", item: "Eagle Board of Review",
                         email: "jan@example.org", customAnswers: ["Troop 1776", "7705550100", "lee leader"]),
         ], month: "2026-09")
-        try night.registerAdult(["First": "Morgan", "Last": "Member", "Email": "morgan@example.org", "UnitType": "Troop", "Unit": "5",
+        try event.registerAdult(["First": "Morgan", "Last": "Member", "Email": "morgan@example.org", "UnitType": "Troop", "Unit": "5",
                                  "Phone": "770-555-0110"])
-        let signedIn = try #require(night.adultHistory.first?.boardHistory)
+        let signedIn = try #require(event.adultHistory.first?.boardHistory)
         // A pre-registration from before D-7 and D-8 may still hold both.
-        var scheduled = try #require(night.scheduledYouth(matchingEmail: "jan@example.org"))
+        var scheduled = try #require(event.scheduledYouth(matchingEmail: "jan@example.org"))
         scheduled.phone = "770-555-0100"
         scheduled.dateOfBirth = "1/2/2010"
-        try night.updateYouth(scheduled, scheduled: true)
+        try event.updateYouth(scheduled, scheduled: true)
 
         let youth = try await send("/api/youth-lookup", method: .post, form: "email=JAN%40example.org")
         #expect(youth.json["First"] as? String == "Jan")
@@ -172,19 +172,19 @@ struct CheckInServerTests {
     @Test func aYouthsPhoneNumberIsNotKeptButAnAdultsStillFillsTheirForm() async throws {
         let oldPage = "Last=Oldpage&First=Olive&Email=op%40example.org&Phone=555-0101&UnitType=Troop&Unit=4402&BoardType=Final&DOB=2011-02-03"
         #expect(try await send("/register-youth", method: .post, form: oldPage).body == "OK.")
-        var olive = try #require(night.scout(id: "SCOUT:Oldpage:Olive:4402"))
+        var olive = try #require(event.scout(id: "SCOUT:Oldpage:Olive:4402"))
         #expect(olive.phone == "" && olive.dateOfBirth == "", "neither is kept from an old cached page")
 
         // One on file from before D-7 and D-8, put there by hand.
         olive.phone = "555-0101"
         olive.dateOfBirth = "2011-02-03"
-        try night.updateYouth(olive)
+        try event.updateYouth(olive)
         let again = oldPage
             .replacingOccurrences(of: "555-0101", with: "555-0199")
             .replacingOccurrences(of: "2011-02-03", with: "2012-12-12")
         #expect(try await send("/register-youth", method: .post, form: again).body == "OK.")
-        #expect(night.scout(id: olive.id)?.phone == "555-0101", "signing in again neither changes nor blanks it")
-        #expect(night.scout(id: olive.id)?.dateOfBirth == "2011-02-03")
+        #expect(event.scout(id: olive.id)?.phone == "555-0101", "signing in again neither changes nor blanks it")
+        #expect(event.scout(id: olive.id)?.dateOfBirth == "2011-02-03")
         let lists = try await send("/api/checked-in").body + send("/api/scout-choices").body
         #expect(!lists.contains("555-0101") && !lists.contains("2011-02-03"), "and the lists at the door never carry it")
 
@@ -200,14 +200,14 @@ struct CheckInServerTests {
         let huge = "First=" + String(repeating: "x", count: FormFields.maximumBodyBytes + 1)
         let reply = try await send("/register-youth", method: .post, form: huge)
         #expect(reply.status == .contentTooLarge)
-        #expect(night.scouts.isEmpty)
+        #expect(event.scouts.isEmpty)
     }
 
     @Test func theServerListensAndStops() async throws {
         let (portStream, portContinuation) = AsyncStream<Int>.makeStream()
-        let night = self.night
+        let event = self.event
         let server = Task {
-            try await CheckInServer.run(night: night, host: "127.0.0.1", port: 0) { port in
+            try await CheckInServer.run(event: event, host: "127.0.0.1", port: 0) { port in
                 portContinuation.yield(port)
             }
         }

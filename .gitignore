@@ -2,7 +2,7 @@
 # PII / participant data -- NEVER commit.
 # A data folder holds, and the Java app's working directory held:
 #   - Master_AdultHistory.csv        (names, emails, phones)
-#   - 20??-??-??/ dated night folders (youth, adults, rooms -- incl. minors)
+#   - 20??-??-??/ dated event folders (youth, adults, rooms -- incl. minors)
 #   - *Board_Results* spreadsheets   (board outcomes with names)
 # Keep data folders outside this repository entirely. These rules are the
 # second line of defense; scripts/hooks/pre-commit is the third.

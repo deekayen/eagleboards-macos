@@ -18,7 +18,7 @@ for f in $staged; do
     esac
     case "$f" in
         20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]/*|*/20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]/*)
-            echo "BLOCKED: $f -- dated night folders contain participant data" >&2
+            echo "BLOCKED: $f -- dated event folders contain participant data" >&2
             fail=1 ;;
         *Board_Results*|*Master_AdultHistory*|LOGIN_INFO*|.env|config.properties|*/config.properties)
             echo "BLOCKED: $f -- contains PII, credentials, or a data folder's settings" >&2

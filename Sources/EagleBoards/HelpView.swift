@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The operator's guide, kept short enough to read on the night.
+/// The operator's guide, kept short enough to read during the event.
 struct HelpView: View {
     var body: some View {
         ScrollView {
@@ -51,10 +51,10 @@ struct HelpView: View {
                 section("The records") {
                     step("The other pages in the View menu are the tables the event keeps, and their values are changed in place: click a name, unit or note to type in it, or a value with ⌃⌄ beside it to choose from a menu. A change is saved when you press Return or leave the cell. It is not on Edit › Undo, which is for the Event page's steps; change the cell back instead. Who sits on a board and which room someone is in are never typed in: they change on the Event page. Nor is a youth's status: it is read-only on every page, and changes only through the Event page's steps (Seat Board, Start Review, Complete, Postpone, Reset Board and Undo), which take and free a room and its members.")
                     bullet("Results: every board and its result. Correct a result or its notes here. Double-click a board to see it on the Event page.")
-                    bullet("Adults: tonight's adults. Promote someone to Chair, mark Wood Badge, or fix a name. Add Adult at the foot signs someone in by hand.")
+                    bullet("Adults: the event's adults. Promote someone to Chair, mark Wood Badge, or fix a name. Add Adult at the foot signs someone in by hand.")
                     bullet("Youth: every youth who signed in, in sign-in order.")
                     bullet("Pre-Registered: the youth who signed up on SignUpGenius for today.")
-                    bullet("Adult History CSV: every adult who has ever signed in, across events, read-only and searched by name, email or unit. Last Event has a check for those signed in today; double-click someone to sign them in for today. A change to an adult's name, unit, contact or roles on the Adults page is made here too, so someone promoted to Chair tonight is a chair next time. Wood Badge is for today only.")
+                    bullet("Adult History CSV: every adult who has ever signed in, across events, read-only and searched by name, email or unit. Last Event has a check for those signed in today; double-click someone to sign them in for today. A change to an adult's name, unit, contact or roles on the Adults page is made here too, so someone promoted to Chair today is a chair next time. Wood Badge is for today only.")
                     bullet("Rooms: what each room is used for today, and whose board is in it. Add Room at the foot adds one.")
                     bullet("Approved Proposals: every project proposal approved at an earlier event in the data folder, however long ago, for a youth who comes without the signed page: who, their unit, when, the chair and the other members. Read only; the line above it says which events were read.")
                     bullet("Right-click a record to delete it; that asks first. File › Export List… (Shift-Command-E) saves the page's list as a spreadsheet.")

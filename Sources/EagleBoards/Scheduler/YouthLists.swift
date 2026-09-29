@@ -11,10 +11,10 @@ import SwiftUI
 /// onto a free room to seat their board there.
 struct YouthList: View {
     @Environment(AppModel.self) private var model
-    let night: EventNight
+    let event: BoardEvent
 
     var body: some View {
-        let found = night.scouts
+        let found = event.scouts
         let selection = Binding(get: { model.selectedYouthID }, set: { model.selectYouth($0) })
 
         TimelineView(.periodic(from: .now, by: 20)) { timeline in
@@ -34,7 +34,7 @@ struct YouthList: View {
             model.performNextStep()
         }
         .overlay {
-            if night.scouts.isEmpty {
+            if event.scouts.isEmpty {
                 ContentUnavailableView("No Youth Yet", systemImage: "person.crop.circle.badge.clock",
                                        description: Text("Youth appear here the moment they sign in at the tablet."))
             }
@@ -52,7 +52,7 @@ struct YouthList: View {
             // A list row is dragged through its item provider; .draggable on
             // the row's view starts a drag no room card accepts.
             ForEach(rows) { youth in
-                YouthRow(night: night, youth: youth, now: now)
+                YouthRow(event: event, youth: youth, now: now)
                     .itemProvider {
                         group == .waiting ? NSItemProvider(object: DragPayload.youth(youth.id) as NSString) : nil
                     }
@@ -113,7 +113,7 @@ enum QueueGroup {
 /// on the right, how long they have waited, or the board's status and timer,
 /// or how it ended.
 private struct YouthRow: View {
-    let night: EventNight
+    let event: BoardEvent
     let youth: Scout
     let now: Date
 
@@ -168,7 +168,7 @@ private struct YouthRow: View {
             HStack(spacing: 6) {
                 StatusBadge(statusText: youth.statusText)
                 if let minutes,
-                   let state = RoomTimer.state(status: youth.status, boardType: youth.boardType, minutes: minutes, config: night.config) {
+                   let state = RoomTimer.state(status: youth.status, boardType: youth.boardType, minutes: minutes, config: event.config) {
                     TimerBadge(minutes: minutes, state: state)
                 }
             }
@@ -195,7 +195,7 @@ struct YouthActionButtons: View {
     var scoutID: Scout.ID?
 
     var body: some View {
-        let youth = scoutID.flatMap { model.night?.scout(id: $0) } ?? model.selectedYouth
+        let youth = scoutID.flatMap { model.event?.scout(id: $0) } ?? model.selectedYouth
         let status = youth?.status
         let idle = model.sheet == nil
 

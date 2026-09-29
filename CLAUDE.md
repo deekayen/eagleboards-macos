@@ -85,11 +85,11 @@ a native window. See `PROVENANCE.md`.
   (`BoardSuggestion.freeSinceTimes`), after saving chairs and flexible adults.
 - **Adult sign-in answers.** "No thanks" to a board type is stored as the
   role `Unavailable` (Seat Board refuses it). `WoodBadge` and `Supporting`
-  (youth IDs, `|`-separated) are appended to the adult record, per night,
+  (youth IDs, `|`-separated) are appended to the adult record, per event,
   never copied into the history; `/api/scout-choices` feeds the form's list.
   Start Review and the inspector's With Them list name supporting adults
   first. Link an Adult there, and the Adult menu, link or unlink them after
-  sign-in (`EventNight.setSupporting`).
+  sign-in (`BoardEvent.setSupporting`).
 - **The scheduler follows the Mac layout**: list and inspector, with no
   sidebar (SPEC.md P-1, P-6, as in the Java and Windows versions). The View
   menu chooses Event or a page per table (Results, Adults, Youth,
@@ -99,7 +99,7 @@ a native window. See `PROVENANCE.md`.
   `editAdult` and `editRoomType`. A changed cell stays off the Undo stack,
   and who sits on a board or which room anyone is in is never typed into a
   table (P-6), nor a youth's status, which the pages show read-only;
-  `EventNight.updateYouth` also refuses Seated, In review, or changing a
+  `BoardEvent.updateYouth` also refuses Seated, In review, or changing a
   sitting board's status, whoever calls it. An
   adult's `signInColumns` edited on Adults reach the adult history
   (`updateAdult` copies them across); nothing edits the history directly. There is no records window. Help › Donate… is the Donate
@@ -109,6 +109,6 @@ a native window. See `PROVENANCE.md`.
   self-dismissing toasts.
   A change the operator makes registers its inverse with Undo (`AppModel`'s
   `change` and `changeBoard`) instead of asking "Are you sure?"; a board step
-  is undone with `EventNight.restoreBoard`.
+  is undone with `BoardEvent.restoreBoard`.
 - **No `var##` names**, even to match anything. CI fails on them.
 - **District-neutral branding**, settled: never add a district or council name.

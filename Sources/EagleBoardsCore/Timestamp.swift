@@ -4,7 +4,7 @@ import Foundation
 /// never depend on the machine's locale.
 ///
 ///   RegTime / LastUpdateTime   `2026-09-22_19:05-0400`   (Java `yyyy-MM-dd_HH:mmZ`)
-///   event-night folder name    `2026-09-22`
+///   event folder name          `2026-09-22`
 public enum Timestamp {
     private static let calendar = Calendar(identifier: .gregorian)
 
@@ -61,7 +61,7 @@ public enum Timestamp {
         return String(characters[11..<16])
     }
 
-    /// `2026-09-22`: the name of an event night's folder, and the stamp added
+    /// `2026-09-22`: the name of an event's folder, and the stamp added
     /// to an adult's board history.
     public static func dayStamp(for date: Date, timeZone: TimeZone = .current) -> String {
         var localCalendar = calendar
@@ -71,12 +71,12 @@ public enum Timestamp {
     }
 
     /// `2026-09`: SignUpGenius entries are filtered by calendar month, as the
-    /// Java app did, so two board nights in one month both import.
+    /// Java app did, so two board events in one month both import.
     public static func monthStamp(for date: Date, timeZone: TimeZone = .current) -> String {
         String(dayStamp(for: date, timeZone: timeZone).prefix(7))
     }
 
-    /// Is `name` shaped like an event-night folder (`YYYY-MM-DD`)?
+    /// Is `name` shaped like an event folder (`YYYY-MM-DD`)?
     public static func isDayStamp(_ name: String) -> Bool {
         let characters = Array(name)
         guard characters.count == 10, characters[4] == "-", characters[7] == "-" else { return false }

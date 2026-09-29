@@ -12,7 +12,7 @@
 public enum BoardStatus: String, CaseIterable, Sendable {
     case registered = "Registered"
     /// Legacy only. The Java app once had a Verify step; nothing sets this now,
-    /// but a record carried over from an old night must not get stuck.
+    /// but a record carried over from an old event must not get stuck.
     case verified = "Verified"
     case seated = "Seated"
     case inProgress = "InProgress"
@@ -36,7 +36,7 @@ public enum BoardStatus: String, CaseIterable, Sendable {
         self == .registered || self == .verified
     }
 
-    /// Finished for the night, one way or another.
+    /// Finished for the event, one way or another.
     public var isFinished: Bool {
         self == .completed || self == .postponed
     }
@@ -160,5 +160,5 @@ public enum UnitType: String, CaseIterable, Sendable, Identifiable {
 }
 
 /// The value an adult's `Room` holds when the Disable button has stood them
-/// down for the night. It is a marker, not a room anyone can be sent to.
-public let disabledForTonightMarker = "N/A"
+/// down for the event. It is a marker, not a room anyone can be sent to.
+public let disabledForTodayMarker = "N/A"

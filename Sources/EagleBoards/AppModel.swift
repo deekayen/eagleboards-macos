@@ -4,20 +4,20 @@ import EagleBoardsCore
 import Observation
 import SwiftUI
 
-/// Everything the windows share: which night is open, the check-in server,
+/// Everything the windows share: which event is open, the check-in server,
 /// and the operator's work in progress on the scheduler.
 @MainActor
 @Observable
 final class AppModel {
     private typealias Keys = LaunchSettings.Keys
 
-    // MARK: - The open night
+    // MARK: - The open event
 
     private(set) var dataFolder: DataFolder?
-    private(set) var night: EventNight?
+    private(set) var event: BoardEvent?
     var openError: String?
 
-    /// `YYYY-MM-DD` for today, the night opened by default.
+    /// `YYYY-MM-DD` for today, the event opened by default.
     var today: String { Timestamp.dayStamp(for: Date()) }
 
     init() {
@@ -32,26 +32,26 @@ final class AppModel {
         signUpGeniusAllowed = launch.signUpGeniusAllowed
         hasSignUpGeniusKey = launch.signUpGeniusAllowed && SignUpGeniusKeychain.exists()
         if let folderPath {
-            open(folder: DataFolder(root: URL(filePath: folderPath, directoryHint: .isDirectory)), night: today)
+            open(folder: DataFolder(root: URL(filePath: folderPath, directoryHint: .isDirectory)), event: today)
         }
     }
 
-    /// Use `url` as the data folder from now on and open tonight in it.
+    /// Use `url` as the data folder from now on and open today's event in it.
     func chooseDataFolder(_ url: URL) {
         UserDefaults.standard.set(url.path, forKey: Keys.dataFolderPath)
-        open(folder: DataFolder(root: url), night: today)
+        open(folder: DataFolder(root: url), event: today)
     }
 
-    func open(folder: DataFolder, night name: String) {
+    func open(folder: DataFolder, event name: String) {
         do {
-            let opened = try EventNight(folder: folder, night: name)
+            let opened = try BoardEvent(folder: folder, date: name)
             stopServer()
             dataFolder = folder
-            night = opened
+            event = opened
             openError = nil
-            // Undo steps belong to the night they were taken on.
+            // Undo steps belong to the event they were taken on.
             undoManager?.removeAllActions()
-            attention.forgetNight()
+            attention.forgetEvent()
             clearSchedulerSelection()
             startServer()
             if signUpGeniusAllowed, importOnOpen, name == today, hasSignUpGeniusKey {
@@ -79,7 +79,7 @@ final class AppModel {
     var port: Int {
         didSet {
             UserDefaults.standard.set(port, forKey: Keys.port)
-            if oldValue != port, night != nil { startServer() }
+            if oldValue != port, event != nil { startServer() }
         }
     }
 
@@ -109,7 +109,7 @@ final class AppModel {
 
     func startServer() {
         stopServer()
-        guard let night else { return }
+        guard let event else { return }
         serverState = .starting
         let requestedPort = port
         // A server just told to stop may still hold the port for a moment.
@@ -118,7 +118,7 @@ final class AppModel {
         serverTask = Task { [weak self] in
             await stopping?.value
             do {
-                try await CheckInServer.run(night: night, host: "0.0.0.0", port: requestedPort) { boundPort in
+                try await CheckInServer.run(event: event, host: "0.0.0.0", port: requestedPort) { boundPort in
                     await MainActor.run { self?.serverState = .running(port: boundPort) }
                 }
             } catch is CancellationError {
@@ -163,7 +163,7 @@ final class AppModel {
     /// The main window's pages, chosen in the View menu (SPEC.md P-1, P-6),
     /// in the Windows version's order. Event holds every youth, the rooms and
     /// the inspector together (O-3). The rest are a page for each table the
-    /// event keeps: the boards (Results), tonight's adults, every youth, the
+    /// event keeps: the boards (Results), the event's adults, every youth, the
     /// SignUpGenius pre-registrations, and the rooms, edited in place; and the
     /// Adult History CSV, every adult who has ever signed in, read-only. There is no separate records
     /// window. The inspector stays beside each page.
@@ -226,7 +226,7 @@ final class AppModel {
         case addAdult
         case swapRooms(roomID: String)
         case renameRoom(roomID: String)
-        case openNight
+        case openEvent
 
         var id: String {
             switch self {
@@ -237,7 +237,7 @@ final class AppModel {
             case .addAdult: "add adult"
             case .swapRooms(let roomID): "swap \(roomID)"
             case .renameRoom(let roomID): "rename \(roomID)"
-            case .openNight: "open event"
+            case .openEvent: "open event"
             }
         }
     }
@@ -265,11 +265,11 @@ final class AppModel {
 
     var message: Message?
 
-    var selectedYouth: Scout? { selectedYouthID.flatMap { night?.scout(id: $0) } }
-    var selectedRoom: Room? { selectedRoomID.flatMap { night?.room(id: $0) } }
+    var selectedYouth: Scout? { selectedYouthID.flatMap { event?.scout(id: $0) } }
+    var selectedRoom: Room? { selectedRoomID.flatMap { event?.room(id: $0) } }
     var selectedAdults: [Adult] {
-        guard let night else { return [] }
-        return night.adults.filter { selectedAdultIDs.contains($0.id) }
+        guard let event else { return [] }
+        return event.adults.filter { selectedAdultIDs.contains($0.id) }
     }
 
     /// The board drawn up for the selected youth, if they are waiting.
@@ -278,8 +278,8 @@ final class AppModel {
     /// The draft's members, in its order. Someone put on another board since
     /// is still listed, so the inspector can say why they cannot sit.
     func draftMembers(for scoutID: Scout.ID) -> [Adult] {
-        guard let night, let draft = drafts[scoutID] else { return [] }
-        return draft.memberIDs.compactMap { night.adult(id: $0) }
+        guard let event, let draft = drafts[scoutID] else { return [] }
+        return draft.memberIDs.compactMap { event.adult(id: $0) }
     }
 
     func clearSchedulerSelection() {
@@ -308,23 +308,23 @@ final class AppModel {
     func selectYouth(_ id: Scout.ID?) {
         guard id != selectedYouthID || id.map({ drafts[$0] == nil }) == true else { return }
         selectedYouthID = id
-        guard let id, let night, let youth = night.scout(id: id) else { return }
+        guard let id, let event, let youth = event.scout(id: id) else { return }
 
         if youth.status?.isWaitingForBoard == true {
             if drafts[id]?.isEdited != true {
-                drafts[id] = proposedBoard(for: youth, in: night)
+                drafts[id] = proposedBoard(for: youth, in: event)
             }
         } else {
             drafts[id] = nil
-            selectedRoomID = night.room(named: youth.room)?.id
+            selectedRoomID = event.room(named: youth.room)?.id
         }
     }
 
     /// Throw away any changes and propose a whole board, whether or not
     /// boards are proposed on selection.
     func suggestBoard() {
-        guard let night, let youth = selectedYouth, youth.status?.isWaitingForBoard == true else { return }
-        drafts[youth.id] = proposedBoard(for: youth, in: night, whole: true)
+        guard let event, let youth = selectedYouth, youth.status?.isWaitingForBoard == true else { return }
+        drafts[youth.id] = proposedBoard(for: youth, in: event, whole: true)
         // Asked for by hand, so kept even when proposals are off.
         drafts[youth.id]?.isEdited = !proposeBoards
     }
@@ -334,23 +334,23 @@ final class AppModel {
     /// boards drawn up by hand are left alone.
     func refreshProposals() {
         drafts = drafts.filter(\.value.isEdited)
-        guard let night, let youth = selectedYouth, youth.status?.isWaitingForBoard == true,
+        guard let event, let youth = selectedYouth, youth.status?.isWaitingForBoard == true,
               drafts[youth.id] == nil else { return }
-        drafts[youth.id] = proposedBoard(for: youth, in: night)
+        drafts[youth.id] = proposedBoard(for: youth, in: event)
     }
 
     /// Fill the Rest (SPEC.md D-12): keep who the operator put on the board
     /// and add a chair, if none of them may chair it, and members up to the
     /// working size, chosen as a suggestion would choose them.
     func fillDraft() {
-        guard let night, let youth = selectedYouth, youth.status?.isWaitingForBoard == true,
+        guard let event, let youth = selectedYouth, youth.status?.isWaitingForBoard == true,
               let draft = drafts[youth.id] else { return }
         let fill = BoardSuggestion.fill(
-            for: youth, adults: night.adults, picked: draft.memberIDs,
-            waiting: waitingBehind(youth, in: night),
-            freeSince: BoardSuggestion.freeSinceTimes(adults: night.adults, scouts: night.scouts))
+            for: youth, adults: event.adults, picked: draft.memberIDs,
+            waiting: waitingBehind(youth, in: event),
+            freeSince: BoardSuggestion.freeSinceTimes(adults: event.adults, scouts: event.scouts))
         drafts[youth.id]?.memberIDs = (fill.chairID.map { [$0] } ?? []) + draft.memberIDs + fill.memberIDs
-        drafts[youth.id]?.roomID = draft.roomID ?? night.rooms.first { $0.isFree && $0.boardType == youth.boardType }?.id
+        drafts[youth.id]?.roomID = draft.roomID ?? event.rooms.first { $0.isFree && $0.boardType == youth.boardType }?.id
         drafts[youth.id]?.problems = fill.problems
         drafts[youth.id]?.isEdited = true
     }
@@ -365,21 +365,21 @@ final class AppModel {
 
     /// The other waiting youth in queue order (pre-registered first), so a
     /// proposal keeps chairs and adults free for the boards to come.
-    private func waitingBehind(_ youth: Scout, in night: EventNight) -> [Scout] {
-        night.scouts
+    private func waitingBehind(_ youth: Scout, in event: BoardEvent) -> [Scout] {
+        event.scouts
             .filter { $0.id != youth.id && $0.status?.isWaitingForBoard == true }
             .sorted { $0.queueOrder < $1.queueOrder }
     }
 
-    private func proposedBoard(for youth: Scout, in night: EventNight, whole: Bool? = nil) -> BoardDraft {
+    private func proposedBoard(for youth: Scout, in event: BoardEvent, whole: Bool? = nil) -> BoardDraft {
         guard whole ?? proposeBoards else {
             // Picking by hand: no one yet, but a free room of the right kind.
-            let roomID = night.rooms.first { $0.isFree && $0.boardType == youth.boardType }?.id
+            let roomID = event.rooms.first { $0.isFree && $0.boardType == youth.boardType }?.id
             return BoardDraft(roomID: roomID, memberIDs: [], problems: [])
         }
-        let freeSince = BoardSuggestion.freeSinceTimes(adults: night.adults, scouts: night.scouts)
+        let freeSince = BoardSuggestion.freeSinceTimes(adults: event.adults, scouts: event.scouts)
         let suggestion = BoardSuggestion(
-            for: youth, adults: night.adults, rooms: night.rooms, waiting: waitingBehind(youth, in: night), freeSince: freeSince)
+            for: youth, adults: event.adults, rooms: event.rooms, waiting: waitingBehind(youth, in: event), freeSince: freeSince)
         return BoardDraft(roomID: suggestion.roomID, memberIDs: suggestion.memberIDs, problems: suggestion.problems)
     }
 
@@ -395,12 +395,12 @@ final class AppModel {
     }
 
     func addToDraft(_ adultIDs: [Adult.ID]) {
-        guard let night, let youth = selectedYouth, drafts[youth.id] != nil else {
+        guard let event, let youth = selectedYouth, drafts[youth.id] != nil else {
             message = Message(title: "No board is being drawn up",
                               text: "Select a youth who is waiting, then add adults to their board.")
             return
         }
-        let newIDs = adultIDs.filter { night.adult(id: $0) != nil && drafts[youth.id]?.memberIDs.contains($0) == false }
+        let newIDs = adultIDs.filter { event.adult(id: $0) != nil && drafts[youth.id]?.memberIDs.contains($0) == false }
         guard !newIDs.isEmpty else { return }
         drafts[youth.id]?.memberIDs += newIDs
         // The proposal's complaints no longer describe it; the inspector
@@ -434,8 +434,8 @@ final class AppModel {
     /// Return in the search on the Event page (SPEC.md D-21): open the first
     /// room found, or the youth found if they are in no room.
     func openFirstFound() {
-        guard let night, page == .event else { return }
-        let find = night.find(searchText)
+        guard let event, page == .event else { return }
+        let find = event.find(searchText)
         if let room = find.rooms.first, !searchText.trimmingCharacters(in: .whitespaces).isEmpty {
             selectRoom(room.id)
         } else if let youth = find.people.first(where: \.isYouth) {
@@ -445,15 +445,15 @@ final class AppModel {
 
     func selectRoom(_ id: Room.ID) {
         selectedRoomID = id
-        let occupant = night?.room(id: id).flatMap { room in
-            room.isFree ? nil : night?.scouts.first { $0.room == room.name && !($0.status?.isFinished ?? false) }
+        let occupant = event?.room(id: id).flatMap { room in
+            room.isFree ? nil : event?.scouts.first { $0.room == room.name && !($0.status?.isFinished ?? false) }
         }
         selectYouth(occupant?.id)
     }
 
     // MARK: - Board actions
 
-    /// Run an event-night change, turning a refusal into a message rather
+    /// Run an event change, turning a refusal into a message rather
     /// than a silent failure.
     @discardableResult
     func attempt(_ failure: String, _ action: () throws -> Void) -> Bool {
@@ -490,7 +490,7 @@ final class AppModel {
 
     /// A youth dropped on a room: seat their board there.
     func seat(scoutID: Scout.ID, inRoom roomID: Room.ID) {
-        guard let night, let youth = night.scout(id: scoutID), let room = night.room(id: roomID) else { return }
+        guard let event, let youth = event.scout(id: scoutID), let room = event.room(id: roomID) else { return }
         guard youth.status?.isWaitingForBoard == true else {
             message = Message(title: "\(youth.fullName) is not waiting",
                               text: "Only a youth who is waiting for a board can be seated in a room.")
@@ -508,8 +508,8 @@ final class AppModel {
     }
 
     func seat(scoutID: String, roomID: String, chairID: String, memberIDs: [String]) -> Bool {
-        let seated = changeBoard(scoutID, "Seat Board", failure: "Could not seat the board") { night in
-            try night.seatBoard(roomID: roomID, scoutID: scoutID, chairID: chairID, memberIDs: memberIDs)
+        let seated = changeBoard(scoutID, "Seat Board", failure: "Could not seat the board") { event in
+            try event.seatBoard(roomID: roomID, scoutID: scoutID, chairID: chairID, memberIDs: memberIDs)
         }
         if seated {
             drafts[scoutID] = nil
@@ -530,14 +530,14 @@ final class AppModel {
     }
 
     func changeMembers(scoutID: String, chairID: String, memberIDs: [String]) -> Bool {
-        changeBoard(scoutID, "Change Members", failure: "Could not change the board members") { night in
-            try night.changeMembers(scoutID: scoutID, chairID: chairID, memberIDs: memberIDs)
+        changeBoard(scoutID, "Change Members", failure: "Could not change the board members") { event in
+            try event.changeMembers(scoutID: scoutID, chairID: chairID, memberIDs: memberIDs)
         }
     }
 
     func confirmStartReview() {
-        guard let night, let youth = selectedYouth else { return }
-        let people = AdultLocator.locate(for: youth, among: night.adults)
+        guard let event, let youth = selectedYouth else { return }
+        let people = AdultLocator.locate(for: youth, among: event.adults)
             .map { "\($0.relation.rawValue): \($0.adult.fullName) (\($0.whereabouts))" }
         let fetch = people.isEmpty ? "" : "\n\nFetch them with the youth:\n" + people.joined(separator: "\n")
         confirmation = Confirmation(
@@ -546,8 +546,8 @@ final class AppModel {
                 + "finished reading the application, references and project workbook.\(fetch)",
             actionTitle: "Start Review"
         ) { [weak self] in
-            self?.changeBoard(youth.id, "Start Review", failure: "Could not start the review") { night in
-                try night.startReview(scoutID: youth.id)
+            self?.changeBoard(youth.id, "Start Review", failure: "Could not start the review") { event in
+                try event.startReview(scoutID: youth.id)
             }
         }
     }
@@ -558,19 +558,19 @@ final class AppModel {
     }
 
     func complete(scoutID: String, result: BoardResult, notes: String) -> Bool {
-        changeBoard(scoutID, "Complete", failure: "Could not complete the board") { night in
-            try night.completeBoard(scoutID: scoutID, result: result, notes: notes)
+        changeBoard(scoutID, "Complete", failure: "Could not complete the board") { event in
+            try event.completeBoard(scoutID: scoutID, result: result, notes: notes)
         }
     }
 
     var canPostpone: Bool { selectedYouth?.status?.isWaitingForBoard == true }
 
-    /// Put the selected youth's board off to another night. Undo brings them
+    /// Put the selected youth's board off to another event. Undo brings them
     /// back to the waiting list.
     func postpone() {
         guard let youth = selectedYouth, canPostpone else { return }
-        if changeBoard(youth.id, "Postpone", failure: "Could not postpone the board", { night in
-            try night.postponeBoard(scoutID: youth.id)
+        if changeBoard(youth.id, "Postpone", failure: "Could not postpone the board", { event in
+            try event.postponeBoard(scoutID: youth.id)
         }) {
             drafts[youth.id] = nil
         }
@@ -586,8 +586,8 @@ final class AppModel {
     /// member since.
     func reset() {
         guard let youth = selectedYouth, canReset else { return }
-        if changeBoard(youth.id, "Reset Board", failure: "Could not reset the board", { night in
-            try night.resetBoard(scoutID: youth.id)
+        if changeBoard(youth.id, "Reset Board", failure: "Could not reset the board", { event in
+            try event.resetBoard(scoutID: youth.id)
         }) {
             selectYouth(youth.id)
         }
@@ -604,12 +604,12 @@ final class AppModel {
     @ObservationIgnored let attention = Attention()
 
     var waitingCount: Int {
-        night?.scouts.filter { $0.status?.isWaitingForBoard == true }.count ?? 0
+        event?.scouts.filter { $0.status?.isWaitingForBoard == true }.count ?? 0
     }
 
     func checkRoomTimers() {
-        guard let night else { return }
-        attention.checkRooms(in: night, now: Date())
+        guard let event else { return }
+        attention.checkRooms(in: event, now: Date())
     }
 
     // MARK: - Undo
@@ -619,12 +619,12 @@ final class AppModel {
     @ObservationIgnored weak var undoManager: UndoManager?
 
     /// Take one step of a youth's board, and let Undo put it back with
-    /// `EventNight.restoreBoard`.
+    /// `BoardEvent.restoreBoard`.
     @discardableResult
-    private func changeBoard(_ scoutID: Scout.ID, _ name: String, failure: String, _ step: (EventNight) throws -> Void) -> Bool {
-        guard let night, let before = night.scout(id: scoutID) else { return false }
-        guard attempt(failure, { try step(night) }), let after = night.scout(id: scoutID) else { return false }
-        registerUndo(name, on: night,
+    private func changeBoard(_ scoutID: Scout.ID, _ name: String, failure: String, _ step: (BoardEvent) throws -> Void) -> Bool {
+        guard let event, let before = event.scout(id: scoutID) else { return false }
+        guard attempt(failure, { try step(event) }), let after = event.scout(id: scoutID) else { return false }
+        registerUndo(name, on: event,
                      undo: { try $0.restoreBoard(before) },
                      redo: { try $0.restoreBoard(after) },
                      reveal: { $0.selectYouth(scoutID) })
@@ -634,26 +634,26 @@ final class AppModel {
     /// Make a change that has a plain inverse, and let Undo apply it.
     @discardableResult
     private func change(_ name: String, failure: String,
-                        _ forward: @escaping (EventNight) throws -> Void,
-                        undo backward: @escaping (EventNight) throws -> Void) -> Bool {
-        guard let night, attempt(failure, { try forward(night) }) else { return false }
-        registerUndo(name, on: night, undo: backward, redo: forward)
+                        _ forward: @escaping (BoardEvent) throws -> Void,
+                        undo backward: @escaping (BoardEvent) throws -> Void) -> Bool {
+        guard let event, attempt(failure, { try forward(event) }) else { return false }
+        registerUndo(name, on: event, undo: backward, redo: forward)
         return true
     }
 
     /// Register `undo`, which when run registers `redo` in turn. A refusal
     /// -- the room has been given to another board since, say -- is shown,
     /// and the step stays as it is.
-    private func registerUndo(_ name: String, on night: EventNight,
-                              undo: @escaping (EventNight) throws -> Void,
-                              redo: @escaping (EventNight) throws -> Void,
+    private func registerUndo(_ name: String, on event: BoardEvent,
+                              undo: @escaping (BoardEvent) throws -> Void,
+                              redo: @escaping (BoardEvent) throws -> Void,
                               reveal: @escaping (AppModel) -> Void = { _ in }) {
         guard let undoManager else { return }
         undoManager.registerUndo(withTarget: self) { model in
             let undoing = model.undoManager?.isUndoing ?? true
-            guard model.night === night,
-                  model.attempt("Could not \(undoing ? "undo" : "redo") \(name)", { try undo(night) }) else { return }
-            model.registerUndo(name, on: night, undo: redo, redo: undo, reveal: reveal)
+            guard model.event === event,
+                  model.attempt("Could not \(undoing ? "undo" : "redo") \(name)", { try undo(event) }) else { return }
+            model.registerUndo(name, on: event, undo: redo, redo: undo, reveal: reveal)
             model.tidySelection()
             reveal(model)
         }
@@ -662,24 +662,24 @@ final class AppModel {
 
     /// After an undo, let go of anything that is no longer there.
     private func tidySelection() {
-        guard let night else { return }
-        if let id = selectedRoomID, night.room(id: id) == nil { selectedRoomID = nil }
-        selectedAdultIDs = selectedAdultIDs.filter { night.adult(id: $0) != nil }
+        guard let event else { return }
+        if let id = selectedRoomID, event.room(id: id) == nil { selectedRoomID = nil }
+        selectedAdultIDs = selectedAdultIDs.filter { event.adult(id: $0) != nil }
         for scoutID in drafts.keys {
-            if let roomID = drafts[scoutID]?.roomID, night.room(id: roomID) == nil { drafts[scoutID]?.roomID = nil }
+            if let roomID = drafts[scoutID]?.roomID, event.room(id: roomID) == nil { drafts[scoutID]?.roomID = nil }
         }
     }
 
     // MARK: - Adults
 
-    /// Disable stands the selected adults down for the night; Enable brings
+    /// Disable stands the selected adults down for the event; Enable brings
     /// them back. Undo reverses either.
     func setAvailable(_ available: Bool) {
-        let ids = selectedAdults.filter { available ? $0.isDisabledForTonight : $0.isAvailable }.map(\.id)
-        guard let night, !ids.isEmpty else { return }
-        let names = ids.compactMap { night.adult(id: $0)?.fullName }.joined(separator: ", ")
-        let apply: (Bool) -> (EventNight) throws -> Void = { value in
-            { night in for id in ids { try night.setAvailable(value, adultID: id) } }
+        let ids = selectedAdults.filter { available ? $0.isDisabledForToday : $0.isAvailable }.map(\.id)
+        guard let event, !ids.isEmpty else { return }
+        let names = ids.compactMap { event.adult(id: $0)?.fullName }.joined(separator: ", ")
+        let apply: (Bool) -> (BoardEvent) throws -> Void = { value in
+            { event in for id in ids { try event.setAvailable(value, adultID: id) } }
         }
         if change(available ? "Enable" : "Disable", failure: "Could not \(available ? "enable" : "disable") \(names)",
                   apply(available), undo: apply(!available)), !available {
@@ -687,7 +687,7 @@ final class AppModel {
         }
     }
 
-    var canEnableSelectedAdults: Bool { selectedAdults.contains(where: \.isDisabledForTonight) }
+    var canEnableSelectedAdults: Bool { selectedAdults.contains(where: \.isDisabledForToday) }
     var canDisableSelectedAdults: Bool { selectedAdults.contains(where: \.isAvailable) }
 
     /// The one selected adult, for commands that take a single person.
@@ -714,10 +714,10 @@ final class AppModel {
     // MARK: - Rooms
 
     func addRoom(named name: String, boardType: BoardType) throws {
-        guard let night else { return }
-        try night.addRoom(named: name, boardType: boardType)
+        guard let event else { return }
+        try event.addRoom(named: name, boardType: boardType)
         let id = Room.roomID(for: name.trimmingCharacters(in: .whitespacesAndNewlines))
-        registerUndo("Add Room", on: night,
+        registerUndo("Add Room", on: event,
                      undo: { try $0.removeRoom(id: id) },
                      redo: { try $0.addRoom(named: name, boardType: boardType) })
     }
@@ -740,11 +740,11 @@ final class AppModel {
 
     /// Rename a room, for the Rename sheet. Returns its new ID.
     func renameRoom(_ id: Room.ID, to newName: String) throws -> Room.ID {
-        guard let night, let oldName = night.room(id: id)?.name else { return id }
-        let newID = try night.renameRoom(id: id, to: newName)
+        guard let event, let oldName = event.room(id: id)?.name else { return id }
+        let newID = try event.renameRoom(id: id, to: newName)
         roomRenamed(from: id, to: newID)
         guard newID != id else { return newID }
-        registerUndo("Rename Room", on: night,
+        registerUndo("Rename Room", on: event,
                      undo: { try $0.renameRoom(id: newID, to: oldName) },
                      redo: { try $0.renameRoom(id: id, to: newName) })
         return newID
@@ -753,14 +753,14 @@ final class AppModel {
     /// Move a board to another room, or swap two boards. Swapping again
     /// undoes it.
     func swapRooms(_ firstID: Room.ID, _ secondID: Room.ID) -> Bool {
-        let swap: (EventNight) throws -> Void = { try $0.swapRooms(firstID, secondID) }
+        let swap: (BoardEvent) throws -> Void = { try $0.swapRooms(firstID, secondID) }
         guard change("Move Board", failure: "Could not move the board", swap, undo: swap) else { return false }
         selectedRoomID = secondID
         return true
     }
 
     func setBoardType(_ boardType: BoardType, forRoom roomID: Room.ID) {
-        guard let old = night?.room(id: roomID)?.boardType, old != boardType else { return }
+        guard let old = event?.room(id: roomID)?.boardType, old != boardType else { return }
         change("Change Room", failure: "Could not change the room",
                { try $0.setBoardType(boardType, forRoom: roomID) },
                undo: { try $0.setBoardType(old, forRoom: roomID) })
@@ -793,7 +793,7 @@ final class AppModel {
     }
 
     func importSignUps() async {
-        guard let night else { return }
+        guard let event else { return }
         guard signUpGeniusAllowed else {
             message = Message(title: "SignUpGenius is off",
                               text: "SignUpGenius is off while EAGLEBOARDS_DATA_FOLDER is set. Set EAGLEBOARDS_SIGNUPGENIUS=1 to use it.")
@@ -807,9 +807,9 @@ final class AppModel {
         defer { isImporting = false }
         let client = SignUpGeniusClient(apiKey: key)
         do {
-            let signup = try await client.findActiveSignup(today: night.night)
+            let signup = try await client.findActiveSignup(today: event.date)
             let entries = try await client.filledSlots(signupID: signup.id)
-            let summary = try night.mergeSignUps(entries, month: String(night.night.prefix(7)))
+            let summary = try event.mergeSignUps(entries, month: String(event.date.prefix(7)))
             var lines = [
                 "\(summary.addedYouth) youth pre-registered, \(summary.alreadyScheduledYouth) already were.",
                 "\(summary.addedAdults) adults added to the history, \(summary.updatedAdults) updated.",
@@ -827,20 +827,20 @@ final class AppModel {
 
     /// Sign an adult in by hand, as the tablet would, and select them on the
     /// Adults page. Like a sign-in at the door, it is not undone; Delete
-    /// Adult takes a mistake off tonight's list.
+    /// Adult takes a mistake off the event's list.
     func addAdult(_ form: [String: String]) throws {
-        guard let night else { return }
-        let adult = try night.registerAdult(form)
+        guard let event else { return }
+        let adult = try event.registerAdult(form)
         selectedAdultIDs = [adult.id]
     }
 
     /// Sign adults in for today straight from the Adult History CSV page, with
     /// the details and roles on file, as if each had signed in at the tablet.
     func signInFromHistory(_ ids: Set<Adult.ID>) {
-        guard let night else { return }
-        for known in night.adultHistory where ids.contains(known.id) {
+        guard let event else { return }
+        for known in event.adultHistory where ids.contains(known.id) {
             attempt("Could not sign in \(known.fullName)") {
-                _ = try night.registerAdult(Adult.handSignInForm(
+                _ = try event.registerAdult(Adult.handSignInForm(
                     historyID: known.id, first: known.first, last: known.last, email: known.email, phone: known.phone,
                     unitType: known.unitType, unit: known.unit, finalBoard: nil, projectReview: nil, woodBadge: false
                 ))
@@ -853,36 +853,36 @@ final class AppModel {
     /// (SPEC.md P-6), which is kept for the Event page's steps.
     @discardableResult
     func editYouth(_ id: Scout.ID, scheduled: Bool = false, _ edit: (inout Scout) -> Void) -> Bool {
-        guard let night, var record = (scheduled ? night.scheduledScouts : night.scouts).first(where: { $0.id == id }) else {
+        guard let event, var record = (scheduled ? event.scheduledScouts : event.scouts).first(where: { $0.id == id }) else {
             return false
         }
         let name = record.fullName
         edit(&record)
-        return attempt("Could not change \(name)") { try night.updateYouth(record, scheduled: scheduled) }
+        return attempt("Could not change \(name)") { try event.updateYouth(record, scheduled: scheduled) }
     }
 
     /// Save a cell changed on the Adults page: promoting someone to Chair,
     /// say. Off the Undo stack, as `editYouth`; the adult history follows.
     @discardableResult
     func editAdult(_ id: Adult.ID, _ edit: (inout Adult) -> Void) -> Bool {
-        guard let night, var record = night.adult(id: id) else { return false }
+        guard let event, var record = event.adult(id: id) else { return false }
         let name = record.fullName
         edit(&record)
-        return attempt("Could not change \(name)") { try night.updateAdult(record) }
+        return attempt("Could not change \(name)") { try event.updateAdult(record) }
     }
 
     /// The Rooms page's Board Type cell: off the Undo stack like any cell
     /// (P-6). Room › Used For, an Event page step, is undoable.
     @discardableResult
     func editRoomType(_ id: Room.ID, to boardType: BoardType) -> Bool {
-        guard let night else { return false }
-        return attempt("Could not change the room") { try night.setBoardType(boardType, forRoom: id) }
+        guard let event else { return false }
+        return attempt("Could not change the room") { try event.setBoardType(boardType, forRoom: id) }
     }
 
     /// A deleted record leaves the file and Undo cannot bring it back, so
     /// this one asks first.
     func confirmDeleteYouth(_ id: Scout.ID, scheduled: Bool = false) {
-        guard let night, let youth = (scheduled ? night.scheduledScouts : night.scouts).first(where: { $0.id == id }) else {
+        guard let event, let youth = (scheduled ? event.scheduledScouts : event.scouts).first(where: { $0.id == id }) else {
             return
         }
         confirmation = Confirmation(
@@ -891,21 +891,21 @@ final class AppModel {
             actionTitle: "Delete",
             isDestructive: true
         ) { [weak self] in
-            guard let self, attempt("Could not delete \(youth.fullName)", { try night.deleteYouth(id: id, scheduled: scheduled) })
+            guard let self, attempt("Could not delete \(youth.fullName)", { try event.deleteYouth(id: id, scheduled: scheduled) })
             else { return }
             if !scheduled && selectedYouthID == id { selectYouth(nil) }
         }
     }
 
     func confirmDeleteAdult(_ id: Adult.ID) {
-        guard let night, let adult = night.adult(id: id) else { return }
+        guard let event, let adult = event.adult(id: id) else { return }
         confirmation = Confirmation(
             title: "Delete \(adult.fullName)?",
             message: "They are taken off today's list; the adult history keeps them. This cannot be undone.",
             actionTitle: "Delete",
             isDestructive: true
         ) { [weak self] in
-            guard let self, attempt("Could not delete \(adult.fullName)", { try night.deleteAdult(id: id) }) else { return }
+            guard let self, attempt("Could not delete \(adult.fullName)", { try event.deleteAdult(id: id) }) else { return }
             selectedAdultIDs.remove(id)
             for scoutID in drafts.keys { drafts[scoutID]?.memberIDs.removeAll { $0 == id } }
         }
@@ -916,17 +916,17 @@ final class AppModel {
     /// Save the page's list as a spreadsheet, with the data files' columns
     /// but never a youth's birthdate or phone number (SPEC.md D-7, D-8).
     func exportList() {
-        guard let night, page.isList else { return }
+        guard let event, page.isList else { return }
         let text = switch page {
         case .event, .results, .approvedProposals: ""
-        case .rooms: CSVFile.render(night.rooms)
-        case .youth: CSVFile.render(night.scouts.map(\.forExport))
-        case .preRegistered: CSVFile.render(night.scheduledScouts.map(\.forExport))
-        case .adults: CSVFile.render(night.adults)
-        case .adultHistory: CSVFile.render(night.adultHistory)
+        case .rooms: CSVFile.render(event.rooms)
+        case .youth: CSVFile.render(event.scouts.map(\.forExport))
+        case .preRegistered: CSVFile.render(event.scheduledScouts.map(\.forExport))
+        case .adults: CSVFile.render(event.adults)
+        case .adultHistory: CSVFile.render(event.adultHistory)
         }
         let panel = NSSavePanel()
-        panel.nameFieldStringValue = "\(page.title) \(night.night).csv"
+        panel.nameFieldStringValue = "\(page.title) \(event.date).csv"
         panel.allowedContentTypes = [.commaSeparatedText]
         panel.message = "This list holds personal information. Keep the file somewhere private."
         guard panel.runModal() == .OK, let url = panel.url else { return }
@@ -938,22 +938,22 @@ final class AppModel {
     }
 
     func exportReport() {
-        guard let night else { return }
+        guard let event else { return }
         let panel = NSSavePanel()
-        panel.nameFieldStringValue = "Board Results \(night.night).csv"
+        panel.nameFieldStringValue = "Board Results \(event.date).csv"
         panel.allowedContentTypes = [.commaSeparatedText]
         panel.message = "The report holds names and contact details, including those of minors. Keep it somewhere private."
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
-            try Data(Reports.csv(night.scouts, columns: Reports.boardResultColumns).utf8).write(to: url, options: .atomic)
+            try Data(Reports.csv(event.scouts, columns: Reports.boardResultColumns).utf8).write(to: url, options: .atomic)
         } catch {
             message = Message(title: "Could not save the report", text: error.localizedDescription)
         }
     }
 
     func showDataFolderInFinder() {
-        guard let night else { return }
-        NSWorkspace.shared.activateFileViewerSelecting([night.folder.nightFolder(night.night)])
+        guard let event else { return }
+        NSWorkspace.shared.activateFileViewerSelecting([event.folder.eventFolder(event.date)])
     }
 
     func chooseDataFolderWithPanel() {
