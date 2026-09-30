@@ -64,7 +64,8 @@ struct AdultList: View {
                     WoodBadgeChoice(value: adult.woodBadge) { value in edit(adult) { $0.woodBadge = value } }
                 }
                 .width(min: 40, ideal: 48, max: 60)
-                TableColumn("With", value: \Adult.supporting) { adult in
+                // Whom they introduce to their board of review (SPEC.md D-23).
+                TableColumn("Introduces", value: \Adult.supporting) { adult in
                     let names = supportedNames(adult)
                     Text(names).foregroundStyle(.secondary).help(names)
                 }

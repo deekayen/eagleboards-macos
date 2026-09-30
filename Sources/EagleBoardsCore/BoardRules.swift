@@ -506,8 +506,9 @@ public struct BoardSuggestion: Sendable, Equatable {
 /// so someone can fetch them when the board is ready or has finished.
 public enum AdultLocator {
     public enum Relation: String, Sendable {
-        /// Said at sign-in they came to support this youth.
-        case supporting = "Supporting"
+        /// Introduces this youth to their board of review (SPEC.md D-23), as
+        /// said at sign-in or linked since: usually their Scoutmaster.
+        case supporting = "Introduces them"
         case leader = "Leader"
         case parent = "Parent"
     }
@@ -525,7 +526,7 @@ public enum AdultLocator {
     /// A leader is an adult whose last name appears in the youth's Leader
     /// field and who is in the same unit (or whose first name appears there
     /// too). A parent is an adult in the same unit with the youth's last name.
-    /// Adults who said at sign-in they came to support this youth come first,
+    /// The adults linked to this youth, who introduce them (SPEC.md D-23), come first,
     /// and are not guessed at again.
     public static func locate(for scout: Scout, among adults: [Adult]) -> [Match] {
         let leaderText = scout.leader.lowercased()
@@ -551,6 +552,32 @@ public enum AdultLocator {
             }
         }
         return supporting + leaders + parents
+    }
+
+    /// Whom Start Review reminds the operator to fetch (SPEC.md D-23): the
+    /// adults linked to the youth, who introduce them to their board of
+    /// review, or with none, their leader if signed in. Never a parent. Nil
+    /// for a project review, which has no introduction.
+    public static func introduction(for scout: Scout, among adults: [Adult]) -> [Match]? {
+        guard scout.boardType != .projectReview else { return nil }
+        let found = locate(for: scout, among: adults)
+        let introducers = found.filter { $0.relation == .supporting }
+        return introducers.isEmpty ? found.filter { $0.relation == .leader } : introducers
+    }
+
+    /// What Start Review's confirmation adds about the introduction: whom to
+    /// fetch and where they are, or that no one has said they will. Empty
+    /// for a project review.
+    public static func introductionText(for scout: Scout, among adults: [Adult]) -> String {
+        guard let people = introduction(for: scout, among: adults) else { return "" }
+        let lines = people.map { "\($0.adult.fullName) (\($0.whereabouts))" }.joined(separator: "\n")
+        if people.first?.relation == .supporting {
+            return "\n\nFirst fetch whoever introduces them to the board:\n" + lines
+        }
+        if !people.isEmpty {
+            return "\n\nNo one has said they'll introduce them. Their leader:\n" + lines
+        }
+        return "\n\nNo one has said they'll introduce them, and their leader hasn't signed in. Ask \(scout.first) who will."
     }
 }
 

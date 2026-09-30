@@ -362,14 +362,14 @@ public struct Adult: PersonRecord {
         set { self["WoodBadge"] = newValue }
     }
 
-    /// IDs of the youth this adult came to support (their Scoutmaster, say),
+    /// IDs of the youth this adult introduces to their board (their Scoutmaster, say; SPEC.md D-23),
     /// separated by "|" because the data files turn commas into "~".
     public var supporting: String {
         get { self["Supporting"] }
         set { self["Supporting"] = newValue }
     }
 
-    /// Said at sign-in they came to support this youth.
+    /// Introduces this youth to their board, as said at sign-in or linked since.
     public func supports(_ scoutID: String) -> Bool {
         supporting.split(separator: "|").contains { $0 == scoutID }
     }

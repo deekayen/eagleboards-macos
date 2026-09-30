@@ -371,8 +371,8 @@ private struct ResultSection: View {
 
 // MARK: - Who came with them
 
-/// The adults to fetch: those who came to support the youth, then their
-/// leader and parents, with where each one is now.
+/// The adults to fetch: whoever introduces the youth to their board
+/// (SPEC.md D-23), then their leader and parents, with where each one is now.
 private struct WithThemSection: View {
     @Environment(AppModel.self) private var model
     let youth: Scout
@@ -422,7 +422,7 @@ private struct WithThemSection: View {
                 .menuStyle(.borderlessButton)
                 .fixedSize()
                 .disabled(others.isEmpty)
-                .help("Link an adult who came to support \(youth.fullName) but did not say so at sign-in")
+                .help("Link the adult who will introduce \(youth.fullName) to their board, if they did not say so at sign-in")
             }
         }
     }

@@ -11,11 +11,13 @@ import Testing
 
 private func adult(
     _ first: String, _ last: String, unitName: String,
-    final finalRole: BoardRole = .member, project projectRole: BoardRole = .member, room: String = ""
+    final finalRole: BoardRole = .member, project projectRole: BoardRole = .member, room: String = "",
+    supporting: String = ""
 ) -> Adult {
     Adult(fields: [
         "Type": "ADULT", "ID": "ADULT:\(last):\(first)", "First": first, "Last": last,
         "UnitName": unitName, "FinalBoard": finalRole.rawValue, "ProjectReview": projectRole.rawValue, "Room": room,
+        "Supporting": supporting,
     ])
 }
 
@@ -200,6 +202,39 @@ struct AdultLocatorTests {
     @Test func anAdultWithNoLastNameIsNeverALeader() {
         let youth = scout(leader: "Anybody")
         #expect(AdultLocator.locate(for: youth, among: [adult("Nobody", "", unitName: "Troop5")]).isEmpty)
+    }
+
+    // SPEC.md D-23, after the 2026-09-30 event: the cases Windows'
+    // SchedulerLogicTests and Java's test-board-builder.js run too.
+    @Test func startReviewNamesWhoIntroducesTheYouthOnABoardOfReviewNeverAParent() throws {
+        let youth = scout("Casey", "Candidate", unitName: "Troop1234", leader: "Lee Leader")
+        let leader = adult("Lee", "Leader", unitName: "Troop1234")
+        let parent = adult("Jamie", "Candidate", unitName: "Troop1234")
+        let introducer = adult("Sam", "Scoutmaster", unitName: "Troop1234", room: "104", supporting: "SCOUT:X|\(youth.id)")
+
+        // Linked: only whoever introduces them, not the leader or parent besides.
+        let linked = try #require(AdultLocator.introduction(for: youth, among: [leader, parent, introducer]))
+        #expect(linked.map(\.adult.fullName) == ["Sam Scoutmaster"])
+        #expect(AdultLocator.introductionText(for: youth, among: [leader, parent, introducer])
+            == "\n\nFirst fetch whoever introduces them to the board:\nSam Scoutmaster (Room 104)")
+
+        // No one linked: their leader, if signed in, still never the parent.
+        let unlinked = try #require(AdultLocator.introduction(for: youth, among: [leader, parent]))
+        #expect(unlinked.map(\.adult.fullName) == ["Lee Leader"])
+        #expect(unlinked.map(\.relation) == [.leader])
+
+        // Only a parent here: no one to name, but still a reminder.
+        let parentOnly = try #require(AdultLocator.introduction(for: youth, among: [parent]))
+        #expect(parentOnly.isEmpty)
+        #expect(AdultLocator.introductionText(for: youth, among: [parent])
+            == "\n\nNo one has said they'll introduce them, and their leader hasn't signed in. Ask Casey who will.")
+    }
+
+    @Test func aProjectReviewHasNoIntroductionToRemindAbout() {
+        let youth = scout(boardType: .projectReview, leader: "Lee Leader")
+        let introducer = adult("Sam", "Scoutmaster", unitName: "Troop1234", supporting: youth.id)
+        #expect(AdultLocator.introduction(for: youth, among: [introducer]) == nil)
+        #expect(AdultLocator.introductionText(for: youth, among: [introducer]).isEmpty)
     }
 }
 

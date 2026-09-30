@@ -135,7 +135,7 @@ public final class BoardEvent {
             .prefix(limit))
     }
 
-    /// The youth an adult may say at sign-in they came to support: everyone
+    /// The youth an adult may say at sign-in they will introduce (SPEC.md D-23): everyone
     /// who RSVP'd, plus the event's walk-ins, leaving out anyone already
     /// finished (Completed or Postponed). The sign-in's record wins over the
     /// RSVP with the same ID; sorted by last name, then first.
@@ -772,7 +772,7 @@ public final class BoardEvent {
         try save(.adults)
     }
 
-    /// Link an adult to a youth as someone who came to support them, or
+    /// Link an adult to a youth as the one who introduces them (SPEC.md D-23), or
     /// unlink them after sign-in, for the adult who did not
     /// check the youth at sign-in. Writes the same Supporting column. Linking
     /// needs a youth who is signed in or RSVP'd; clearing a stale link does not.
@@ -848,7 +848,7 @@ public final class BoardEvent {
     /// sign-in carries them between the two tables (SPEC.md P-6): the change
     /// is made to the same adult in the history too, so someone promoted to
     /// Chair today is a chair the next time they sign in. Wood Badge, whom
-    /// they came to support and their room belong to this event alone. The
+    /// they introduce and their room belong to this event alone. The
     /// history itself is read-only: a sign-in writes it, and this reaches it.
     public func updateAdult(_ edited: Adult) throws {
         var record = edited

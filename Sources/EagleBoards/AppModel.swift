@@ -537,9 +537,9 @@ final class AppModel {
 
     func confirmStartReview() {
         guard let event, let youth = selectedYouth else { return }
-        let people = AdultLocator.locate(for: youth, among: event.adults)
-            .map { "\($0.relation.rawValue): \($0.adult.fullName) (\($0.whereabouts))" }
-        let fetch = people.isEmpty ? "" : "\n\nFetch them with the youth:\n" + people.joined(separator: "\n")
+        // A board of review starts with an introduction (SPEC.md D-23): name
+        // whom to fetch and where. A project review has none.
+        let fetch = AdultLocator.introductionText(for: youth, among: event.adults)
         confirmation = Confirmation(
             title: "Start the review?",
             message: "Bring \(youth.fullName) into room \(youth.room) and start the review. Do this once the board has "
@@ -696,8 +696,8 @@ final class AppModel {
         return adults.count == 1 ? adults.first : nil
     }
 
-    /// Link the selected adult to the selected youth as someone who came to
-    /// support them, or unlink them -- for the adult who did not check the
+    /// Link the selected adult to the selected youth as the one who
+    /// introduces them (SPEC.md D-23), or unlink them -- for the adult who did not check the
     /// youth at sign-in. Start Review names them from then on. Works for an
     /// adult on a board too: a Scoutmaster often is by then.
     func toggleSupportLink() {
