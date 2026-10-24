@@ -20,7 +20,7 @@ let package = Package(
         .executable(name: "EagleBoards", targets: ["EagleBoards"])
     ],
     dependencies: [
-        .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.27.0")
+        .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.28.0")
     ],
     targets: [
         .target(
