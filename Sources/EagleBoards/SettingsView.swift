@@ -33,7 +33,7 @@ private struct GeneralSettings: View {
                 Text("Boards")
             } footer: {
                 Text("A proposed board picks a chair, members and a room with the whole waiting line in mind. "
-                    + "Start empty to choose the adults yourself; a free room is still picked, and Suggest a Board "
+                    + "Start empty to choose the adults yourself; a free room is still picked, and Start Over "
                     + "in the inspector proposes one whenever you want it.")
                     .foregroundStyle(.secondary)
             }

@@ -18,6 +18,7 @@ struct SchedulerView: View {
     @Environment(\.undoManager) private var undoManager
     /// The youth list's width on the Event page, as the operator last left it.
     @AppStorage("youthListWidth") private var youthListWidth = 320.0
+    @FocusState private var searchFocused: Bool
     let event: BoardEvent
 
     var body: some View {
@@ -27,7 +28,14 @@ struct SchedulerView: View {
             .navigationTitle(title)
             .navigationSubtitle(eventSubtitle)
             .searchable(text: $model.searchText, placement: .toolbar, prompt: searchPrompt)
+            .modifier(SearchFocus(isFocused: $searchFocused))
             .onSubmit(of: .search) { model.openFirstFound() }
+            .onChange(of: model.findRequested, initial: true) {
+                guard model.findRequested else { return }
+                model.findRequested = false
+                // A window that Find opened a moment ago has no toolbar yet.
+                Task { startSearch() }
+            }
             .inspector(isPresented: $model.showsInspector) {
                 YouthInspector(event: event)
                     .inspectorColumnWidth(min: 300, ideal: 340, max: 480)
@@ -110,6 +118,23 @@ struct SchedulerView: View {
             RoomsPage(event: event)
         case .approvedProposals:
             ApprovedProposalsPage(event: event)
+        }
+    }
+
+    /// Edit › Find…: put the cursor in the toolbar search, as Ctrl+F does on
+    /// Windows and in Java (SPEC.md D-21).
+    private func startSearch() {
+        if #available(macOS 15, *) {
+            searchFocused = true
+        } else {
+            // macOS 14 has no searchFocused; the toolbar's search item starts
+            // its own interaction instead. Front to back, so it is the
+            // scheduler's search, which Find has just brought forward.
+            NSApplication.shared.orderedWindows
+                .lazy
+                .compactMap { $0.toolbar?.items.lazy.compactMap { $0 as? NSSearchToolbarItem }.first }
+                .first?
+                .beginSearchInteraction()
         }
     }
 
@@ -197,6 +222,19 @@ private struct ColumnResizer: View {
                 @unknown default: break
                 }
             }
+    }
+}
+
+/// Binds the toolbar search's focus where the system can (macOS 15 and later).
+private struct SearchFocus: ViewModifier {
+    let isFocused: FocusState<Bool>.Binding
+
+    func body(content: Content) -> some View {
+        if #available(macOS 15, *) {
+            content.searchFocused(isFocused)
+        } else {
+            content
+        }
     }
 }
 

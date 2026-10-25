@@ -116,6 +116,17 @@ final class AppModel {
         return false
     }
 
+    var serverFailed: Bool {
+        if case .failed = serverState { return true }
+        return false
+    }
+
+    /// The sign-in page on this Mac, while the station is serving.
+    var localSignInURL: URL? {
+        guard case .running(let runningPort) = serverState else { return nil }
+        return URL(string: "http://127.0.0.1:\(runningPort)/")
+    }
+
     func startServer() {
         stopServer()
         guard let event else { return }
@@ -207,6 +218,9 @@ final class AppModel {
     var page: Page = .event
     var searchText = ""
     var showsInspector = true
+    /// Edit › Find… asked for the toolbar search. The scheduler window takes
+    /// it up when it next draws, which may be once Find has opened it.
+    var findRequested = false
 
     var selectedYouthID: Scout.ID?
     var selectedAdultIDs: Set<Adult.ID> = []
@@ -557,7 +571,8 @@ final class AppModel {
         }
     }
 
-    /// The inspector lists who came with the youth and where they are.
+    /// The inspector lists who introduces the youth, then their leader and
+    /// parents, with where each one is.
     func locateSelectedYouth() {
         guard selectedYouth != nil else { return }
         showsInspector = true
@@ -668,7 +683,8 @@ final class AppModel {
     }
 
     func setSupporting(_ linked: Bool, adultID: Adult.ID, scoutID: Scout.ID) {
-        change(linked ? "Link" : "Unlink", failure: linked ? "Could not link" : "Could not unlink",
+        change(linked ? "Link Introducer" : "Unlink Introducer",
+               failure: linked ? "Could not link" : "Could not unlink",
                { try $0.setSupporting(linked, adultID: adultID, scoutID: scoutID) },
                undo: { try $0.setSupporting(!linked, adultID: adultID, scoutID: scoutID) })
     }

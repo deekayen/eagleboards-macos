@@ -16,22 +16,28 @@ struct EagleBoardsApp: App {
         .defaultSize(width: 1280, height: 860)
         .commands { EagleBoardsCommands(model: model) }
 
+        // Each Window scene would also list itself in the Window menu. The
+        // menu's own Sign-In Code item (Command-3) is the one entry for that
+        // window, and the Help menu opens Help and Donate.
         Window("Sign-In Code", id: WindowID.signInCode) {
             SignInCodeWindow()
                 .environment(model)
         }
         .defaultSize(width: 560, height: 680)
+        .commandsRemoved()
 
         Window("Eagle Boards Help", id: WindowID.help) {
             HelpView()
         }
         .defaultSize(width: 720, height: 760)
+        .commandsRemoved()
 
         Window("Donate", id: WindowID.donate) {
             DonateView()
         }
         .windowResizability(.contentSize)
         .defaultPosition(.center)
+        .commandsRemoved()
 
         Settings {
             SettingsView()
@@ -101,7 +107,9 @@ struct EagleBoardsCommands: Commands {
             Button("Choose Data Folder…") { model.chooseDataFolderWithPanel() }
             Button("Show Event Folder in Finder") { model.showDataFolderInFinder() }
                 .disabled(model.event == nil)
-            Divider()
+        }
+        // Below Close, where a Mac app keeps import and export.
+        CommandGroup(after: .importExport) {
             Button("Import Sign-Ups from SignUpGenius") { Task { await model.importSignUps() } }
                 .keyboardShortcut("i")
                 .disabled(model.event == nil || model.isImporting)
@@ -111,13 +119,34 @@ struct EagleBoardsCommands: Commands {
             Button("Export List…") { model.exportList() }
                 .keyboardShortcut("e", modifiers: [.command, .shift])
                 .disabled(model.event == nil || !model.page.isList)
+            Divider()
+            // The toolbar popover's commands, for when the toolbar is hidden.
+            Button("Restart Sign-In Station") { model.startServer() }
+                .disabled(model.event == nil || !model.serverFailed)
+            Button("Open Sign-In Page in Browser") {
+                if let url = model.localSignInURL { NSWorkspace.shared.open(url) }
+            }
+            .disabled(model.localSignInURL == nil)
+        }
+        CommandGroup(after: .textEditing) {
+            Button("Find…") {
+                openWindow(id: WindowID.scheduler)
+                model.findRequested = true
+            }
+            .keyboardShortcut("f")
+            .disabled(model.event == nil)
         }
         InspectorCommands()
-        // The pages (SPEC.md P-1, P-6): the event, and a page per table,
+        // The pages (SPEC.md P-1, P-6): the event, then a page per table,
         // edited in place. No sidebar chooses them and no records window
         // repeats them; the page shown has a check.
         CommandGroup(before: .toolbar) {
-            ForEach(Array(AppModel.Page.allCases.enumerated()), id: \.element) { index, page in
+            let pages = Array(AppModel.Page.allCases.enumerated())
+            ForEach(pages.prefix(1), id: \.element) { index, page in
+                pageButton(page, KeyEquivalent(Character(String(index + 1))))
+            }
+            Divider()
+            ForEach(pages.dropFirst(), id: \.element) { index, page in
                 pageButton(page, KeyEquivalent(Character(String(index + 1))))
             }
         }
@@ -127,26 +156,23 @@ struct EagleBoardsCommands: Commands {
         }
         CommandMenu("Adult") {
             Button("Add Adult…") { model.sheet = .addAdult }
+                .keyboardShortcut("n")
                 .disabled(model.event == nil || model.sheet != nil)
             Divider()
             AdultActionButtons(model: model)
                 .disabled(model.event == nil)
         }
         CommandMenu("Room") {
-            if let event = model.event {
-                RoomActionButtons(model: model, event: event)
-            } else {
-                Button("Add Room…") {}
-                    .keyboardShortcut("n", modifiers: [.command, .shift])
-                    .disabled(true)
-            }
+            RoomActionButtons(model: model, event: model.event)
         }
-        CommandGroup(before: .windowList) {
+        // In place of the scheduler scene's own Window menu entry, which
+        // named it after the app. Replacing this group leaves the other
+        // scenes' entries, so those scenes have commandsRemoved().
+        CommandGroup(replacing: .singleWindowList) {
             Button("Scheduler") { openWindow(id: WindowID.scheduler) }
                 .keyboardShortcut("1")
             Button("Sign-In Code") { openWindow(id: WindowID.signInCode) }
                 .keyboardShortcut("3")
-            Divider()
         }
         CommandGroup(replacing: .appInfo) {
             Button("About Eagle Boards") { AboutPanel.show() }

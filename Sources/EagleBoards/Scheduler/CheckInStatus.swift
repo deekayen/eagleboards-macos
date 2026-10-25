@@ -87,7 +87,7 @@ struct CheckInDetails: View {
                 }
                 HStack {
                     Button("Open Sign-In Page Here") {
-                        NSWorkspace.shared.open(URL(string: "http://127.0.0.1:\(port)/")!)
+                        if let url = model.localSignInURL { NSWorkspace.shared.open(url) }
                     }
                     Button("Show Code in a Window") { openWindow(id: WindowID.signInCode) }
                         .help("A large code to put on a second display or a projector by the door")

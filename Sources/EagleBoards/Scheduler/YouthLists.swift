@@ -26,7 +26,7 @@ struct YouthList: View {
         }
         .contextMenu(forSelectionType: Scout.ID.self) { ids in
             if let id = ids.first {
-                YouthActionButtons(model: model, scoutID: id)
+                YouthActionButtons(model: model, scoutID: id, inContextMenu: true)
             }
         } primaryAction: { ids in
             guard let id = ids.first else { return }
@@ -189,43 +189,69 @@ struct BoardTypeText: View {
 /// What can be done to one youth: the Board menu, and the context menu on
 /// their row. Acting on a row that is not selected selects it first, so the
 /// inspector shows who the action was for.
+///
+/// The context menu lists only what applies, in three groups: the next step
+/// first, with the board's members and the adults to fetch; the board being
+/// drawn up; then Reset Board and Postpone.
 struct YouthActionButtons: View {
     let model: AppModel
     /// Nil acts on the selected youth.
     var scoutID: Scout.ID?
+    var inContextMenu = false
 
     var body: some View {
         let youth = scoutID.flatMap { model.event?.scout(id: $0) } ?? model.selectedYouth
         let status = youth?.status
         let idle = model.sheet == nil
+        let waiting = status?.isWaitingForBoard == true
+        let canReset = status == .seated || status == .inProgress || status == .verified
 
-        Button(BoardStep.seat.title) { run { model.beginSeating() } }
-            .keyboardShortcut(status?.nextStep == .seat ? KeyboardShortcut(.return, modifiers: .command) : nil)
-            .disabled(!idle || status?.nextStep != .seat)
-        Button(BoardStep.startReview.title) { run { model.confirmStartReview() } }
-            .keyboardShortcut(status?.nextStep == .startReview ? KeyboardShortcut(.return, modifiers: .command) : nil)
-            .disabled(!idle || status?.nextStep != .startReview)
-        Button(BoardStep.complete.title) { run { model.beginCompleting() } }
-            .keyboardShortcut(status?.nextStep == .complete ? KeyboardShortcut(.return, modifiers: .command) : nil)
-            .disabled(!idle || status?.nextStep != .complete)
-        Button("Change Members…") { run { model.beginChangingMembers() } }
-            .disabled(!idle || (status != .seated && status != .inProgress))
-        Divider()
-        Button("Suggest a Board") { run { model.suggestBoard() } }
-            .disabled(status?.isWaitingForBoard != true)
-        Button("Fill the Rest") { run { model.fillDraft() } }
-            .disabled(status?.isWaitingForBoard != true)
-        Button("Clear Board") { run { model.clearDraft() } }
-            .disabled(status?.isWaitingForBoard != true)
-        Divider()
-        Button("Locate Leader and Parents") { run { model.locateSelectedYouth() } }
-            .keyboardShortcut("l")
-            .disabled(youth == nil)
-        Divider()
-        Button("Reset Board") { run { model.reset() } }
-            .disabled(!(status == .seated || status == .inProgress || status == .verified))
-        Button("Postpone") { run { model.postpone() } }
-            .disabled(status?.isWaitingForBoard != true)
+        step(.seat, status: status, idle: idle) { model.beginSeating() }
+        step(.startReview, status: status, idle: idle) { model.confirmStartReview() }
+        step(.complete, status: status, idle: idle) { model.beginCompleting() }
+        command("Change Members…", applies: idle && (status == .seated || status == .inProgress)) {
+            model.beginChangingMembers()
+        }
+        if inContextMenu {
+            locate(youth)
+        }
+        if !inContextMenu || (youth != nil && waiting) {
+            Divider()
+        }
+        command("Start Over", applies: waiting) { model.suggestBoard() }
+        command("Fill the Rest", applies: waiting) { model.fillDraft() }
+        command("Clear Board", applies: waiting) { model.clearDraft() }
+        if !inContextMenu {
+            Divider()
+            locate(youth)
+        }
+        if !inContextMenu || ((youth != nil || waiting) && (canReset || waiting)) {
+            Divider()
+        }
+        command("Reset Board", applies: canReset) { model.reset() }
+        command("Postpone", applies: waiting) { model.postpone() }
+    }
+
+    /// Seat Board, Start Review or Complete, on Command-Return while it is
+    /// the youth's next step.
+    private func step(
+        _ step: BoardStep, status: BoardStatus?, idle: Bool, _ action: @escaping @MainActor () -> Void
+    ) -> MenuCommand {
+        let isNext = status?.nextStep == step
+        return command(step.title, applies: idle && isNext,
+                       shortcut: isNext ? KeyboardShortcut(.return, modifiers: .command) : nil, action)
+    }
+
+    private func locate(_ youth: Scout?) -> MenuCommand {
+        command("Locate Leader and Parents", applies: youth != nil, shortcut: KeyboardShortcut("l")) {
+            model.locateSelectedYouth()
+        }
+    }
+
+    private func command(
+        _ title: String, applies: Bool, shortcut: KeyboardShortcut? = nil, _ action: @escaping @MainActor () -> Void
+    ) -> MenuCommand {
+        MenuCommand(title, applies: applies, shortcut: shortcut, inContextMenu: inContextMenu) { run(action) }
     }
 
     private func run(_ action: () -> Void) {

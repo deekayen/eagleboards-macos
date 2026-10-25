@@ -3,7 +3,8 @@ import SwiftUI
 
 /// Everything about the selected youth, down the right of the window: the
 /// board being drawn up for them while they wait, the board sitting once it
-/// is seated, the result when it is done, and who came with them.
+/// is seated, the result when it is done, and who introduces them, with their
+/// leader and parents.
 struct YouthInspector: View {
     @Environment(AppModel.self) private var model
     let event: BoardEvent
@@ -124,7 +125,7 @@ private struct DraftBoardSections: View {
 
             Section {
                 HStack {
-                    Button("Suggest a Board") { model.suggestBoard() }
+                    Button("Start Over") { model.suggestBoard() }
                         .help("Replace this board with a proposed chair, members and room")
                     Button("Fill the Rest") { model.fillDraft() }
                         .help("Keep the members you've chosen and add a chair and members to complete the board")
@@ -149,9 +150,17 @@ private struct DraftBoardSections: View {
                       systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
             }
-        } else {
+        } else if youth.status == nil {
             Section {
-                Button("Suggest a Board") { model.selectYouth(youth.id) }
+                Label("\(youth.shownFullName)'s status is not one Eagle Boards knows, so it cannot draw up a board. "
+                    + "The Youth page shows it in the Status column.",
+                      systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+            }
+        } else {
+            // No board yet, so there is nothing to start over.
+            Section {
+                Button("Suggest Board") { model.suggestBoard() }
             }
         }
     }
@@ -391,7 +400,7 @@ private struct ResultSection: View {
     }
 }
 
-// MARK: - Who came with them
+// MARK: - Who introduces them, and their leader and parents
 
 /// The adults to fetch: whoever introduces the youth to their board
 /// (SPEC.md D-23), then their leader and parents, with where each one is now.
@@ -409,8 +418,9 @@ private struct WithThemSection: View {
         Section {
             if people.isEmpty {
                 Text(youth.leader.isEmpty
-                    ? "No one who came with \(youth.first.shownValue) has signed in."
-                    : "\(youth.first.shownValue)'s leader, \(youth.leader.shownValue), has not signed in.")
+                    ? "No one is linked to introduce \(youth.first.shownValue), and no leader or parent has signed in."
+                    : "No one is linked to introduce \(youth.first.shownValue), and their leader, "
+                        + "\(youth.leader.shownValue), has not signed in.")
                     .foregroundStyle(.secondary)
             }
             ForEach(people) { match in

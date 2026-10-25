@@ -233,12 +233,14 @@ struct RoomsPage: View {
             ForEach(rows) { TableRow($0) }
         }
         .contextMenu(forSelectionType: Room.ID.self) { ids in
+            // A context menu lists only what applies: a room in use has nothing.
             if let id = ids.first, let room = event.room(id: id) {
-                Button("Remove Room") {
-                    model.selectedRoomID = id
-                    model.removeSelectedRoom()
+                if room.isFree {
+                    Button("Remove Room") {
+                        model.selectedRoomID = id
+                        model.removeSelectedRoom()
+                    }
                 }
-                .disabled(!room.isFree)
             } else {
                 Button("Add Room…") { model.sheet = .addRoom }
             }

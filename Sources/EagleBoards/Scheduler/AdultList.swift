@@ -87,11 +87,7 @@ struct AdultList: View {
             if ids.isEmpty {
                 Button("Add Adult…") { model.sheet = .addAdult }
             } else {
-                AdultActionButtons(model: model, adultIDs: ids)
-                if ids.count == 1, let id = ids.first {
-                    Divider()
-                    Button("Delete Adult…", role: .destructive) { model.confirmDeleteAdult(id) }
-                }
+                AdultActionButtons(model: model, adultIDs: ids, inContextMenu: true)
             }
         } primaryAction: { ids in
             // Double-clicking below the last row adds someone.
@@ -161,10 +157,15 @@ struct AdultStatusLabel: View {
 
 /// What can be done to adults: the Adult menu, and the context menu on their
 /// rows. Acting on rows that are not selected selects them first.
+///
+/// The context menu lists only what applies, in three groups: the selected
+/// youth's board and whether this adult introduces them; Enable or Disable
+/// for Today; and, for one adult, Delete Adult….
 struct AdultActionButtons: View {
     let model: AppModel
     /// Nil acts on the selected adults.
     var adultIDs: Set<Adult.ID>?
+    var inContextMenu = false
 
     var body: some View {
         let youth = model.selectedYouth
@@ -172,30 +173,48 @@ struct AdultActionButtons: View {
         let ids = adultIDs ?? model.selectedAdultIDs
         let adults = model.event?.adults.filter { ids.contains($0.id) } ?? []
         let single = adults.count == 1 ? adults.first : nil
+        let canAdd = draft.map { draft in ids.contains { !draft.memberIDs.contains($0) } } ?? false
+        let canRemove = draft.map { draft in ids.contains { draft.memberIDs.contains($0) } } ?? false
+        let canMakeChair = single.map { model.canMakeChair($0) } ?? false
+        let canLink = single != nil && youth != nil
+        let canEnable = adults.contains(where: \.isDisabledForToday)
+        let canDisable = adults.contains(where: \.isAvailable)
+        let forYouth = canAdd || canRemove || canMakeChair || canLink
 
-        Button(youth.map { "Add to \($0.first.shownValue)'s Board" } ?? "Add to Board") {
-            run { model.addToDraft(Array(ids)) }
+        command(youth.map { "Add to \($0.first.shownValue)'s Board" } ?? "Add to Board", applies: canAdd,
+                shortcut: KeyboardShortcut("b")) {
+            model.addToDraft(Array(ids))
         }
-        .keyboardShortcut("b")
-        .disabled(draft == nil || !ids.contains { draft?.memberIDs.contains($0) == false })
-        Button("Remove from Board") { run { model.removeFromDraft(ids) } }
-            .disabled(draft == nil || !ids.contains { draft?.memberIDs.contains($0) == true })
-        Button("Make Chair") { run { if let single { model.makeChair(single.id) } } }
-            .disabled(!(single.map { model.canMakeChair($0) } ?? false))
-        Divider()
-        if let single, let youth, single.supports(youth.id) {
-            Button("Unlink from \(youth.shownFullName)") { run { model.toggleSupportLink() } }
-        } else {
-            Button(youth.map { "Came to Support \($0.shownFullName)" } ?? "Came to Support the Selected Youth") {
-                run { model.toggleSupportLink() }
+        command("Remove from Board", applies: canRemove) { model.removeFromDraft(ids) }
+        command("Make Chair", applies: canMakeChair) { if let single { model.makeChair(single.id) } }
+        if !inContextMenu {
+            Divider()
+        }
+        // One checked item for the D-23 link, whichever way it goes.
+        if canLink || !inContextMenu {
+            Toggle(youth.map { "Introduces \($0.shownFullName)" } ?? "Introduces Selected Youth", isOn: Binding(
+                get: { youth.map { single?.supports($0.id) == true } ?? false },
+                set: { _ in run { model.toggleSupportLink() } }
+            ))
+            .disabled(!canLink)
+        }
+        if !inContextMenu || (forYouth && (canEnable || canDisable)) {
+            Divider()
+        }
+        command("Enable for Today", applies: canEnable) { model.setAvailable(true) }
+        command("Disable for Today", applies: canDisable) { model.setAvailable(false) }
+        if inContextMenu, let single {
+            if forYouth || canEnable || canDisable {
+                Divider()
             }
-            .disabled(single == nil || youth == nil)
+            Button("Delete Adult…", role: .destructive) { model.confirmDeleteAdult(single.id) }
         }
-        Divider()
-        Button("Enable for Today") { run { model.setAvailable(true) } }
-            .disabled(!adults.contains(where: \.isDisabledForToday))
-        Button("Disable for Today") { run { model.setAvailable(false) } }
-            .disabled(!adults.contains(where: \.isAvailable))
+    }
+
+    private func command(
+        _ title: String, applies: Bool, shortcut: KeyboardShortcut? = nil, _ action: @escaping @MainActor () -> Void
+    ) -> MenuCommand {
+        MenuCommand(title, applies: applies, shortcut: shortcut, inContextMenu: inContextMenu) { run(action) }
     }
 
     private func run(_ action: () -> Void) {

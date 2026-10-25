@@ -47,7 +47,9 @@ struct RoomsGrid: View {
                                         }
                                     }
                                 }
-                                .contextMenu { RoomActionButtons(model: model, event: event, roomID: room.id) }
+                                .contextMenu {
+                                    RoomActionButtons(model: model, event: event, roomID: room.id, inContextMenu: true)
+                                }
                                 .youthDropDestination(room: room)
                         }
                     }
@@ -269,13 +271,14 @@ struct CopyRoomsMenu: View {
 }
 
 /// The Copy Rooms From menu, usable in the menu bar where there is no
-/// environment to read the model from.
+/// environment to read the model from. Dimmed, and still there, with no
+/// event open or none before this one.
 struct CopyRoomsItems: View {
     let model: AppModel
-    let event: BoardEvent
+    let event: BoardEvent?
 
     var body: some View {
-        let earlierEvents = event.folder.events().filter { $0 < event.date }
+        let earlierEvents = event.map { event in event.folder.events().filter { $0 < event.date } } ?? []
         Menu("Copy Rooms From") {
             ForEach(earlierEvents.prefix(12), id: \.self) { earlier in
                 Button(earlier) { model.copyRooms(from: earlier) }
@@ -288,36 +291,49 @@ struct CopyRoomsItems: View {
 }
 
 /// What can be done to a room: the Room menu, and the context menu on its
-/// card.
+/// card. The Room menu always lists every item, dimmed with no event open.
+/// A card's menu lists only what applies to that room; Add Room… and Copy
+/// Rooms From concern no one room, so they stay in the Room menu.
 struct RoomActionButtons: View {
     let model: AppModel
-    let event: BoardEvent
+    let event: BoardEvent?
     /// Nil acts on the selected room.
     var roomID: Room.ID?
+    var inContextMenu = false
 
     var body: some View {
-        let room = (roomID ?? model.selectedRoomID).flatMap { event.room(id: $0) }
+        let room = (roomID ?? model.selectedRoomID).flatMap { event?.room(id: $0) }
 
-        Button("Add Room…") { model.sheet = .addRoom }
-            .keyboardShortcut("n", modifiers: [.command, .shift])
-        CopyRoomsItems(model: model, event: event)
-        Divider()
-        Button("Rename…") { run(room) { model.sheet = .renameRoom(roomID: $0.id) } }
-            .disabled(room == nil)
-        Button("Move Board to Another Room…") { run(room) { model.sheet = .swapRooms(roomID: $0.id) } }
-            .disabled(room == nil)
-        Picker("Used For", selection: Binding(
-            get: { room?.boardType },
-            set: { newType in
-                if let room, let newType { model.setBoardType(newType, forRoom: room.id) }
-            }
-        )) {
-            ForEach(BoardType.allCases) { Text($0.label).tag(Optional($0)) }
+        if !inContextMenu {
+            Button("Add Room…") { model.sheet = .addRoom }
+                .keyboardShortcut("n", modifiers: [.command, .shift])
+                .disabled(event == nil)
+            CopyRoomsItems(model: model, event: event)
+            Divider()
         }
-        .disabled(room == nil)
-        Divider()
-        Button("Remove Room") { run(room) { _ in model.removeSelectedRoom() } }
-            .disabled(room?.isFree != true)
+        MenuCommand("Rename…", applies: room != nil, inContextMenu: inContextMenu) {
+            run(room) { model.sheet = .renameRoom(roomID: $0.id) }
+        }
+        MenuCommand("Move Board to Another Room…", applies: room != nil, inContextMenu: inContextMenu) {
+            run(room) { model.sheet = .swapRooms(roomID: $0.id) }
+        }
+        if room != nil || !inContextMenu {
+            Picker("Used For", selection: Binding(
+                get: { room?.boardType },
+                set: { newType in
+                    if let room, let newType { model.setBoardType(newType, forRoom: room.id) }
+                }
+            )) {
+                ForEach(BoardType.allCases) { Text($0.label).tag(Optional($0)) }
+            }
+            .disabled(room == nil)
+        }
+        if !inContextMenu || room?.isFree == true {
+            Divider()
+        }
+        MenuCommand("Remove Room", applies: room?.isFree == true, inContextMenu: inContextMenu) {
+            run(room) { _ in model.removeSelectedRoom() }
+        }
     }
 
     private func run(_ room: Room?, _ action: (Room) -> Void) {

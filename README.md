@@ -85,9 +85,9 @@ Each person appears on the Mac the moment they register. Youth are numbered
 youth are listed ahead of walk-ins.
 
 An adult who would rather not use the tablet can be signed in on the Mac:
-choose **Adult › Add Adult…**, or click **Add Adult** at the foot of the
-**Adults** page. Search the adult history to fill the form in for someone who
-has served before. On the **Adult History CSV** page, double-click someone to sign
+choose **Adult › Add Adult…** (**⌘N**), or click **Add Adult** at the foot of
+the **Adults** page. Search the adult history to fill the form in for someone
+who has served before. On the **Adult History CSV** page, double-click someone to sign
 them in for today.
 
 ### 2. Check the paperwork
@@ -105,11 +105,12 @@ room's timer is never out of sight. Drag the line between them to widen the
 list. The inspector on the right follows the selected youth on every page.
 
 **Find a person's room.** Type part of anyone's name, youth or adult, in the
-search at the top right. The room cards narrow to the rooms holding a match, or
-a room by that name, and a line above them says where anyone found in no room
-is (*is waiting*, *isn't on a board*, *has gone home*, *has finished*, *was
-postponed*). **Return** opens the first room found, or the youth. The other pages are the event's
-records (see [The records](#the-records)).
+search at the top right; **Edit › Find…** (**⌘F**) puts the cursor there. The
+room cards narrow to the rooms holding a match, or a room by that name, and a
+line above them says where anyone found in no room is (*is waiting*, *isn't on
+a board*, *has gone home*, *has finished*, *was postponed*). **Return** opens
+the first room found, or the youth. The other pages are the event's records
+(see [The records](#the-records)).
 
 Select a waiting youth. Eagle Boards proposes a board in the inspector: a
 chair, enough members, and a free room of the right kind. It never picks adults
@@ -123,7 +124,7 @@ the **Adults** page you can also Command-click several adults and choose
 chair to someone who reads **Can Chair**, right-click them and choose **Make
 Chair**, or select them on the **Adults** page and choose **Adult › Make
 Chair**. **Fill the Rest** keeps who you chose and adds a chair, if none of
-them can chair it, and members up to the number needed; **Suggest a Board**
+them can chair it, and members up to the number needed; **Start Over**
 replaces the whole board with a proposal.
 
 Until you change it, the proposed board keeps up with the event: when an adult
@@ -152,9 +153,17 @@ The members now have the room and the paperwork. The youth waits outside.
 ### 4. Start the review
 
 When the members have finished reading, select the youth and press **Start
-Review** (**⌘↩** again). The confirmation lists who came with the youth, and
-their leader and parents if they signed in, so they can be fetched too. The
-inspector lists them throughout the event under **With Them**.
+Review** (**⌘↩** again). On a board of review, the confirmation names whom to
+fetch to introduce the youth to the board, and where they are, even on another
+board: the adult linked to them, or if no one is, their leader, never a
+parent. A project review has no introduction, so its confirmation names no
+one. Throughout the event, the inspector lists who introduces the youth, then
+their leader and parents, under **With Them**.
+
+If the adult introducing a youth did not say so at sign-in, select the youth
+and use **Link an Adult** under **With Them**. On the **Adults** page, with
+the youth still selected, **Adult › Introduces** and the youth's name links the
+selected adult, or unlinks them if it has a check.
 
 ### 5. Complete
 
@@ -245,7 +254,7 @@ when a room goes overdue while you are in another app.
 | Problem | What to do |
 | --- | --- |
 | The tablet cannot open the address | Check both are on the same Wi-Fi. Click the sign-in address and try another address listed there. Check that Eagle Boards is allowed in System Settings › Network › Firewall. |
-| "Port 8080 is already in use" | Quit the other program (the Java Eagle Board Scheduler uses 8080 too), or change the port in Settings › General. |
+| "Port 8080 is already in use" | Quit the other program (the Java Eagle Board Scheduler uses 8080 too) and choose **File › Restart Sign-In Station**, or change the port in Settings › General. |
 | "Not qualified to chair" | Promote someone: on the **Adults** page, click their Final or Project role and choose **Chair**. |
 | A board was seated by mistake | Select the youth and choose **Board › Reset Board**, or **Edit › Undo** right after seating. |
 
