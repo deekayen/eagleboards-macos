@@ -152,14 +152,14 @@ struct SpokenRowTests {
             Room(fields: ["Type": "ROOM", "ID": "ROOM:101", "Room": "101", "BoardType": "Final", "Scout": scout, "Leaders": leaders])
         }
         let jane = youth(.seated, boardType: "Final", room: "101")
-        #expect(room().spokenLabel(occupant: nil, minutes: nil, timer: nil) == "Room 101, Final Board, free")
-        #expect(room(scout: "-").spokenLabel(occupant: nil, minutes: nil, timer: nil) == "Room 101, Final Board, free",
+        #expect(room().spokenLabel(occupant: nil, adults: [], minutes: nil, timer: nil) == "Room 101, Final Board, free")
+        #expect(room(scout: "-").spokenLabel(occupant: nil, adults: [], minutes: nil, timer: nil) == "Room 101, Final Board, free",
                 "an old file's dash")
-        #expect(room(scout: "Jane Doe", leaders: "Bob Smith,Ann Lee").spokenLabel(occupant: jane, minutes: 12, timer: .okay)
+        #expect(room(scout: "Jane Doe", leaders: "Bob Smith,Ann Lee").spokenLabel(occupant: jane, adults: [], minutes: 12, timer: .okay)
                 == "Room 101, Final Board, Jane Doe, Seated, 12 minutes, members Bob Smith, Ann Lee")
-        #expect(room(scout: "Jane Doe", leaders: "Bob Smith~Ann Lee").spokenLabel(occupant: jane, minutes: 31, timer: .overdue)
+        #expect(room(scout: "Jane Doe", leaders: "Bob Smith~Ann Lee").spokenLabel(occupant: jane, adults: [], minutes: 31, timer: .overdue)
                 == "Room 101, Final Board, Jane Doe, Seated, 31 minutes, overdue, members Bob Smith, Ann Lee")
-        #expect(room(scout: "Jane Doe", leaders: "Bob Smith").spokenLabel(occupant: jane, minutes: 12, timer: nil)
+        #expect(room(scout: "Jane Doe", leaders: "Bob Smith").spokenLabel(occupant: jane, adults: [], minutes: 12, timer: nil)
                 == "Room 101, Final Board, Jane Doe, Seated, member Bob Smith", "no timer shown, no minutes said")
     }
 

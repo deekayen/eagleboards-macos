@@ -108,6 +108,17 @@ public final class BoardEvent {
     public func room(id: String) -> Room? { rooms.first { $0.id == id } }
     public func room(named name: String) -> Room? { rooms.first { $0.name == name } }
 
+    /// The youth whose board is in this room right now.
+    public func occupant(of room: Room) -> Scout? {
+        guard !room.isFree else { return nil }
+        return scouts.first { $0.room == room.name && ($0.status == .seated || $0.status == .inProgress) }
+    }
+
+    /// The names on the board sitting in this room, in the board's order.
+    public func memberNames(in room: Room) -> [String] {
+        room.memberNames(occupant: occupant(of: room), among: adults)
+    }
+
     /// A usable email for matching, or nil for a blank or the form's `NONE`.
     public static func matchableEmail(_ email: String) -> String? {
         let cleaned = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()

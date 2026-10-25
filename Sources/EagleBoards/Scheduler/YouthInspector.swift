@@ -22,7 +22,7 @@ struct YouthInspector: View {
                         case .seated, .inProgress:
                             SittingBoardSection(youth: youth, event: event, now: timeline.date, steps: steps)
                         case .completed, .postponed:
-                            ResultSection(youth: youth)
+                            ResultSection(youth: youth, event: event)
                         }
                         WithThemSection(youth: youth, event: event)
                             .id(WithThemSection.scrollID)
@@ -144,7 +144,7 @@ private struct DraftBoardSections: View {
             Section {
                 HStack {
                     Button("Start Over") { model.suggestBoard() }
-                        .help("Replace this board with a proposed chair, members and room")
+                        .help("Replace this board with a proposed chair, members, and room")
                     Button("Fill the Rest") { model.fillDraft() }
                         .help("Keep who you chose and add a chair and members to complete the board")
                     Button("Clear Board") {
@@ -489,7 +489,7 @@ private struct SittingBoardSection: View {
             }
             LabeledContent("Chair", value: youth.boardChair.shownValue)
             LabeledContent("Members") {
-                Text(youth.boardMembers.withListSeparators).multilineTextAlignment(.trailing)
+                Text(youth.boardMemberNames(among: event.adults).joined(separator: ", ")).multilineTextAlignment(.trailing)
             }
             Button("Change Members…") { model.beginChangingMembers() }
                 .help("Remove or add members without resetting the room timer")
@@ -528,6 +528,7 @@ private struct SittingBoardSection: View {
 
 private struct ResultSection: View {
     let youth: Scout
+    let event: BoardEvent
 
     var body: some View {
         Section {
@@ -543,7 +544,7 @@ private struct ResultSection: View {
             }
             if !youth.boardMembers.isEmpty {
                 LabeledContent("Members") {
-                    Text(youth.boardMembers.withListSeparators).multilineTextAlignment(.trailing)
+                    Text(youth.boardMemberNames(among: event.adults).joined(separator: ", ")).multilineTextAlignment(.trailing)
                 }
             }
             if !youth.notes.isEmpty {

@@ -48,7 +48,7 @@ private struct GeneralSettings: View {
             } header: {
                 Text("Boards")
             } footer: {
-                Text("A proposed board picks a chair, members and a room with the whole waiting line in mind. "
+                Text("A proposed board picks a chair, members, and a room with the whole waiting line in mind. "
                     + "Start empty to choose the adults yourself; a free room is still picked, and Start Over "
                     + "in the inspector proposes one whenever you want it.")
                     .foregroundStyle(.secondary)
@@ -133,7 +133,7 @@ private struct TimerSettings: View {
                     Text("Board convening (Seat Board to Start Review)")
                 } footer: {
                     Text("Guide to Advancement 8.0.3.0, item 8: members convene at least 30 minutes before the board to go over the "
-                        + "application, references and project workbook. Used here as a cap: past it the youth is being kept "
+                        + "application, references, and project workbook. Used here as a cap: past it the youth is being kept "
                         + "waiting. It is never just running long, because it is a limit rather than a target.")
                         .foregroundStyle(.secondary)
                 }

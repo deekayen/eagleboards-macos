@@ -205,7 +205,9 @@ extension String {
     }
 
     /// A list of names as the data files keep it, comma- or `~`-separated,
-    /// one name each.
+    /// one name each. A name with a comma in it comes apart (SPEC.md D-1):
+    /// read a board's members with `Scout.boardMemberNames(among:)` wherever
+    /// the event's adults are at hand, and this only where they are not.
     public var memberLines: [String] {
         split(whereSeparator: { $0 == "," || $0 == "~" })
             .map { $0.trimmingCharacters(in: .whitespaces) }
@@ -269,7 +271,7 @@ extension Room {
     /// "Room 101, Final Board, Jane Doe, Seated, 12 minutes, running long,
     /// members Bob Smith, Ann Lee", or "Room 101, Final Board, free". The
     /// minutes are there when the card shows its timer.
-    public func spokenLabel(occupant: Scout?, minutes: Int?, timer: RoomTimer.State?) -> String {
+    public func spokenLabel(occupant: Scout?, adults: [Adult], minutes: Int?, timer: RoomTimer.State?) -> String {
         var parts = ["Room \(name)", boardType?.label ?? boardTypeText]
         guard !isFree else { return (parts + ["free"]).filter { !$0.isEmpty }.joined(separator: ", ") }
         parts.append(scoutName.shownValue)
@@ -282,7 +284,7 @@ extension Room {
             case .okay: break
             }
         }
-        let members = leaderNames.memberLines
+        let members = memberNames(occupant: occupant, among: adults)
         if !members.isEmpty {
             parts.append("\(members.count == 1 ? "member" : "members") \(members.joined(separator: ", "))")
         }

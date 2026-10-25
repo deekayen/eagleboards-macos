@@ -72,7 +72,7 @@ for. If the network chosen has no address, the station serves another until
 it has one, Wi-Fi if it can, and the **Sign-in** status says so. This Mac can
 always open the sign-in page itself.
 
-Only the sign-in pages are on the network. The scheduler, the records and the
+Only the sign-in pages are on the network. The scheduler, the records, and the
 settings stay on the Mac, so nobody at the door can look up anyone's details.
 
 ## Set up your rooms
@@ -118,7 +118,7 @@ them and choose **Board › Postpone**. **Edit › Undo** brings them back.
 
 The **View** menu chooses the page; there is no sidebar. **Event** (**⌘1**)
 is where you work: every youth in one list, stacked **Waiting** (in sign-in
-order), **On a Board** (by room) and **Finished** (the most recent first), each
+order), **On a Board** (by room), and **Finished** (the most recent first), each
 with its count, and a card for every room filling the rest of the window, so a
 room's timer is never out of sight. Drag the line between them to widen the
 list. The inspector follows the selected youth on every page.
@@ -152,7 +152,7 @@ and adds a chair, if none of them can chair it, and members up to the number
 needed; **Start Over** replaces the whole board with a proposal.
 
 Until you change it, the proposed board keeps up with the event: when an adult
-signs in, goes home or comes back, or leaves a board, it is proposed again.
+signs in, goes home, comes back, or leaves a board, it is proposed again.
 Choosing its room is not a change, and it stays in the room you chose while
 that room is free. Once you take someone off, add someone, use **Fill the
 Rest** or **Clear Board**, or make someone else chair, the board is yours,
@@ -230,14 +230,14 @@ note, then Arthur Eldred is listed under Finished and room 101 is free again.
 ## The records
 
 The rest of the **View** menu is a page for each table the event keeps, and
-their values are changed in place: click a name, unit or note to type in it,
+their values are changed in place: click a name, unit, or note to type in it,
 or click a value with up and down arrows beside it to choose from a menu. A
 change is saved when you press Return or leave the cell. It is not on
 **Edit › Undo**, which is for the Event page's steps; change the cell back
 instead. Who sits on a board and which room someone is in are never typed in:
 they change on the Event page. Nor is a youth's status: it is read-only on
 every page, and changes only through the Event page's steps (**Seat Board**,
-**Start Review**, **Complete…**, **Postpone**, **Reset Board** and **Undo**),
+**Start Review**, **Complete…**, **Postpone**, **Reset Board**, and **Undo**),
 which take and free a room and its members. There is no separate records
 window. Click a column heading to sort a page by it, or choose
 **View › Sort By**; **Return** in the search goes to the first row found.
@@ -245,12 +245,12 @@ window. Click a column heading to sort a page by it, or choose
 | Page | What it holds |
 | --- | --- |
 | **Results** (⌘2) | Every board and its result. Correct a result or its notes here. Double-click a board, or choose **Board › Show on Event Page**, to see it on the Event page. |
-| **Adults** (⌘3) | The event's adults. Promote someone to Chair, mark Wood Badge, or fix a name; a change to a name, unit, contact or role reaches the adult history too. **Add Adult…** at the foot signs someone in by hand. |
+| **Adults** (⌘3) | The event's adults. Promote someone to Chair, mark Wood Badge, or fix a name; a change to a name, unit, contact, or role reaches the adult history too. **Add Adult…** at the foot signs someone in by hand. |
 | **Youth** (⌘4) | Every youth who signed in, in sign-in order. Double-click one, or choose **Board › Show on Event Page**, to see them on the Event page. |
 | **Pre-Registered** (⌘5) | The youth who signed up on SignUpGenius for today. |
-| **Adult History CSV** (⌘6) | Every adult who has ever signed in, across events, read-only, searched by name, email or unit. **Last Event** has a check for those signed in today; double-click someone, or choose **Adult › Sign In for Today**, to sign them in. |
+| **Adult History CSV** (⌘6) | Every adult who has ever signed in, across events, read-only, searched by name, email, or unit. **Last Event** has a check for those signed in today; double-click someone, or choose **Adult › Sign In for Today**, to sign them in. |
 | **Rooms** (⌘7) | What each room is used for today, and whose board is in it. Double-click a room, or choose **Show on Event Page** from its right-click menu, to see its card on the Event page. **Add Room…** at the foot adds one, and **Delete** removes a free one; **Edit › Undo** puts it back. |
-| **Approved Proposals** (⌘8) | Every project proposal approved at an earlier event in the data folder, however long ago, for a youth who comes without the signed page: who, their unit, when, the chair and the other members. Read only. |
+| **Approved Proposals** (⌘8) | Every project proposal approved at an earlier event in the data folder, however long ago, for a youth who comes without the signed page: who, their unit, when, the chair, and the other members. Read only. |
 
 To delete a youth, a pre-registration, or an adult, select them and press
 **Delete** or choose **Edit › Delete**, or right-click them; that asks first,
@@ -288,7 +288,7 @@ spreadsheet (CSV).
 Everything is saved as it happens; there is nothing to save before quitting.
 
 Made a mistake? **Edit › Undo** takes back the last step, whether seating,
-starting, completing, postponing or resetting a board, changing its members,
+starting, completing, postponing, or resetting a board, changing its members,
 marking an adult gone home or back, or a change to the rooms from the Event
 page. It is refused once the room or a member has been given to another board.
 

@@ -40,13 +40,3 @@ extension BoardStatus {
         }
     }
 }
-
-extension String {
-    /// The data files turn commas into `~` to keep a row in one piece. A list
-    /// of names reads better with them put back; one value uses `shownValue`.
-    var withListSeparators: String {
-        split(whereSeparator: { $0 == "," || $0 == "~" })
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .joined(separator: ", ")
-    }
-}

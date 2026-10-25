@@ -444,7 +444,7 @@ struct SwapRoomsSheet: View {
 
         SheetLayout(
             title: "Move the Board in Room \(first?.name ?? "")",
-            message: "Everything moves: the youth, the board members and the room card. "
+            message: "Everything moves: the youth, the board members, and the room card. "
                 + "Choosing a room with a board in it swaps the two."
         ) {
             Section {

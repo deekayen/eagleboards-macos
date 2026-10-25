@@ -299,6 +299,27 @@ public struct Scout: PersonRecord {
         return (found.sorted { $0.position < $1.position }.map(\.adult), unknown)
     }
 
+    /// The names of the adults on this board, as the screen shows them
+    /// (a name's comma back from its "~"), in the board's order, found by ID
+    /// with `boardMembers(among:)`. The stored name list cannot be split on
+    /// its separators: "Lysander Whitmore~ Jr." and the next member are
+    /// joined by the same character that is the comma inside the first name.
+    ///
+    /// When an ID is not among `adults`, or the board has names but no IDs (a
+    /// file an older version wrote), the stored names are split instead, so
+    /// no member goes missing from the list; a name with a comma may then
+    /// break in two.
+    public func boardMemberNames(among adults: [Adult]) -> [String] {
+        resolvedBoardMemberNames(among: adults) ?? boardMembers.memberLines
+    }
+
+    /// `boardMemberNames(among:)` when every member was found by ID, else nil.
+    func resolvedBoardMemberNames(among adults: [Adult]) -> [String]? {
+        let listed = boardMembers(among: adults)
+        guard listed.unknown.isEmpty, !listed.members.isEmpty else { return nil }
+        return listed.members.map(\.shownFullName)
+    }
+
     public var notes: String {
         get { self["Notes"] }
         set { self["Notes"] = newValue }
@@ -509,6 +530,15 @@ public struct Room: EventRecord {
 
     /// The Java UI treated "-" as empty too; kept so an old file still reads.
     public var isFree: Bool { scoutName.isEmpty || scoutName == "-" }
+
+    /// The names on the board in this room, as the screen shows them, in the
+    /// board's order. `occupant` is the youth whose board it is: the members
+    /// are read from their IDs (`Scout.boardMemberNames(among:)`), because
+    /// the room's own `leaderNames` cannot be split where a name has a comma.
+    /// With no occupant to read them from, `leaderNames` is split instead.
+    public func memberNames(occupant: Scout?, among adults: [Adult]) -> [String] {
+        occupant?.resolvedBoardMemberNames(among: adults) ?? leaderNames.memberLines
+    }
 }
 
 // MARK: - Settings

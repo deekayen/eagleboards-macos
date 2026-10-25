@@ -511,6 +511,57 @@ struct BoardEventTests {
         #expect(gone.boardMembers(among: reopened.adults).unknown == "ADULT:Nobody:Here:0", "and names who it cannot find")
     }
 
+    /// SPEC.md D-1: a comma in a name is "~" in the files, the same character
+    /// that separates the names of a board's members. Seated with "Lysander
+    /// Whitmore, Jr.", room 101's card, the youth's Board and Result lines,
+    /// the Results and Rooms tables and the card's spoken sentence all list
+    /// him whole, before and after the event is reopened.
+    @Test func aMemberWithACommaInTheirNameIsListedWhole() throws {
+        try event.registerAdult([
+            "Last": "Whitmore, Jr.", "First": "Lysander", "Email": "a31@example.org",
+            "UnitType": "Troop", "Unit": "2031", "ProjectReview": "Member", "FinalBoard": "Member",
+        ])
+        let junior = "ADULT:Whitmore~ Jr.:Lysander:2031"
+        try seat("101", finalYouth(1), chair: chairOfEither, member(1), junior)
+        let names = ["Anneliese Abernathy", "Fitzgerald Fairbanks", "Lysander Whitmore, Jr."]
+
+        func check(_ board: BoardEvent, _ when: Comment) throws {
+            let youth = try #require(board.scout(id: finalYouth(1)))
+            let room = try #require(board.room(named: "101"))
+            #expect(youth.boardMemberNames(among: board.adults) == names, "the youth's Members line \(when)")
+            #expect(board.memberNames(in: room) == names, "the room card and Rooms page \(when)")
+            #expect(room.spokenLabel(occupant: board.occupant(of: room), adults: board.adults, minutes: nil, timer: nil)
+                    == "Room 101, Final Board, Alexander Aldridge, Seated, "
+                    + "members Anneliese Abernathy, Fitzgerald Fairbanks, Lysander Whitmore, Jr.",
+                    "the spoken card \(when)")
+        }
+        try check(event, "as seated")
+
+        let reopened = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22")
+        #expect(!(reopened.scout(id: finalYouth(1))?.boardMembers.contains(",") ?? true), "the file joined the names with ~")
+        try check(reopened, "after a reopen")
+
+        try reopened.startReview(scoutID: finalYouth(1))
+        try reopened.completeBoard(scoutID: finalYouth(1), result: .approved, notes: "")
+        let finished = try #require(reopened.scout(id: finalYouth(1)))
+        #expect(finished.boardMemberNames(among: reopened.adults) == names, "the Result line, once the room is free")
+    }
+
+    /// The members are read by ID, so a board that cannot be (an adult no
+    /// longer in the file, or a file with names and no IDs) keeps its stored
+    /// names rather than losing one.
+    @Test func aBoardWhoseMembersCannotBeFoundByIDKeepsItsNames() {
+        let ann = Adult(fields: ["Type": "ADULT", "ID": "ADULT:Lee:Ann:12", "First": "Ann", "Last": "Lee"])
+        var youth = Scout.blank(at: Date())
+        youth.boardMembers = "Bob Smith,Ann Lee"
+        #expect(youth.boardMemberNames(among: [ann]) == ["Bob Smith", "Ann Lee"], "names and no IDs")
+        youth.boardMemberIDs = "ADULT:Smith:Bob:9,ADULT:Lee:Ann:12"
+        #expect(youth.boardMemberNames(among: [ann]) == ["Bob Smith", "Ann Lee"], "one ID not found")
+        #expect(youth.boardMemberNames(among: [ann, Adult(fields: ["ID": "ADULT:Smith:Bob:9", "First": "Bob", "Last": "Smith"])])
+                == ["Bob Smith", "Ann Lee"], "every ID found")
+        #expect(Scout.blank(at: Date()).boardMemberNames(among: [ann]).isEmpty, "no board")
+    }
+
     @Test func postponeAndReset() throws {
         try seatFiveBoards()
         try event.postponeBoard(scoutID: finalYouth(9))

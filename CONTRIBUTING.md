@@ -107,7 +107,7 @@ below. Run things locally to debug what CI found, or to iterate.
 4. **The data files are the contract.** Both this app and the Java Eagle Board
    Scheduler read and write them, so a district can move between the two, or
    fall back to the Java app at the event. Keep column names, column order,
-   ID shapes and the comma dialect exactly as `FileFormatTests` pins them.
+   ID shapes, and the comma dialect exactly as `FileFormatTests` pins them.
 5. **The network gets the sign-in pages and nothing more.** Every operator
    screen is a window. Anything the server returns is trimmed to what its page
    shows; no call takes a column name. `CheckInServerTests` asserts the old

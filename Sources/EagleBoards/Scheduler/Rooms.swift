@@ -157,14 +157,6 @@ extension BoardEvent {
     }
 }
 
-extension BoardEvent {
-    /// The youth whose board is in this room right now.
-    func occupant(of room: Room) -> Scout? {
-        guard !room.isFree else { return nil }
-        return scouts.first { $0.room == room.name && ($0.status == .seated || $0.status == .inProgress) }
-    }
-}
-
 extension View {
     /// Seat a waiting youth dropped here in this room. The room shows it will
     /// take them while they hover, if it is free.
@@ -231,7 +223,7 @@ struct RoomCard: View {
                 // One member per line, in full, as on Windows: the cards are
                 // where people look to find which room someone is in.
                 VStack(alignment: .leading, spacing: 1) {
-                    ForEach(Array(room.leaderNames.memberLines.enumerated()), id: \.offset) { _, name in
+                    ForEach(Array(room.memberNames(occupant: occupant, among: event.adults).enumerated()), id: \.offset) { _, name in
                         Text(name)
                     }
                 }
@@ -247,7 +239,7 @@ struct RoomCard: View {
         // One label, with the members named as members. Read child by
         // child, they were bare names after the status.
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(room.spokenLabel(occupant: occupant, minutes: minutes, timer: timer))
+        .accessibilityLabel(room.spokenLabel(occupant: occupant, adults: event.adults, minutes: minutes, timer: timer))
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
 

@@ -176,12 +176,12 @@ struct SchedulerView: View {
     private var searchPrompt: String {
         switch model.page {
         case .event: "Find a person or room"
-        case .results: "Name, unit, member or result"
-        case .adults: "Name, unit or room"
-        case .youth: "Name, unit, leader or room"
-        case .preRegistered: "Name, email, unit or leader"
-        case .adultHistory: "Name, email or unit"
-        case .rooms: "Room, youth or member"
+        case .results: "Name, unit, member, or result"
+        case .adults: "Name, unit, or room"
+        case .youth: "Name, unit, leader, or room"
+        case .preRegistered: "Name, email, unit, or leader"
+        case .adultHistory: "Name, email, or unit"
+        case .rooms: "Room, youth, or member"
         case .approvedProposals: "Name or unit"
         }
     }

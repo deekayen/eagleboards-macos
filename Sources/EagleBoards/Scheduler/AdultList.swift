@@ -330,7 +330,7 @@ struct AddAdultSheet: View {
                         }
                     }
                 } else {
-                    TextField("Signed in before?", text: $search, prompt: Text("Search the adult history by name, email or unit"))
+                    TextField("Signed in before?", text: $search, prompt: Text("Search the adult history by name, email, or unit"))
                         .focused($field, equals: .search)
                         .onSubmit { submitSearch(matches) }
                     ForEach(matches) { match in

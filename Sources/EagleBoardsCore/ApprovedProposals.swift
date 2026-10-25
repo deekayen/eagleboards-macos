@@ -24,6 +24,8 @@ public struct ApprovedProposal: Identifiable, Equatable, Sendable {
         unit = youth.unitDisplay
         self.event = event
         chair = youth.boardChair.shownValue
+        // Split, not read by ID: an earlier event's adults are not loaded, so
+        // a name with a comma (D-1) may come apart here.
         otherMembers = youth.boardMembers
             .split(whereSeparator: { $0 == "," || $0 == "~" })
             .map { $0.trimmingCharacters(in: .whitespaces) }

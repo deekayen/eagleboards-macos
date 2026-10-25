@@ -703,7 +703,7 @@ final class AppModel {
         present(Confirmation(
             title: "Start \(youth.shownFullName)'s review?",
             message: "Bring \(youth.shownFullName) into room \(youth.room) and start the review. Do this once the board has "
-                + "finished reading the application, references and project workbook.\(fetch)",
+                + "finished reading the application, references, and project workbook.\(fetch)",
             actionTitle: "Start Review"
         ) { [weak self] in
             self?.startReview(youth)

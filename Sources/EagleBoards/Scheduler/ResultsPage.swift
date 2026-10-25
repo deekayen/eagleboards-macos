@@ -88,7 +88,8 @@ struct ResultsPage: View {
             }
             Group {
                 TableColumn("Members", value: \Scout.boardMembers) { youth in
-                    CellText(youth.boardMembers.withListSeparators).help(youth.boardMembers.withListSeparators)
+                    let members = youth.boardMemberNames(among: event.adults).joined(separator: ", ")
+                    CellText(members).help(members)
                 }
                 TableColumn("Leader", value: \Scout.leader) { youth in
                     EditableText(youth.leader.shownValue, name: "Leader") { value in edit(youth) { $0.leader = value } }

@@ -287,7 +287,8 @@ struct RoomsPage: View {
                 CellText(room.isFree ? "" : room.scoutName.shownValue)
             }
             TableColumn("Members", value: \Room.leaderNames) { room in
-                CellText(room.leaderNames.withListSeparators).help(room.leaderNames.withListSeparators)
+                let members = event.memberNames(in: room).joined(separator: ", ")
+                CellText(members).help(members)
             }
         } rows: {
             ForEach(rows) { TableRow($0) }
