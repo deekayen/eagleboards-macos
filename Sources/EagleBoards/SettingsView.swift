@@ -108,7 +108,7 @@ private struct TimerSettings: View {
                 } header: {
                     Text("Board convening (Seat Board to Start Review)")
                 } footer: {
-                    Text("Guide to Advancement 8.0.3.0 #8: members convene at least 30 minutes before the board to go over the "
+                    Text("Guide to Advancement 8.0.3.0, item 8: members convene at least 30 minutes before the board to go over the "
                         + "application, references and project workbook. Used here as a cap: past it the youth is being kept "
                         + "waiting. It is never just running long, because it is a limit rather than a target.")
                         .foregroundStyle(.secondary)
@@ -119,7 +119,7 @@ private struct TimerSettings: View {
                 } header: {
                     Text("Final board review (from Start Review)")
                 } footer: {
-                    Text("Guide to Advancement 8.0.3.0 #9: Eagle boards generally last 30 minutes or somewhat longer, but "
+                    Text("Guide to Advancement 8.0.3.0, item 9: Eagle boards generally last 30 minutes or somewhat longer, but "
                         + "rarely should one last longer than 45 minutes.")
                         .foregroundStyle(.secondary)
                     runningLongNote(\.finalYellowMinutes, \.finalRedMinutes, event)

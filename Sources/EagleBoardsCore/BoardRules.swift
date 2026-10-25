@@ -69,11 +69,12 @@ public enum BoardRules {
     }
 
     /// The refusal when `hasMemberFromOutsideUnit` is false, worded the same
-    /// in the sheets' review and in `BoardEvent`'s refusal.
+    /// in the sheets' review and in `BoardEvent`'s refusal. `scoutName` is
+    /// the name as shown.
     static func noMemberFromOutsideUnit(scoutName: String, scoutUnitName: String) -> String {
-        "Every selected member is in \(scoutUnitName), \(scoutName)'s own unit. "
-            + "A board must include at least one member from outside the unit "
-            + "(Guide to Advancement 8.0.3.0)."
+        "Every selected member is in \(UnitLabel.spaced(scoutUnitName)), \(scoutName)'s own unit. "
+            + "A board needs at least one member from outside the unit "
+            + "(Guide to Advancement 8.0.3.0). Add someone from another unit."
     }
 
     /// Who may sit on this board and who must chair it, shared by seating a
@@ -81,63 +82,68 @@ public enum BoardRules {
     /// members (`ChangeMembersReview`). `sittingIn` is the room the board
     /// being edited already holds, if any: a member already there is not
     /// "already on another board" on that account alone.
+    ///
+    /// Each problem ends with what to do about it. For a member who cannot
+    /// sit, that is Remove, the member row's own button. `scoutName` and the
+    /// members' names are as shown (SPEC.md D-1).
     static func memberReview(
         scoutName: String, scoutUnitName: String, boardType: BoardType, members: [Adult], sittingIn currentRoom: String
     ) -> (blocking: [String], warnings: [SeatingReview.Warning], qualifiedChairs: [Adult]) {
         var blocking: [String] = []
         var warnings: [SeatingReview.Warning] = []
+        let label = boardType.label
+        let minimum = minimumMembers(for: boardType)
 
         if members.isEmpty {
-            blocking.append("No board members are selected.")
+            blocking.append(currentRoom.isEmpty
+                ? "No one is on the board yet. Add at least \(minimum) members."
+                : "No one is left on the board. Add at least \(minimum) members.")
         }
 
         for member in members {
+            let name = member.shownFullName
             if member.isDisabledForToday {
-                blocking.append("\(member.fullName) has been disabled for today. Use Enable if they are back.")
+                blocking.append("\(name) has gone home. Remove them, or bring them back with Adult › Enable for Today.")
             } else if member.isOnBoard && member.room != currentRoom {
-                blocking.append("\(member.fullName) is already on the board in room \(member.room).")
+                blocking.append("\(name) is on the board in room \(member.room). Remove them.")
             }
             if member.role(for: boardType) == .unavailable {
-                blocking.append("\(member.fullName) is unavailable for \(boardType.label)s.")
+                blocking.append("\(name) said no thanks to \(label)s. Remove them.")
             }
         }
 
         // Who is on the board comes before how many.
         let conflicts = unitConflicts(scoutUnitName: scoutUnitName, members: members)
         if !conflicts.isEmpty {
-            let names = conflicts.map(\.fullName).joined(separator: ", ")
+            let names = conflicts.map(\.shownFullName).joined(separator: ", ")
             if !hasMemberFromOutsideUnit(scoutUnitName: scoutUnitName, members: members) {
                 blocking.append(noMemberFromOutsideUnit(scoutName: scoutName, scoutUnitName: scoutUnitName))
             } else {
+                // Short sentences with nothing nested, for reading aloud, as
+                // Windows' BoardCheck words it.
                 let count = conflicts.count
                 warnings.append(SeatingReview.Warning(
-                    title: "\(count) member\(count == 1 ? " is" : "s are") from \(scoutName)'s unit",
-                    detail: "\(names) \(count == 1 ? "is" : "are") in \(scoutUnitName). This council does not "
-                        + "permit adults from the youth's own unit on a board. Seating anyway falls back to the "
-                        + "national rule, which this board still meets: at least one member is from outside the unit."
+                    title: "\(Count.of(count, "member", "members")) \(count == 1 ? "is" : "are") from \(scoutName)'s unit",
+                    detail: "\(names) \(count == 1 ? "is" : "are") in \(UnitLabel.spaced(scoutUnitName)), the youth's own unit. "
+                        + "This council doesn't allow that. The national rule needs only one member from outside "
+                        + "the unit, and this board meets it."
                 ))
             }
         }
 
         let qualifiedChairs = members.filter { $0.canChair(boardType) }
         if !members.isEmpty && qualifiedChairs.isEmpty {
-            let roleColumn = boardType == .projectReview ? "Project" : "Final"
             blocking.append(
-                "None of the selected members is qualified to chair a \(boardType.label). "
-                    + "Select someone whose \(roleColumn) role is Chair, or promote someone on the "
-                    + "Adults page by setting their \(roleColumn) role to Chair."
+                "None of the members can chair a \(label). Add a qualified chair, or make someone a chair on the Adults page."
             )
         }
 
-        let minimum = minimumMembers(for: boardType)
         switch checkSize(members.count, for: boardType) {
         case .tooFew where !members.isEmpty:
-            blocking.append(
-                "Only \(members.count) member\(members.count == 1 ? "" : "s") selected; a \(boardType.label) needs \(minimum)."
-            )
+            blocking.append("A \(label) needs at least \(minimum). Add \(minimum - members.count) more.")
         case .tooMany:
             blocking.append(
-                "\(members.count) members selected; no more than \(boardMaximum) are permitted (Guide to Advancement 8.0.0.3)."
+                "A \(label) can have at most \(boardMaximum) (Guide to Advancement 8.0.0.3). Remove \(members.count - boardMaximum)."
             )
         case .overPreferred:
             warnings.append(SeatingReview.Warning(
@@ -175,7 +181,7 @@ public struct SeatingReview: Sendable {
     public var canSeat: Bool { blockingProblems.isEmpty }
 
     public init(scout: Scout, members: [Adult], room: Room?) {
-        let scoutName = scout.fullName
+        let scoutName = scout.shownFullName
 
         switch scout.status {
         case .registered, .verified:
@@ -205,7 +211,7 @@ public struct SeatingReview: Sendable {
 
         if let room {
             if !room.isFree {
-                blockingProblems.append("Room \(room.name) is already in use by \(room.scoutName).")
+                blockingProblems.append(BoardEvent.roomIsTaken(room))
             } else if room.boardType != boardType {
                 warnings.append(Warning(
                     title: "Room \(room.name) is a \(room.boardType?.label ?? room.boardTypeText) room",
@@ -213,7 +219,7 @@ public struct SeatingReview: Sendable {
                 ))
             }
         } else {
-            blockingProblems.append("No room is selected.")
+            blockingProblems.append("Choose a free room.")
         }
     }
 }
@@ -230,7 +236,7 @@ public struct ChangeMembersReview: Sendable {
     public var canApply: Bool { blockingProblems.isEmpty }
 
     public init(scout: Scout, members: [Adult]) {
-        let scoutName = scout.fullName
+        let scoutName = scout.shownFullName
 
         guard scout.status == .seated || scout.status == .inProgress else {
             blockingProblems.append("\(scoutName)'s board members can only be changed while seated or in review.")
@@ -392,7 +398,7 @@ public struct BoardSuggestion: Sendable, Equatable {
     /// `freeSince` is from `freeSinceTimes`; an adult missing from it sorts first.
     public init(for scout: Scout, adults: [Adult], rooms: [Room], waiting: [Scout] = [], freeSince: [String: String] = [:]) {
         guard let boardType = scout.boardType else {
-            problems.append("\(scout.fullName) has no board type.")
+            problems.append("\(scout.shownFullName) has no board type.")
             return
         }
         let label = boardType.label
@@ -489,7 +495,7 @@ public struct BoardSuggestion: Sendable, Equatable {
     ) -> Fill {
         var fill = Fill()
         guard let boardType = scout.boardType else {
-            fill.problems.append("\(scout.fullName) has no board type.")
+            fill.problems.append("\(scout.shownFullName) has no board type.")
             return fill
         }
         let label = boardType.label

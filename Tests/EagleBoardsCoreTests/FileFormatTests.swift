@@ -110,6 +110,31 @@ struct FileFormatTests {
         #expect(twice.members.map(\.id) == [chris.id, pat.id] && twice.unknown.isEmpty, "someone listed twice is one member")
     }
 
+    /// A room keeps its ID when it is renamed, in the Java and Windows
+    /// versions and now here, so a rooms file either one wrote can hold
+    /// ROOM:101 under the name 110. Rooms are told apart by name, and a new
+    /// room 101 is written under the next free ID, which the others read
+    /// like any other.
+    @MainActor
+    @Test func aRoomRenamedElsewhereKeepsItsIDAndANewOneTakesTheNextFree() throws {
+        let scratch = try ScratchFolder()
+        let header = "Type,ID,Room,BoardType,Scout,Leaders,RegTime\n"
+        try scratch.write(header + "ROOM,ROOM:101,110,Final,,,\n", to: "2026-09-22/rooms.csv")
+        try scratch.write(header + "ROOM,ROOM:110,110,Final,,,\nROOM,ROOM:120,120,Project,,,\n", to: "2026-08-25/rooms.csv")
+        let event = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22")
+
+        #expect(throws: EventError("There's already a room 110. Choose another name.")) {
+            try event.addRoom(named: "110", boardType: .finalBoard)
+        }
+        #expect(try event.addRoom(named: "101", boardType: .projectReview) == "ROOM:101-2")
+        #expect(try event.copyRooms(fromEvent: "2026-08-25") == ["ROOM:120"], "110 is here already, under another ID")
+        #expect(try scratch.text("2026-09-22/rooms.csv").contains("\nROOM,ROOM:101-2,101,Project,"))
+
+        let reopened = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22")
+        #expect(reopened.rooms.map(\.id) == ["ROOM:101", "ROOM:101-2", "ROOM:120"])
+        #expect(reopened.rooms.map(\.name) == ["110", "101", "120"])
+    }
+
     @Test func windowsLineEndingsBlankLinesAndUnknownColumnsAreTolerated() {
         let text = "Type,ID,Room,BoardType,Mystery,Scout\r\nROOM,ROOM:101,101,Final,xyz,\r\n\r\nROOM,ROOM:200A,200A,Project,,Someone\r\n"
         let rooms = CSVFile.parse(Room.self, text: text)
@@ -215,6 +240,16 @@ struct TimestampTests {
         #expect(Timestamp.nextMinute(after: stamped.addingTimeInterval(59.9)) == stamped.addingTimeInterval(60))
         #expect(Timestamp.minutesSince(recordStamp: "2026-09-22_19:05-0400", now: next) == 1)
         #expect(Timestamp.minutesSince(recordStamp: "2026-09-22_19:05-0400", now: next.addingTimeInterval(-0.001)) == 0)
+    }
+
+    /// An event's date as the Mac writes dates; the stamp names its folder.
+    @Test func anEventsDateIsShownInTheUsersFormat() {
+        let us = Locale(identifier: "en_US")
+        #expect(Timestamp.shownDate("2026-08-25", locale: us) == "August 25, 2026")
+        #expect(Timestamp.shownDate("2026-01-01", locale: us) == "January 1, 2026", "the day doesn't move in any time zone")
+        #expect(Timestamp.shownDate("2026-08-25", locale: Locale(identifier: "en_GB")) == "25 August 2026")
+        #expect(Timestamp.shownDate("2026-13-45", locale: us) == "2026-13-45", "not a real date: as it was")
+        #expect(Timestamp.shownDate("Spring", locale: us) == "Spring")
     }
 
     @Test func dayStampsNameEventFolders() {

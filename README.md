@@ -268,7 +268,7 @@ back, and so does the Dock icon's menu (Control-click the icon).
 | --- | --- |
 | The tablet cannot open the address | Check both are on the same Wi-Fi. Click the sign-in address and choose another network from its **Network** menu. Check that Eagle Boards is allowed in System Settings › Network › Firewall. |
 | "Port 8080 is already in use" | Quit the other program (the Java Eagle Board Scheduler uses 8080 too) and choose **File › Restart Sign-In Station**, or change the port in Settings › General. |
-| "Not qualified to chair" | Promote someone: on the **Adults** page, click their **Final Board Role** or **Proposal Review Role** and choose **Chair**. |
+| "None of the members can chair a Final Board" | Add a qualified chair, or promote someone: on the **Adults** page, click their **Final Board Role** or **Proposal Review Role** and choose **Chair**. |
 | A board was seated by mistake | Select the youth and choose **Board › Reset Board**, or **Edit › Undo** right after seating. |
 
 ## Donating

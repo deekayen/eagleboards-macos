@@ -79,6 +79,15 @@ struct LaunchSettingsTests {
         }
     }
 
+    /// When the station cannot start, the words say what else may hold the
+    /// port, and the range Settings takes.
+    @Test func aPortProblemSaysWhatToDo() {
+        #expect(LaunchSettings.portInUse(8080) == "Port 8080 is already in use. Another copy of Eagle Boards or the Java "
+            + "Eagle Board Scheduler may be running. Quit it and try again, or choose another port in Settings › General.")
+        #expect(LaunchSettings.portRefused(80) == "macOS would not let Eagle Boards listen on port 80. "
+            + "Choose a port from 1024 to 65535 in Settings › General.", "1024 itself is allowed")
+    }
+
     // A screenshot run shows dark or light without changing the Mac's setting.
     @Test func theAppearanceVariableIsForOneRunOnly() {
         let (defaults, suite) = scratchDefaults()

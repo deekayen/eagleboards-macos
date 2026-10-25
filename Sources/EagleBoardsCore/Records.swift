@@ -158,10 +158,13 @@ public enum UnitLabel {
         return String(initial) + unitName[firstDigit...]
     }
 
-    /// A unit type with no number (District, Council, Community) is returned
-    /// unchanged.
+    /// The unit in full, `Troop 1776`, as it is shown and read: `T1776` is
+    /// read as a code, and a Post's or Pack's `P` looks like a pre-registered
+    /// sign-in number. A unit type with no number (District, Council,
+    /// Community), or a number with no type, is returned unchanged.
     public static func spaced(_ unitName: String) -> String {
         guard let firstDigit = unitName.firstIndex(where: \.isNumber),
+              firstDigit > unitName.startIndex,
               unitName[firstDigit...].allSatisfy(\.isNumber),
               unitName[..<firstDigit].allSatisfy(\.isLetter)
         else { return unitName }
@@ -203,6 +206,22 @@ public struct Scout: PersonRecord {
         get { self["RegNum"] }
         set { self["RegNum"] = newValue }
     }
+
+    /// What the sign-in number means, for its help tag: "Walk-in: no
+    /// pre-registration matched. The 3rd walk-in to sign in." Empty when the
+    /// number after the letter is missing or is not a number.
+    public var regNumHelp: String {
+        let digits = regNum.drop(while: \.isLetter)
+        guard !digits.isEmpty, digits.allSatisfy({ $0.isASCII && $0.isNumber }), let number = Int(digits) else { return "" }
+        if isPreRegistered {
+            return "Pre-registered: matched a sign-up. The \(Count.ordinal(number)) pre-registered youth to sign in."
+        }
+        if isWalkIn {
+            return "Walk-in: no pre-registration matched. The \(Count.ordinal(number)) walk-in to sign in."
+        }
+        return ""
+    }
+
     public var dateOfBirth: String {
         get { self["DOB"] }
         set { self["DOB"] = newValue }

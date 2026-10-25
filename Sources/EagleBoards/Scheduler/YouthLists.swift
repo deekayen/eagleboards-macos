@@ -282,17 +282,6 @@ extension Scout {
     }
 
     var statusRank: Int { status?.sortRank ?? -1 }
-
-    var regNumHelp: String {
-        let number = regNum.drop(while: \.isLetter)
-        if isPreRegistered {
-            return "Pre-registered: matched a sign-up. #\(number) of the pre-registered to sign in."
-        }
-        if isWalkIn {
-            return "Walk-in: no pre-registration matched. #\(number) of the walk-ins to sign in."
-        }
-        return ""
-    }
 }
 
 /// What a drag carries: a youth or an adult, by ID. Plain text, so it needs

@@ -50,6 +50,19 @@ public struct LaunchSettings: Equatable, Sendable {
         return port
     }
 
+    /// Why the sign-in station could not start when another program holds
+    /// its port: usually a second copy, or the Java version, which uses 8080 too.
+    public static func portInUse(_ port: Int) -> String {
+        "Port \(port) is already in use. Another copy of Eagle Boards or the Java Eagle Board Scheduler may be running. "
+            + "Quit it and try again, or choose another port in Settings › General."
+    }
+
+    /// Why it could not start when macOS refused it the port.
+    public static func portRefused(_ port: Int) -> String {
+        "macOS would not let Eagle Boards listen on port \(port). "
+            + "Choose a port from \(allowedPorts.lowerBound) to \(allowedPorts.upperBound) in Settings › General."
+    }
+
     public let dataFolderPath: String?
     public let port: Int
     public let importOnOpen: Bool

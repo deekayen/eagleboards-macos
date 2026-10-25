@@ -118,7 +118,11 @@ struct CheckInDetails: View {
                 Text(message)
                     .fixedSize(horizontal: false, vertical: true)
                     .textSelection(.enabled)
-                Button("Try Again") { model.startServer() }
+                HStack {
+                    Button("Try Again") { model.startServer() }
+                    // The failure may say to choose another port there.
+                    SettingsLink { Text("Open Settings…") }
+                }
             case .starting:
                 ProgressView("Starting the sign-in station…")
             case .stopped:

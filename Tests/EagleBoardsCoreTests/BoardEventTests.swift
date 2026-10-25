@@ -111,12 +111,25 @@ struct BoardEventTests {
 
     // MARK: - Helpers that read the event back
 
+    /// Seat a board in the room by that name. A renamed room keeps its ID,
+    /// so the ID is looked up; a name no room has stands for an unknown ID.
     private func seat(_ roomName: String, _ scoutID: String, chair: String, _ members: String...) throws {
-        try event.seatBoard(roomID: "ROOM:\(roomName)", scoutID: scoutID, chairID: chair, memberIDs: [chair] + members)
+        let roomID = event.room(named: roomName)?.id ?? "ROOM:\(roomName)"
+        try event.seatBoard(roomID: roomID, scoutID: scoutID, chairID: chair, memberIDs: [chair] + members)
     }
 
     private func refused(_ what: Comment, _ action: () throws -> Void) {
         #expect(throws: EventError.self, what, performing: action)
+    }
+
+    /// The words a refusal shows, or nil when nothing was refused.
+    private func refusal(_ action: () throws -> Void) -> String? {
+        do {
+            try action()
+            return nil
+        } catch {
+            return error.localizedDescription
+        }
     }
 
     private func count(_ status: BoardStatus) -> Int { event.scouts.filter { $0.status == status }.count }
@@ -188,6 +201,125 @@ struct BoardEventTests {
 
         #expect(count(.seated) == 0, "none of that seated anyone")
         #expect(busyAdults == 0)
+    }
+
+    /// Windows' SeatingRefusalsSayWhatToDoInTheWindowsWords: the backstop's
+    /// refusals use the screen's words (the board type as shown, "gone
+    /// home", a count with no "(s)") and say what to do.
+    @Test func seatingRefusalsSayWhatToDoInTheScreensWords() throws {
+        func seating(_ chair: String, _ members: [String], in room: String = "ROOM:101", youth: String? = nil) -> String? {
+            refusal { try event.seatBoard(roomID: room, scoutID: youth ?? finalYouth(1), chairID: chair, memberIDs: members) }
+        }
+        #expect(seating(chairOfEither, []) == "The board has no members yet. Add at least 3 for a Final Board.")
+        #expect(seating(chairOfEither, [chairOfEither])
+            == "Only 1 member is on the board, and a Final Board needs at least 3. Add 2 more.")
+        #expect(seating(chairOfEither, [chairOfEither, member(1)])
+            == "Only 2 members are on the board, and a Final Board needs at least 3. Add 1 more.")
+        #expect(seating(chairOfEither, [chairOfEither] + (1...6).map(member))
+            == "7 members are on the board, and a Final Board can have at most 6 (Guide to Advancement 8.0.0.3). Remove 1.")
+        #expect(seating(projectChair1, [projectChair1], in: "ROOM:200A", youth: projectYouth(1))
+            == "Only 1 member is on the board, and a Proposal Review needs at least 2. Add 1 more.")
+
+        #expect(seating("", [chairOfEither, member(1), member(2)])
+            == "No one is chosen to chair the board. Choose which qualified member chairs it.")
+        #expect(seating(finalChair2, [member(1), member(2), member(3)])
+            == "Bartholomew Blackwood would chair the board but isn't one of its members. Add them to the board, or choose another chair.")
+        #expect(seating(member(1), [member(1), member(2), member(3)])
+            == "Fitzgerald Fairbanks isn't a chair for Final Boards. Choose a qualified chair, or make them a chair on the Adults page.")
+        #expect(seating(projectChair1, [projectChair1, member(1), member(2)])
+            == "Desmond Duxbury isn't a chair for Final Boards. Choose a qualified chair, or make them a chair on the Adults page.")
+
+        try event.setAvailable(false, adultID: member(11))
+        #expect(seating(chairOfEither, [chairOfEither, member(1), member(11)])
+            == "Percival Pemberton has gone home. Bring them back with Adult › Enable for Today, or choose someone else.")
+        let noThanks = adultID(29, unit: 1002)  // Unavailable for Final Boards
+        #expect(seating(chairOfEither, [chairOfEither, member(1), noThanks])
+            == "Cordelia Crowninshield said no thanks to Final Boards. Choose someone else.")
+        #expect(seating(chairOfEither, [chairOfEither, member(1), "ADULT:Nobody:Here:0"]) == "There is no adult 'ADULT:Nobody:Here:0'.")
+
+        let own = try ownUnitAdults()
+        #expect(seating(own[0], own) == "Every selected member is in Troop 1001, Alexander Aldridge's own unit. "
+            + "A board needs at least one member from outside the unit (Guide to Advancement 8.0.3.0). Add someone from another unit.")
+
+        try seat("102", finalYouth(2), chair: finalChair2, member(3), member(4))
+        #expect(seating(chairOfEither, [chairOfEither, member(1), member(3)])
+            == "Horatio Hollingsworth is on the board in room 102. Choose someone else.")
+        #expect(seating(chairOfEither, [chairOfEither, member(1), member(2)], in: "ROOM:102")
+            == "Room 102 already has Beauregard Bram's board. Choose a free room.")
+        #expect(count(.seated) == 1, "none of that seated anyone")
+    }
+
+    /// The same refusals for a board already sitting say what would be left
+    /// and end "before saving". Windows' TheChairLeavingASittingBoardIsTold...
+    /// has no counterpart: Change Members hands the chair to the first
+    /// qualified member when the chair is taken off, so the core only ever
+    /// sees a chair who is not among the members, refused as at seating.
+    @Test func changeMembersRefusalsSayWhatWouldBeLeft() throws {
+        try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
+        func changing(_ chair: String, _ members: [String]) -> String? {
+            refusal { try event.changeMembers(scoutID: finalYouth(1), chairID: chair, memberIDs: members) }
+        }
+        #expect(changing(chairOfEither, [])
+            == "No members would be left, and a Final Board needs at least 3. Add 3 before saving.")
+        #expect(changing(chairOfEither, [chairOfEither, member(1)])
+            == "Only 2 members would be left, and a Final Board needs at least 3. Add 1 more before saving.")
+        #expect(changing(chairOfEither, [chairOfEither] + (1...6).map(member))
+            == "That would make 7 members, and a Final Board can have at most 6 (Guide to Advancement 8.0.0.3). Remove 1 before saving.")
+        #expect(changing(chairOfEither, [finalChair2, member(1), member(2)])
+            == "Anneliese Abernathy would chair the board but isn't one of its members. Add them to the board, or choose another chair.")
+        #expect(adultRoom(member(2)) == "101", "the refusals changed nothing")
+    }
+
+    /// SPEC.md D-1: a refusal shows a name with its comma, as the screen
+    /// does, though the files keep it as "~" and the record reads it back so.
+    @Test func aRefusalShowsANameWithItsComma() throws {
+        try event.registerAdult([
+            "Last": "Whitmore, Jr.", "First": "Lysander", "Email": "a31@example.org",
+            "UnitType": "Troop", "Unit": "2031", "ProjectReview": "Member", "FinalBoard": "Member",
+        ])
+        let junior = "ADULT:Whitmore~ Jr.:Lysander:2031"
+        let reopened = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22")
+        try reopened.setAvailable(false, adultID: junior)
+        let refused = refusal {
+            try reopened.seatBoard(roomID: "ROOM:101", scoutID: finalYouth(1), chairID: chairOfEither,
+                                   memberIDs: [chairOfEither, member(1), junior])
+        }
+        #expect(refused == "Lysander Whitmore, Jr. has gone home. Bring them back with Adult › Enable for Today, or choose someone else.")
+        #expect(refusal { try reopened.setAvailable(false, adultID: junior) } == "Lysander Whitmore, Jr. is already marked gone home.")
+
+        let youth = try #require(reopened.scout(id: finalYouth(1)))
+        let members = [chairOfEither, member(1), junior].compactMap(reopened.adult(id:))
+        #expect(SeatingReview(scout: youth, members: members, room: reopened.room(named: "101")).blockingProblems
+            == ["Lysander Whitmore, Jr. has gone home. Remove them, or bring them back with Adult › Enable for Today."])
+    }
+
+    /// Marking an adult gone home or back, deleting one, and Undo say the
+    /// way out (Windows' DisableAdult and Undo). Undo and Redo share
+    /// restoreBoard, so its ending fits either.
+    @Test func goneHomeDeleteAndUndoRefusalsNameTheWayOut() throws {
+        #expect(refusal { try event.setAvailable(true, adultID: member(1)) } == "Fitzgerald Fairbanks isn't marked gone home.")
+        try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
+        let seated = try #require(event.scout(id: finalYouth(1)))
+        let onTheBoard = "Fitzgerald Fairbanks is on the board in room 101. "
+            + "Take them off it with Board › Change Members… first, or reset or complete that board."
+        #expect(refusal { try event.setAvailable(false, adultID: member(1)) } == onTheBoard)
+        #expect(refusal { try event.deleteAdult(id: member(1)) } == onTheBoard)
+
+        try event.resetBoard(scoutID: finalYouth(1))
+        try seat("101", finalYouth(2), chair: finalChair2, member(3), member(4))
+        #expect(refusal { try event.restoreBoard(seated) }
+            == "Room 101 has been given to Beauregard Bram since. Change the board by hand instead.")
+        try event.resetBoard(scoutID: finalYouth(2))
+        try seat("102", finalYouth(3), chair: finalChair3, member(1), member(5))
+        #expect(refusal { try event.restoreBoard(seated) }
+            == "Fitzgerald Fairbanks is on the board in room 102 now. Change the board by hand instead.")
+        try event.resetBoard(scoutID: finalYouth(3))
+        try event.setAvailable(false, adultID: member(2))
+        #expect(refusal { try event.restoreBoard(seated) } == "Genevieve Grimaldi has gone home since. Change the board by hand instead.")
+        try event.setAvailable(true, adultID: member(2))
+        try event.removeRoom(id: "ROOM:101")
+        #expect(refusal { try event.restoreBoard(seated) }
+            == "Room 101 is no longer on today's list. Change the board by hand instead.")
     }
 
     @Test func fiveChairsCapTheEventAtFiveConcurrentBoards() throws {
@@ -565,19 +697,22 @@ struct BoardEventTests {
         #expect(event.room(named: "104") == nil)
     }
 
-    // Java section 23, these three: a room renamed from its card, empty or
-    // with a board in it, and the names a room cannot take.
+    // Java section 23: a room renamed from its card, empty or with a board
+    // in it, keeps its ID and takes the new name, and the names a room
+    // cannot take. The tests after them are Windows' for the same rule.
     @Test func anEmptyRoomIsRenamed() throws {
-        let newID = try event.renameRoom(id: "ROOM:104", to: "  104 Annex ")
-        #expect(newID == "ROOM:104 Annex", "the ID follows the name, trimmed")
+        try event.renameRoom(id: "ROOM:104", to: "  104 Annex ")
+        #expect(event.room(id: "ROOM:104")?.name == "104 Annex", "the room keeps its ID and takes the new name, trimmed")
         #expect(event.room(named: "104") == nil)
-        #expect(event.room(id: newID)?.boardType == .finalBoard, "and keeps what it is used for")
+        #expect(event.room(id: "ROOM:104")?.boardType == .finalBoard, "and keeps what it is used for")
         try seat("104 Annex", finalYouth(1), chair: chairOfEither, member(1), member(2))
         #expect(adultRoom(chairOfEither) == "104 Annex")
-        try event.addRoom(named: "104", boardType: .finalBoard)  // the old name is free again
+        #expect(try event.addRoom(named: "104", boardType: .finalBoard) == "ROOM:104-2",
+                "the old name is free again, under the next free ID")
 
         let reopened = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22")
-        #expect(reopened.room(id: newID)?.scoutName == "Alexander Aldridge", "the rename is on disk")
+        #expect(reopened.room(id: "ROOM:104")?.scoutName == "Alexander Aldridge", "the rename is on disk")
+        #expect(reopened.room(id: "ROOM:104-2")?.name == "104")
     }
 
     @Test func aBoardMovesWithItsRoomWhenTheRoomIsRenamed() throws {
@@ -585,11 +720,11 @@ struct BoardEventTests {
         try event.startReview(scoutID: finalYouth(6))
         let clockBefore = event.scout(id: finalYouth(6))?["LastUpdateTime"]
 
-        let newID = try event.renameRoom(id: "ROOM:104", to: "Library")
+        try event.renameRoom(id: "ROOM:104", to: "Library")
         #expect(roomOf(finalYouth(6)) == "Library", "the youth moves with the room")
         #expect([chairOfEither, member(1), member(2)].map(adultRoom) == ["Library", "Library", "Library"],
                 "and so does every member")
-        #expect(event.room(id: newID)?.scoutName == "Finnegan Fenwick", "the card still names the youth")
+        #expect(event.room(id: "ROOM:104")?.scoutName == "Finnegan Fenwick", "the card still names the youth")
         #expect(status(finalYouth(6)) == .inProgress, "the review carries on")
         #expect(event.scout(id: finalYouth(6))?["LastUpdateTime"] == clockBefore, "and its timer was not restarted")
         refused("the renamed room is still occupied") { try seat("Library", finalYouth(7), chair: finalChair2, member(3), member(4)) }
@@ -597,7 +732,7 @@ struct BoardEventTests {
 
         try event.completeBoard(scoutID: finalYouth(6), result: .approved, notes: "")
         #expect(busyAdults == 0, "completing releases every member, none stranded on the old name")
-        #expect(event.room(id: newID)?.isFree == true)
+        #expect(event.room(id: "ROOM:104")?.isFree == true)
     }
 
     @Test func aRoomCannotBeRenamedToSomethingItCannotBe() throws {
@@ -607,8 +742,59 @@ struct BoardEventTests {
         refused("N/A, which marks adults who have gone home") { try event.renameRoom(id: "ROOM:104", to: disabledForTodayMarker) }
         refused("a room that does not exist") { try event.renameRoom(id: "ROOM:nope", to: "999") }
         refused("nor can a room be added as N/A") { try event.addRoom(named: disabledForTodayMarker, boardType: .finalBoard) }
-        #expect(try event.renameRoom(id: "ROOM:104", to: "104") == "ROOM:104", "renaming to its own name changes nothing")
+        refused("in any case") { try event.addRoom(named: "n/a", boardType: .finalBoard) }
+        try event.renameRoom(id: "ROOM:104", to: "104")
+        #expect(event.room(id: "ROOM:104")?.name == "104", "renaming to its own name changes nothing")
         #expect(event.rooms.count == 12)
+    }
+
+    /// Windows' ARoomCanBeAddedUnderTheNameARenamedRoomGaveUp: rooms are told
+    /// apart by name, and an ID a renamed room kept is not given out again.
+    @Test func aRoomCanBeAddedUnderTheNameARenamedRoomGaveUp() throws {
+        try event.renameRoom(id: "ROOM:104", to: "110")
+        #expect(try event.addRoom(named: "104", boardType: .finalBoard) == "ROOM:104-2")
+        refused("a second 104") { try event.addRoom(named: "104", boardType: .finalBoard) }
+        refused("a second 110, though no room has the ID ROOM:110") { try event.addRoom(named: "110", boardType: .finalBoard) }
+        refused("nor a rename onto it") { try event.renameRoom(id: "ROOM:105", to: "110") }
+        #expect(event.rooms.filter { $0.name == "110" }.map(\.id) == ["ROOM:104"])
+    }
+
+    /// Undo of Remove Room, and Redo of Add Room, put the record back with
+    /// its own ID, so the next Undo or Redo finds it again.
+    @Test func aRemovedRoomComesBackUnderItsOwnID() throws {
+        try event.renameRoom(id: "ROOM:104", to: "110")
+        let removed = try #require(event.room(id: "ROOM:104"))
+        try event.removeRoom(id: removed.id)
+        try event.restoreRoom(removed)
+        #expect(event.room(id: "ROOM:104")?.name == "110" && event.room(id: "ROOM:104")?.boardType == .finalBoard)
+        #expect(refusal { try event.restoreRoom(removed) } == "There's already a room 110. Rename or remove it first.")
+
+        try event.removeRoom(id: removed.id)
+        try event.addRoom(named: "104", boardType: .projectReview)  // takes the free ROOM:104
+        #expect(refusal { try event.restoreRoom(removed) }
+            == "Room 104 has taken its place since. Add room 110 by hand instead.")
+    }
+
+    /// The room refusals say what to do, in the Add Room and Rename sheets'
+    /// own word for it, name.
+    @Test func roomRefusalsSayWhatToDo() throws {
+        #expect(refusal { try event.addRoom(named: "101", boardType: .finalBoard) }
+            == "There's already a room 101. Choose another name.")
+        #expect(refusal { try event.renameRoom(id: "ROOM:104", to: "105") } == "There's already a room 105. Choose another name.")
+        #expect(refusal { try event.renameRoom(id: "ROOM:104", to: "104, east") }
+            == "A room name can't contain a comma. Leave the comma out.")
+        #expect(refusal { try event.addRoom(named: disabledForTodayMarker, boardType: .finalBoard) }
+            == "N/A marks adults who have gone home. Choose another name.")
+        #expect(refusal { try event.addRoom(named: " ", boardType: .finalBoard) } == "Enter a room name.")
+
+        // Undo of Add Room, once a board has taken the room.
+        let added = try event.addRoom(named: "108", boardType: .finalBoard)
+        try seat("108", finalYouth(1), chair: chairOfEither, member(1), member(2))
+        #expect(refusal { try event.removeRoom(id: added) }
+            == "Room 108 has a board in it. Complete, reset, or move that board first.")
+        #expect(BoardEvent.roomHasABoard("108") == refusal { try event.removeRoom(id: added) }, "as the Room menu says it")
+        #expect(refusal { try seat("108", finalYouth(2), chair: finalChair2, member(3), member(4)) }
+            == "Room 108 already has Alexander Aldridge's board. Choose a free room.")
     }
 
     // Java section 14. Here the ids are an array, so the comma never split
@@ -1027,9 +1213,16 @@ struct BoardEventTests {
     // autofill reads (the -cells endpoints, /youth-autofill) cannot arise:
     // this server has none, and operatorPagesAndRecordsAreNotReachable
     // asserts each is a 404. Their counterparts here are the lists exported
-    // from the View pages and the board results report, checked below. The
-    // Youth and Pre-Registered pages show no phone number and do not search
-    // one, so neither has a filter that could say whose number it is.
+    // from the View pages and the board results report, checked below.
+    // The section's three autofill checks (Java 41860ef, Windows 0069199)
+    // cannot arise either. The old autofill lists no adult's email and no
+    // pre-registered youth's, because neither /adult-autofill nor
+    // /youth-autofill is served (the same 404 test). A lookup for an
+    // address the tablet is given is still answered, by POST
+    // /api/youth-lookup and /api/adult-lookup, which
+    // lookupsFillTheFormAndNothingMore checks with a mixed-case address.
+    // The Youth and Pre-Registered pages show no phone number and do not
+    // search one, so neither has a filter that could say whose number it is.
     @Test func aYouthsPhoneNumberIsNotKeptButOneOnFileStays() throws {
         // A pre-registration given a birthdate and a phone number by hand, as
         // a file from before D-7 and D-8 would have them.

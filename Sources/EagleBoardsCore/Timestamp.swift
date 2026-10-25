@@ -83,6 +83,27 @@ public enum Timestamp {
         String(dayStamp(for: date, timeZone: timeZone).prefix(7))
     }
 
+    /// An event's date as the Mac writes dates, "October 24, 2026" in the
+    /// US: the long date style, which has no weekday, in `locale`'s order and
+    /// words. Folder and export names stay stamps. Anything that is not a
+    /// `dayStamp`, or not a real date, comes back as it was.
+    public static func shownDate(_ stamp: String, locale: Locale = .current) -> String {
+        guard isDayStamp(stamp),
+              let year = Int(stamp.prefix(4)), let month = Int(stamp.dropFirst(5).prefix(2)), let day = Int(stamp.suffix(2))
+        else { return stamp }
+        // Midday UTC, written in UTC, so no time zone can move it to another day.
+        var utcCalendar = calendar
+        utcCalendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let parts = DateComponents(year: year, month: month, day: day, hour: 12)
+        guard parts.isValidDate(in: utcCalendar), let date = utcCalendar.date(from: parts) else { return stamp }
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.timeZone = utcCalendar.timeZone
+        formatter.dateStyle = .long
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
+    }
+
     /// Is `name` shaped like an event folder (`YYYY-MM-DD`)?
     public static func isDayStamp(_ name: String) -> Bool {
         let characters = Array(name)

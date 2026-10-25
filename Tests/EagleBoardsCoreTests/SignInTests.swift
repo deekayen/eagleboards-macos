@@ -360,6 +360,16 @@ struct SignUpImportTests {
         #expect(event.scheduledScouts.count == 2)
     }
 
+    /// The import's report counts in words, singular or plural: never "1 adults".
+    @Test func theImportReportCountsInWords() {
+        #expect(BoardEvent.SignUpImportSummary(addedAdults: 1, updatedAdults: 1, addedYouth: 1, alreadyScheduledYouth: 1).report
+            == "1 youth pre-registered, 1 already was.\n1 adult added to the history, 1 updated.")
+        #expect(BoardEvent.SignUpImportSummary(addedAdults: 2, updatedAdults: 0, skippedDuplicateAdults: 3, addedYouth: 4,
+                                               alreadyScheduledYouth: 2).report
+            == "4 youth pre-registered, 2 already were.\n2 adults added to the history, 0 updated.\n"
+            + "3 skipped: their email is on more than one history record.")
+    }
+
     @Test(arguments: [
         ("(770) 555-0100", "770-555-0100"),
         ("770.555.0100", "770-555-0100"),

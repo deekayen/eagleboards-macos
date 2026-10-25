@@ -371,9 +371,8 @@ struct RenameRoomSheet: View {
     @Environment(\.dismiss) private var dismiss
     let event: BoardEvent
     let roomID: String
-    /// Does the rename, undoably, and returns the room's new ID, which
-    /// changes with its name.
-    let rename: (String) throws -> String
+    /// Does the rename, undoably. The room keeps its ID.
+    let rename: (String) throws -> Void
 
     @State private var name = ""
     @State private var problem: String?
@@ -396,7 +395,7 @@ struct RenameRoomSheet: View {
                 .keyboardShortcut(.cancelAction)
             Button("Rename") {
                 do {
-                    _ = try rename(name)
+                    try rename(name)
                     dismiss()
                 } catch {
                     problem = error.localizedDescription

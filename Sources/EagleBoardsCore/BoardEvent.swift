@@ -295,81 +295,28 @@ public final class BoardEvent {
         }
         let room = rooms[roomIndex]
         guard room.isFree else {
-            throw EventError("Room \(room.name) is already in use by \(room.scoutName).")
+            throw EventError(Self.roomIsTaken(room))
         }
         guard let scoutIndex = scouts.firstIndex(where: { $0.id == scoutID }) else {
             throw EventError("There is no youth '\(scoutID)'.")
         }
         var scout = scouts[scoutIndex]
         guard scout.status?.isWaitingForBoard == true else {
-            throw EventError("\(scout.fullName) cannot be seated from status '\(scout.statusLabel)'.")
+            throw EventError("\(scout.shownFullName) cannot be seated from status '\(scout.statusLabel)'.")
         }
         // disabledForTodayMarker ("N/A") is what Complete leaves in a youth's
         // room. A Registered youth holding it had a result recorded against them
         // by mistake and was set back on the Youth page: they have no room
         // and must be seatable for their real board.
         guard scout.room.isEmpty || scout.room == disabledForTodayMarker || scout.room == room.name else {
-            throw EventError("\(scout.fullName) is already assigned to room \(scout.room).")
+            throw EventError("\(scout.shownFullName) is already assigned to room \(scout.room).")
         }
         guard let boardType = scout.boardType else {
-            throw EventError("\(scout.fullName) has no board type.")
+            throw EventError("\(scout.shownFullName) has no board type.")
         }
-
-        var seenIDs = Set<String>()
-        let uniqueMemberIDs = memberIDs
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty && seenIDs.insert($0).inserted }
-        guard !uniqueMemberIDs.isEmpty else {
-            throw EventError("No board members are selected.")
-        }
-
-        var members: [Adult] = []
-        for memberID in uniqueMemberIDs {
-            guard let member = adult(id: memberID) else {
-                throw EventError("There is no adult '\(memberID)'.")
-            }
-            if member.isDisabledForToday {
-                throw EventError("\(member.fullName) has been disabled for today.")
-            }
-            if !member.room.isEmpty {
-                throw EventError("\(member.fullName) is already on the board in room \(member.room).")
-            }
-            // "No thanks" to this kind of board at sign-in is stored as
-            // Unavailable for it; a hand-picked board must not seat them either.
-            if member.role(for: boardType) == .unavailable {
-                throw EventError("\(member.fullName) is Unavailable for a \(boardType.label).")
-            }
-            members.append(member)
-        }
-        // The council's same-unit rule may be overridden; the national floor
-        // of one member from outside the unit may not (SPEC.md D-4).
-        guard BoardRules.hasMemberFromOutsideUnit(scoutUnitName: scout.unitName, members: members) else {
-            throw EventError(BoardRules.noMemberFromOutsideUnit(scoutName: scout.fullName, scoutUnitName: scout.unitName))
-        }
-
-        let minimum = BoardRules.minimumMembers(for: boardType)
-        switch BoardRules.checkSize(members.count, for: boardType) {
-        case .tooFew:
-            throw EventError("Only \(members.count) board member(s) selected; \(minimum) required for a \(boardType.label).")
-        case .tooMany:
-            throw EventError("\(members.count) board members selected; no more than \(BoardRules.boardMaximum) permitted (Guide to Advancement 8.0.0.3).")
-        case .ok, .overPreferred:
-            break
-        }
-
-        // The Chair designation is binding. Promoting someone is a deliberate
-        // edit on the Adults page, never a side effect of seating a board
-        // because the qualified chairs were all busy.
-        guard let chair = adult(id: chairID) else {
-            throw EventError("There is no adult '\(chairID)' to chair the board.")
-        }
-        guard uniqueMemberIDs.contains(chair.id) else {
-            throw EventError("\(chair.fullName) is chairing but is not one of the board members.")
-        }
-        guard chair.canChair(boardType) else {
-            let role = chair.role(for: boardType)?.rawValue ?? "none"
-            throw EventError("\(chair.fullName) is not qualified to chair a \(boardType.label) (role: \(role)).")
-        }
+        let (members, chair) = try checkedBoard(
+            for: scout, boardType: boardType, chairID: chairID, memberIDs: memberIDs, sittingIn: nil)
+        let uniqueMemberIDs = members.map(\.id)
 
         let memberNames = members.map(\.fullName).joined(separator: ",")
         rooms[roomIndex].scoutName = scout.fullName
@@ -399,63 +346,17 @@ public final class BoardEvent {
         }
         var scout = scouts[scoutIndex]
         guard scout.status == .seated || scout.status == .inProgress else {
-            throw EventError("\(scout.fullName)'s board members can only be changed while seated or in review (status '\(scout.statusLabel)').")
+            throw EventError("\(scout.shownFullName)'s board members can only be changed while seated or in review (status '\(scout.statusLabel)').")
         }
         guard let roomIndex = rooms.firstIndex(where: { $0.name == scout.room }) else {
             throw EventError("Room \(scout.room) was not found.")
         }
         guard let boardType = scout.boardType else {
-            throw EventError("\(scout.fullName) has no board type.")
+            throw EventError("\(scout.shownFullName) has no board type.")
         }
-
-        var seenIDs = Set<String>()
-        let uniqueMemberIDs = memberIDs
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty && seenIDs.insert($0).inserted }
-        guard !uniqueMemberIDs.isEmpty else {
-            throw EventError("No board members are selected.")
-        }
-
-        var members: [Adult] = []
-        for memberID in uniqueMemberIDs {
-            guard let member = adult(id: memberID) else {
-                throw EventError("There is no adult '\(memberID)'.")
-            }
-            if member.isDisabledForToday {
-                throw EventError("\(member.fullName) has been disabled for today.")
-            }
-            if !member.room.isEmpty && member.room != scout.room {
-                throw EventError("\(member.fullName) is already on the board in room \(member.room).")
-            }
-            if member.role(for: boardType) == .unavailable {
-                throw EventError("\(member.fullName) is Unavailable for a \(boardType.label).")
-            }
-            members.append(member)
-        }
-        guard BoardRules.hasMemberFromOutsideUnit(scoutUnitName: scout.unitName, members: members) else {
-            throw EventError(BoardRules.noMemberFromOutsideUnit(scoutName: scout.fullName, scoutUnitName: scout.unitName))
-        }
-
-        let minimum = BoardRules.minimumMembers(for: boardType)
-        switch BoardRules.checkSize(members.count, for: boardType) {
-        case .tooFew:
-            throw EventError("Only \(members.count) board member(s) selected; \(minimum) required for a \(boardType.label).")
-        case .tooMany:
-            throw EventError("\(members.count) board members selected; no more than \(BoardRules.boardMaximum) permitted (Guide to Advancement 8.0.0.3).")
-        case .ok, .overPreferred:
-            break
-        }
-
-        guard let chair = adult(id: chairID) else {
-            throw EventError("There is no adult '\(chairID)' to chair the board.")
-        }
-        guard uniqueMemberIDs.contains(chair.id) else {
-            throw EventError("\(chair.fullName) is chairing but is not one of the board members.")
-        }
-        guard chair.canChair(boardType) else {
-            let role = chair.role(for: boardType)?.rawValue ?? "none"
-            throw EventError("\(chair.fullName) is not qualified to chair a \(boardType.label) (role: \(role)).")
-        }
+        let (members, chair) = try checkedBoard(
+            for: scout, boardType: boardType, chairID: chairID, memberIDs: memberIDs, sittingIn: scout.room)
+        let uniqueMemberIDs = members.map(\.id)
 
         let leavingIDs = Set(scout.boardMembers(among: adults).members.map(\.id)).subtracting(uniqueMemberIDs)
         let memberNames = members.map(\.fullName).joined(separator: ",")
@@ -474,13 +375,98 @@ public final class BoardEvent {
         try save(.youth, .rooms, .adults)
     }
 
+    /// Who is on a board and who chairs it, checked the same way for a new
+    /// board and for one already sitting, whose room is `sittingIn`: its own
+    /// members are not on another board, and the counts say what would be
+    /// left. Duplicate IDs count once. The refusals use the screen's words
+    /// (the board type as shown, "gone home", a count with no "(s)") and end
+    /// with what to do, as Windows' `CheckComposition` does.
+    private func checkedBoard(
+        for scout: Scout, boardType: BoardType, chairID: String, memberIDs: [String], sittingIn currentRoom: String?
+    ) throws -> (members: [Adult], chair: Adult) {
+        let label = boardType.label
+        let minimum = BoardRules.minimumMembers(for: boardType)
+        let changing = currentRoom != nil
+
+        var seenIDs = Set<String>()
+        let uniqueMemberIDs = memberIDs
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty && seenIDs.insert($0).inserted }
+        guard !uniqueMemberIDs.isEmpty else {
+            throw EventError(changing
+                ? "No members would be left, and a \(label) needs at least \(minimum). Add \(minimum) before saving."
+                : "The board has no members yet. Add at least \(minimum) for a \(label).")
+        }
+
+        var members: [Adult] = []
+        for memberID in uniqueMemberIDs {
+            guard let member = adult(id: memberID) else {
+                throw EventError("There is no adult '\(memberID)'.")
+            }
+            let name = member.shownFullName
+            if member.isDisabledForToday {
+                throw EventError("\(name) has gone home. Bring them back with Adult › Enable for Today, or choose someone else.")
+            }
+            if !member.room.isEmpty && member.room != currentRoom {
+                throw EventError("\(name) is on the board in room \(member.room). Choose someone else.")
+            }
+            // "No thanks" to this kind of board at sign-in is stored as
+            // Unavailable for it; a hand-picked board must not seat them either.
+            if member.role(for: boardType) == .unavailable {
+                throw EventError("\(name) said no thanks to \(label)s. Choose someone else.")
+            }
+            members.append(member)
+        }
+        // The council's same-unit rule may be overridden; the national floor
+        // of one member from outside the unit may not (SPEC.md D-4).
+        guard BoardRules.hasMemberFromOutsideUnit(scoutUnitName: scout.unitName, members: members) else {
+            throw EventError(BoardRules.noMemberFromOutsideUnit(scoutName: scout.shownFullName, scoutUnitName: scout.unitName))
+        }
+
+        let count = members.count
+        let maximum = BoardRules.boardMaximum
+        switch BoardRules.checkSize(count, for: boardType) {
+        case .tooFew:
+            let short = "a \(label) needs at least \(minimum). Add \(minimum - count) more"
+            throw EventError(changing
+                ? "Only \(Count.of(count, "member", "members")) would be left, and \(short) before saving."
+                : "Only \(Count.of(count, "member", "members")) \(count == 1 ? "is" : "are") on the board, and \(short).")
+        case .tooMany:
+            let limit = "a \(label) can have at most \(maximum) (Guide to Advancement 8.0.0.3). Remove \(count - maximum)"
+            throw EventError(changing
+                ? "That would make \(count) members, and \(limit) before saving."
+                : "\(count) members are on the board, and \(limit).")
+        case .ok, .overPreferred:
+            break
+        }
+
+        // The Chair designation is binding. Promoting someone is a deliberate
+        // edit on the Adults page, never a side effect of seating a board
+        // because the qualified chairs were all busy.
+        guard !chairID.trimmingCharacters(in: .whitespaces).isEmpty else {
+            throw EventError("No one is chosen to chair the board. Choose which qualified member chairs it.")
+        }
+        guard let chair = adult(id: chairID) else {
+            throw EventError("There is no adult '\(chairID)' to chair the board.")
+        }
+        guard uniqueMemberIDs.contains(chair.id) else {
+            throw EventError("\(chair.shownFullName) would chair the board but isn't one of its members. "
+                + "Add them to the board, or choose another chair.")
+        }
+        guard chair.canChair(boardType) else {
+            throw EventError("\(chair.shownFullName) isn't a chair for \(label)s. "
+                + "Choose a qualified chair, or make them a chair on the Adults page.")
+        }
+        return (members, chair)
+    }
+
     /// Bring the youth into the room and begin the review.
     public func startReview(scoutID: String) throws {
         guard let index = scouts.firstIndex(where: { $0.id == scoutID }) else {
             throw EventError("There is no youth '\(scoutID)'.")
         }
         guard scouts[index].status == .seated else {
-            throw EventError("\(scouts[index].fullName)'s board has not been seated (status '\(scouts[index].statusLabel)').")
+            throw EventError("\(scouts[index].shownFullName)'s board has not been seated (status '\(scouts[index].statusLabel)').")
         }
         scouts[index].status = .inProgress
         scouts[index].markUpdated(at: now)
@@ -497,7 +483,7 @@ public final class BoardEvent {
             throw EventError("There is no youth '\(scoutID)'.")
         }
         guard scouts[scoutIndex].status == .inProgress else {
-            throw EventError("\(scouts[scoutIndex].fullName)'s review has not started (status '\(scouts[scoutIndex].statusLabel)').")
+            throw EventError("\(scouts[scoutIndex].shownFullName)'s review has not started (status '\(scouts[scoutIndex].statusLabel)').")
         }
         let roomName = scouts[scoutIndex].room
         guard let roomIndex = rooms.firstIndex(where: { $0.name == roomName }) else {
@@ -518,7 +504,7 @@ public final class BoardEvent {
             throw EventError("There is no youth '\(scoutID)'.")
         }
         guard scouts[index].status?.isWaitingForBoard == true else {
-            throw EventError("Only a youth still waiting can be postponed; \(scouts[index].fullName) is '\(scouts[index].statusLabel)'.")
+            throw EventError("Only a youth still waiting can be postponed; \(scouts[index].shownFullName) is '\(scouts[index].statusLabel)'.")
         }
         scouts[index].status = .postponed
         scouts[index].markUpdated(at: now)
@@ -533,7 +519,7 @@ public final class BoardEvent {
         }
         let status = scouts[scoutIndex].status
         guard status == .seated || status == .inProgress || status == .verified else {
-            throw EventError("Only a seated board or one in review can be reset; \(scouts[scoutIndex].fullName) is '\(scouts[scoutIndex].statusLabel)'.")
+            throw EventError("Only a seated board or one in review can be reset; \(scouts[scoutIndex].shownFullName) is '\(scouts[scoutIndex].statusLabel)'.")
         }
         if let roomIndex = rooms.firstIndex(where: { $0.name == scouts[scoutIndex].room }) {
             releaseRoom(at: roomIndex)
@@ -569,10 +555,10 @@ public final class BoardEvent {
         var memberIDs: [String] = []
         if holdsRoom(earlier) {
             guard let index = rooms.firstIndex(where: { $0.name == earlier.room }) else {
-                throw EventError("Room \(earlier.room) is no longer on today's list.")
+                throw EventError("Room \(earlier.room) is no longer on today's list. \(Self.byHandInstead)")
             }
             guard rooms[index].isFree || rooms[index].name == currentRoom else {
-                throw EventError("Room \(earlier.room) has been given to \(rooms[index].scoutName) since.")
+                throw EventError("Room \(earlier.room) has been given to \(rooms[index].scoutName.shownValue) since. \(Self.byHandInstead)")
             }
             let listed = earlier.boardMembers(among: adults)
             guard listed.unknown.isEmpty else {
@@ -581,10 +567,10 @@ public final class BoardEvent {
             memberIDs = listed.members.map(\.id)
             for member in listed.members {
                 if member.isDisabledForToday {
-                    throw EventError("\(member.fullName) has gone home since.")
+                    throw EventError("\(member.shownFullName) has gone home since. \(Self.byHandInstead)")
                 }
                 guard member.room.isEmpty || member.room == currentRoom else {
-                    throw EventError("\(member.fullName) is on the board in room \(member.room) now.")
+                    throw EventError("\(member.shownFullName) is on the board in room \(member.room) now. \(Self.byHandInstead)")
                 }
             }
             roomIndex = index
@@ -614,6 +600,10 @@ public final class BoardEvent {
         try save(.youth, .rooms, .adults)
     }
 
+    /// How a refused Undo or Redo of a board step ends: what changed is said
+    /// first, and the same words serve both directions.
+    private static let byHandInstead = "Change the board by hand instead."
+
     private func releaseRoom(at roomIndex: Int) {
         let roomName = rooms[roomIndex].name
         for index in adults.indices where adults[index].room == roomName {
@@ -625,34 +615,81 @@ public final class BoardEvent {
 
     // MARK: - Rooms
 
+    /// A room's ID is `ROOM:<name>` when it is made, and it stays that when
+    /// the room is renamed, as in the Java and Windows versions (Java event
+    /// test section 23): a rooms file either one wrote can hold ROOM:101
+    /// under the name 110. So rooms are told apart by name, and a new room
+    /// takes the next ID that is free, `ROOM:101-2` while ROOM:101 is taken.
+    private func nextFreeRoomID(for name: String) -> Room.ID {
+        let plain = Room.roomID(for: name)
+        guard room(id: plain) != nil else { return plain }
+        var number = 2
+        while room(id: "\(plain)-\(number)") != nil {
+            number += 1
+        }
+        return "\(plain)-\(number)"
+    }
+
     /// A room name as typed, trimmed, or the reason it cannot be used.
-    private func checkedRoomName(_ rawName: String) throws -> String {
+    /// `excludedID` is the room being renamed, which may keep its own name.
+    private func checkedRoomName(_ rawName: String, excluding excludedID: Room.ID? = nil) throws -> String {
         let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else {
             throw EventError("Enter a room name.")
         }
         guard !name.contains(",") else {
-            throw EventError("A room name cannot contain a comma.")
+            throw EventError("A room name can't contain a comma. Leave the comma out.")
         }
         // An adult's room holds this marker when they have gone home, so a
         // room by that name would look like it held every one of them.
-        guard name != disabledForTodayMarker else {
-            throw EventError("\(disabledForTodayMarker) cannot be a room name.")
+        guard name.caseInsensitiveCompare(disabledForTodayMarker) != .orderedSame else {
+            throw EventError("\(disabledForTodayMarker) marks adults who have gone home. Choose another name.")
         }
-        guard room(id: Room.roomID(for: name)) == nil else {
-            throw EventError("Room \(name) already exists.")
+        guard !rooms.contains(where: { $0.name == name && $0.id != excludedID }) else {
+            throw EventError("There's already a room \(name). Choose another name.")
         }
         return name
     }
 
-    public func addRoom(named rawName: String, boardType: BoardType) throws {
+    /// Returns the new room's ID.
+    @discardableResult
+    public func addRoom(named rawName: String, boardType: BoardType) throws -> Room.ID {
         let name = try checkedRoomName(rawName)
         var newRoom = Room.blank(at: now)
-        newRoom["ID"] = Room.roomID(for: name)
+        newRoom["ID"] = nextFreeRoomID(for: name)
         newRoom.name = name
         newRoom.boardTypeText = boardType.rawValue
         rooms.append(newRoom)
         try save(.rooms)
+        return newRoom.id
+    }
+
+    /// Put back a room that was removed, with its own ID, name and use: what
+    /// Undo of Remove Room and Redo of Add Room do. Refused when another room
+    /// has that ID or that name since.
+    public func restoreRoom(_ room: Room) throws {
+        guard self.room(named: room.name) == nil else {
+            throw EventError("There's already a room \(room.name). Rename or remove it first.")
+        }
+        if let other = self.room(id: room.id) {
+            throw EventError("Room \(other.name) has taken its place since. Add room \(room.name) by hand instead.")
+        }
+        rooms.append(room)
+        try save(.rooms)
+    }
+
+    /// Why a room with a board in it cannot be removed, the same in the
+    /// Room menu's alert and in `removeRoom`'s refusal.
+    public static func roomHasABoard(_ roomName: String) -> String {
+        "Room \(roomName) has a board in it. Complete, reset, or move that board first."
+    }
+
+    /// Why a youth cannot be seated in a room another board holds, the same
+    /// in the seating review, in `seatBoard`'s refusal, and for a youth
+    /// dropped on the room's card. Nonisolated for the review, which is not
+    /// tied to the main actor.
+    public nonisolated static func roomIsTaken(_ room: Room) -> String {
+        "Room \(room.name) already has \(room.scoutName.shownValue)'s board. Choose a free room."
     }
 
     public func removeRoom(id: String) throws {
@@ -660,31 +697,28 @@ public final class BoardEvent {
             throw EventError("There is no room '\(id)'.")
         }
         guard rooms[index].isFree else {
-            throw EventError("Room \(rooms[index].name) is in use by \(rooms[index].scoutName) and cannot be removed.")
+            throw EventError(Self.roomHasABoard(rooms[index].name))
         }
         rooms.remove(at: index)
         try save(.rooms)
     }
 
-    /// Rename a room, e.g. when the building signs it differently than the
-    /// list says. A board sitting in it goes along: the youth and the adults
-    /// hold the room by name, and a rename that left them on the old one
-    /// would strand the members on a room that no longer exists -- the Java
-    /// app's failure when its Admin page renamed a room under a board. The
-    /// board's timer is not restarted; renaming is not a step in its review.
-    ///
-    /// Returns the room's new ID, which is derived from the name.
-    @discardableResult
-    public func renameRoom(id: String, to rawName: String) throws -> String {
+    /// Rename a room, for example when the building signs it differently
+    /// than the list says. The room keeps its ID. A board sitting in it goes
+    /// along: the youth and the adults hold the room by name, and a rename
+    /// that left them on the old one would strand the members on a room that
+    /// no longer exists, the Java app's failure when its Admin page renamed
+    /// a room under a board. The board's timer is not restarted; renaming is
+    /// not a step in its review.
+    public func renameRoom(id: String, to rawName: String) throws {
         guard let index = rooms.firstIndex(where: { $0.id == id }) else {
             throw EventError("There is no room '\(id)'.")
         }
         let oldName = rooms[index].name
         guard rawName.trimmingCharacters(in: .whitespacesAndNewlines) != oldName else {
-            return id
+            return
         }
-        let newName = try checkedRoomName(rawName)
-        rooms[index]["ID"] = Room.roomID(for: newName)
+        let newName = try checkedRoomName(rawName, excluding: id)
         rooms[index].name = newName
         for scoutIndex in scouts.indices where scouts[scoutIndex].room == oldName {
             scouts[scoutIndex].room = newName
@@ -693,7 +727,6 @@ public final class BoardEvent {
             adults[adultIndex].room = newName
         }
         try save(.rooms, .youth, .adults)
-        return rooms[index].id
     }
 
     public func setBoardType(_ boardType: BoardType, forRoom id: String) throws {
@@ -741,8 +774,9 @@ public final class BoardEvent {
         try save(.rooms, .youth, .adults)
     }
 
-    /// Add the rooms from an earlier event that this event does not have yet,
-    /// empty, so the room list does not have to be typed in every month.
+    /// Add the rooms from an earlier event that this event does not have yet
+    /// (by name), empty, so the room list does not have to be typed in every
+    /// month.
     ///
     /// Returns the IDs of the rooms added, in the earlier event's order, for
     /// Undo to remove.
@@ -750,9 +784,9 @@ public final class BoardEvent {
     public func copyRooms(fromEvent earlierEvent: String) throws -> [Room.ID] {
         let earlierRooms = try CSVFile.read(Room.self, from: folder.roomsURL(event: earlierEvent))
         var added: [Room.ID] = []
-        for earlier in earlierRooms where !earlier.name.isEmpty && room(id: Room.roomID(for: earlier.name)) == nil {
+        for earlier in earlierRooms where !earlier.name.isEmpty && room(named: earlier.name) == nil {
             var copy = Room.blank(at: now)
-            copy["ID"] = Room.roomID(for: earlier.name)
+            copy["ID"] = nextFreeRoomID(for: earlier.name)
             copy.name = earlier.name
             copy.boardTypeText = earlier.boardTypeText
             rooms.append(copy)
@@ -774,19 +808,26 @@ public final class BoardEvent {
         let adult = adults[index]
         if available {
             guard adult.isDisabledForToday else {
-                throw EventError("\(adult.fullName) is not disabled.")
+                throw EventError("\(adult.shownFullName) isn't marked gone home.")
             }
             adults[index].room = ""
         } else {
             if adult.isDisabledForToday {
-                throw EventError("\(adult.fullName) is already disabled.")
+                throw EventError("\(adult.shownFullName) is already marked gone home.")
             }
             guard adult.room.isEmpty else {
-                throw EventError("\(adult.fullName) is on the board in room \(adult.room). Reset or complete that board first.")
+                throw EventError(Self.onABoard(adult))
             }
             adults[index].room = disabledForTodayMarker
         }
         try save(.adults)
+    }
+
+    /// Why an adult on a board cannot be marked gone home or deleted, and
+    /// the way out.
+    private static func onABoard(_ adult: Adult) -> String {
+        "\(adult.shownFullName) is on the board in room \(adult.room). "
+            + "Take them off it with Board › Change Members… first, or reset or complete that board."
     }
 
     /// Link an adult to a youth as the one who introduces them (SPEC.md D-23), or
@@ -832,11 +873,11 @@ public final class BoardEvent {
             let current = scouts[index]
             if record.statusText != current.statusText {
                 if record.status?.holdsRoom == true {
-                    throw EventError("\(current.fullName) can be seated, or their review started, only on the Event page, "
+                    throw EventError("\(current.shownFullName) can be seated, or their review started, only on the Event page, "
                         + "where the board gets its room and members.")
                 }
                 if current.status?.holdsRoom == true {
-                    throw EventError("\(current.fullName)'s board is in room \(current.room). Reset it or complete it on the "
+                    throw EventError("\(current.shownFullName)'s board is in room \(current.room). Reset it or complete it on the "
                         + "Event page, which frees the room and its members.")
                 }
             }
@@ -851,7 +892,7 @@ public final class BoardEvent {
             try save(.scheduledYouth)
         } else {
             if let scout = scout(id: id), scout.status == .seated || scout.status == .inProgress {
-                throw EventError("\(scout.fullName)'s board is active in room \(scout.room). Reset it before deleting.")
+                throw EventError("\(scout.shownFullName)'s board is active in room \(scout.room). Reset it before deleting.")
             }
             scouts.removeAll { $0.id == id }
             try save(.youth)
@@ -883,7 +924,7 @@ public final class BoardEvent {
     /// Take an adult off the event's list. The adult history keeps them.
     public func deleteAdult(id: String) throws {
         if let adult = adult(id: id), adult.isOnBoard {
-            throw EventError("\(adult.fullName) is on the board in room \(adult.room). Reset or complete that board first.")
+            throw EventError(Self.onABoard(adult))
         }
         adults.removeAll { $0.id == id }
         try save(.adults)
@@ -914,6 +955,19 @@ public final class BoardEvent {
             self.addedYouth = addedYouth
             self.alreadyScheduledYouth = alreadyScheduledYouth
             self.outsideThisMonth = outsideThisMonth
+        }
+
+        /// What the import reports, in words: a line for youth, one for
+        /// adults, and one for any adults it could not match.
+        public var report: String {
+            var lines = [
+                "\(addedYouth) youth pre-registered, \(alreadyScheduledYouth) already \(alreadyScheduledYouth == 1 ? "was" : "were").",
+                "\(Count.of(addedAdults, "adult", "adults")) added to the history, \(updatedAdults) updated.",
+            ]
+            if skippedDuplicateAdults > 0 {
+                lines.append("\(skippedDuplicateAdults) skipped: their email is on more than one history record.")
+            }
+            return lines.joined(separator: "\n")
         }
     }
 

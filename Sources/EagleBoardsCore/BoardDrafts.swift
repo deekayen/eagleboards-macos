@@ -294,11 +294,4 @@ public struct BoardDrafts: Sendable, Equatable {
             }
         }
     }
-
-    /// After a rename the room keeps its record but not necessarily its ID.
-    public mutating func roomRenamed(from oldID: Room.ID, to newID: Room.ID) {
-        for scoutID in byYouth.keys where byYouth[scoutID]?.roomID == oldID {
-            byYouth[scoutID]?.roomID = newID
-        }
-    }
 }

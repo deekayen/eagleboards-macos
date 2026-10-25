@@ -67,7 +67,8 @@ struct SeatingReviewTests {
         let members = ["A", "B", "C"].map { adult($0, "Member", unitName: "Troop9") }
         let review = SeatingReview(scout: scout(), members: members, room: finalRoom)
         #expect(!review.canSeat)
-        #expect(review.blockingProblems.contains { $0.contains("qualified to chair") })
+        #expect(review.blockingProblems.contains(
+            "None of the members can chair a Final Board. Add a qualified chair, or make someone a chair on the Adults page."))
     }
 
     @Test func sameUnitMembersWarnButDoNotBlock() {
@@ -79,10 +80,11 @@ struct SeatingReviewTests {
         let review = SeatingReview(scout: scout(), members: members, room: finalRoom)
         #expect(review.canSeat)
         #expect(review.warnings.count == 1)
-        // SPEC.md O-1: the screen says youth.
-        #expect(review.warnings[0].detail == "Robin Sameunit is in Troop1234. This council does not permit adults from "
-            + "the youth's own unit on a board. Seating anyway falls back to the national rule, which this board "
-            + "still meets: at least one member is from outside the unit.")
+        #expect(review.warnings[0].title == "1 member is from Casey Candidate's unit")
+        // SPEC.md O-1: the screen says youth. Short sentences with nothing
+        // nested, for reading aloud, and the unit in full (Windows c0b18db).
+        #expect(review.warnings[0].detail == "Robin Sameunit is in Troop 1234, the youth's own unit. This council "
+            + "doesn't allow that. The national rule needs only one member from outside the unit, and this board meets it.")
     }
 
     @Test func anAllSameUnitBoardIsRefusedOutright() {
@@ -93,7 +95,8 @@ struct SeatingReviewTests {
         ]
         let review = SeatingReview(scout: scout(), members: members, room: finalRoom)
         #expect(!review.canSeat)
-        #expect(review.blockingProblems.contains { $0.contains("8.0.3.0") })
+        #expect(review.blockingProblems.contains("Every selected member is in Troop 1234, Casey Candidate's own unit. "
+            + "A board needs at least one member from outside the unit (Guide to Advancement 8.0.3.0). Add someone from another unit."))
     }
 
     @Test func fourMembersAsksForConfirmationSevenIsRefused() {
@@ -104,7 +107,23 @@ struct SeatingReviewTests {
         #expect(fourReview.warnings.contains { $0.title.contains("4 members") })
 
         let seven = [chair] + ["A", "B", "C", "D", "E", "F"].map { adult($0, "Member", unitName: "Troop5") }
-        #expect(!SeatingReview(scout: scout(), members: seven, room: finalRoom).canSeat)
+        #expect(SeatingReview(scout: scout(), members: seven, room: finalRoom).blockingProblems
+            == ["A Final Board can have at most 6 (Guide to Advancement 8.0.0.3). Remove 1."])
+    }
+
+    /// Each problem ends with what to do about it.
+    @Test func tooFewSaysHowManyMore() {
+        let chair = adult("Chris", "Chair", unitName: "Troop1", final: .chair, project: .chair)
+        #expect(SeatingReview(scout: scout(), members: [chair, adult("A", "Member", unitName: "Troop5")], room: finalRoom)
+            .blockingProblems == ["A Final Board needs at least 3. Add 1 more."])
+        #expect(SeatingReview(scout: scout(boardType: .projectReview), members: [chair], room: room("200A", .projectReview))
+            .blockingProblems == ["A Proposal Review needs at least 2. Add 1 more."])
+        #expect(SeatingReview(scout: scout(), members: [], room: finalRoom).blockingProblems
+            == ["No one is on the board yet. Add at least 3 members."])
+        var seated = scout(status: .seated)
+        seated.room = "101"
+        #expect(ChangeMembersReview(scout: seated, members: []).blockingProblems
+            == ["No one is left on the board. Add at least 3 members."])
     }
 
     @Test func disabledAndBusyAndUnavailableAdultsBlock() {
@@ -113,9 +132,11 @@ struct SeatingReviewTests {
         let busy = adult("Busy", "Elsewhere", unitName: "Troop3", room: "102")
         let unavailable = adult("Not", "Today", unitName: "Troop4", final: .unavailable)
         let review = SeatingReview(scout: scout(), members: [chair, gone, busy, unavailable], room: finalRoom)
-        #expect(review.blockingProblems.contains { $0.contains("disabled for today") })
-        #expect(review.blockingProblems.contains { $0.contains("room 102") })
-        #expect(review.blockingProblems.contains { $0.contains("unavailable") })
+        #expect(review.blockingProblems == [
+            "Gone Home has gone home. Remove them, or bring them back with Adult › Enable for Today.",
+            "Busy Elsewhere is on the board in room 102. Remove them.",
+            "Not Today said no thanks to Final Boards. Remove them.",
+        ])
     }
 
     @Test func wrongRoomTypeWarnsOccupiedRoomBlocks() {
@@ -128,10 +149,11 @@ struct SeatingReviewTests {
         #expect(projectRoom.canSeat)
         #expect(projectRoom.warnings.contains { $0.title.contains("200A") })
 
-        let occupied = SeatingReview(scout: scout(), members: members, room: room("101", .finalBoard, scoutName: "Someone Else"))
-        #expect(!occupied.canSeat)
+        let occupied = SeatingReview(scout: scout(), members: members, room: room("101", .finalBoard, scoutName: "Someone~ Else"))
+        #expect(occupied.blockingProblems == ["Room 101 already has Someone, Else's board. Choose a free room."],
+                "the youth's name with its comma (SPEC.md D-1)")
 
-        #expect(!SeatingReview(scout: scout(), members: members, room: nil).canSeat)
+        #expect(SeatingReview(scout: scout(), members: members, room: nil).blockingProblems == ["Choose a free room."])
     }
 
     @Test(arguments: [BoardStatus.seated, .inProgress, .completed, .postponed])
@@ -219,8 +241,35 @@ struct AdultLocatorTests {
         #expect(AdultLocator.locate(for: youth, among: [adult("Nobody", "", unitName: "Troop5")]).isEmpty)
     }
 
+    /// The last-name guard alone: in the youth's own unit, an adult with no
+    /// last name would match any leader without it, since every leader text
+    /// contains the empty string.
+    @Test func anAdultInTheYouthsUnitWithNoLastNameIsNeitherLeaderNorParent() {
+        let youth = scout(unitName: "Troop1001", leader: "Sam Smith")
+        #expect(AdultLocator.locate(for: youth, among: [adult("Sam", "", unitName: "Troop1001")]).isEmpty)
+    }
+
     // SPEC.md D-23, after the 2026-09-30 event: the cases Windows'
     // SchedulerLogicTests and Java's test-board-builder.js run too.
+
+    /// Java's test-board-builder.js and Windows'
+    /// ALeaderFromAnotherUnitIsFoundByFirstAndLastName, with their adults.
+    @Test func aLeaderFromAnotherUnitIsFoundByFirstAndLastName() throws {
+        let youth = scout(unitName: "Troop1001", leader: "Sam Smith")
+        let found = try #require(AdultLocator.introduction(for: youth, among: [adult("Sam", "Smith", unitName: "Troop9")]))
+        #expect(found.map(\.adult.fullName) == ["Sam Smith"])
+        #expect(found.map(\.relation) == [.leader])
+    }
+
+    /// Java's test-board-builder.js and Windows' AnAdultWithNoNameIsNobodysLeader,
+    /// which also looks for parents.
+    @Test func anAdultWithNoNameIsNobodysLeader() throws {
+        let youth = scout(unitName: "Troop1001", leader: "Sam Smith")
+        let nameless = adult("", "", unitName: "Troop9")
+        #expect(try #require(AdultLocator.introduction(for: youth, among: [nameless])).isEmpty)
+        #expect(AdultLocator.locate(for: youth, among: [nameless]).isEmpty)
+    }
+
     @Test func startReviewNamesWhoIntroducesTheYouthOnABoardOfReviewNeverAParent() throws {
         let youth = scout("Casey", "Candidate", unitName: "Troop1234", leader: "Lee Leader")
         let leader = adult("Lee", "Leader", unitName: "Troop1234")

@@ -207,11 +207,10 @@ final class AppModel {
     private static func describe(serverError error: Error, port: Int) -> String {
         let text = String(describing: error)
         if text.contains("Address already in use") {
-            return "Port \(port) is already in use by another program. "
-                + "Quit that program (the Java Eagle Board Scheduler also uses 8080), or choose another port in Settings."
+            return LaunchSettings.portInUse(port)
         }
         if text.contains("Permission denied") {
-            return "macOS would not let Eagle Boards listen on port \(port). Choose a port above 1024 in Settings."
+            return LaunchSettings.portRefused(port)
         }
         return "The sign-in station could not start: \(error.localizedDescription)"
     }
@@ -567,8 +566,7 @@ final class AppModel {
             return false
         }
         guard room.isFree else {
-            message = Message(title: "Room \(room.name) is in use.",
-                              text: "\(room.scoutName.shownValue)'s board is in room \(room.name). Choose a free room.")
+            message = Message(title: "Room \(room.name) is in use.", text: BoardEvent.roomIsTaken(room))
             return false
         }
         selectYouth(scoutID)
@@ -783,12 +781,11 @@ final class AppModel {
         undoManager.setActionName(name)
     }
 
-    /// An undone or redone room change selects the room, by whichever of
-    /// these IDs it has now, so the operator sees what changed on the Event
-    /// or Rooms page.
-    private static func revealRoom(_ ids: Room.ID...) -> (AppModel) -> Void {
+    /// An undone or redone room change selects the room, while it is there,
+    /// so the operator sees what changed on the Event or Rooms page.
+    private static func revealRoom(_ id: Room.ID) -> (AppModel) -> Void {
         { model in
-            if let id = ids.first(where: { model.event?.room(id: $0) != nil }) { model.selectedRoomID = id }
+            if model.event?.room(id: id) != nil { model.selectedRoomID = id }
         }
     }
 
@@ -848,11 +845,13 @@ final class AppModel {
 
     func addRoom(named name: String, boardType: BoardType) throws {
         guard let event else { return }
-        try event.addRoom(named: name, boardType: boardType)
-        let id = Room.roomID(for: name.trimmingCharacters(in: .whitespacesAndNewlines))
+        let id = try event.addRoom(named: name, boardType: boardType)
+        guard let added = event.room(id: id) else { return }
+        // Redo puts back this record, ID and all, so the next Undo removes
+        // the same room.
         registerUndo("Add Room", on: event,
                      undo: { try $0.removeRoom(id: id) },
-                     redo: { try $0.addRoom(named: name, boardType: boardType) },
+                     redo: { try $0.restoreRoom(added) },
                      reveal: Self.revealRoom(id))
     }
 
@@ -880,30 +879,27 @@ final class AppModel {
     func removeSelectedRoom() {
         guard let room = selectedRoom else { return }
         guard room.isFree else {
-            message = Message(title: "Room \(room.name) is in use.",
-                              text: "\(room.scoutName.shownValue)'s board is in room \(room.name). A room in use cannot be removed.")
+            message = Message(title: "Room \(room.name) is in use.", text: BoardEvent.roomHasABoard(room.name))
             return
         }
-        let boardType = room.boardType ?? .finalBoard
         if change("Remove Room", failure: "Could Not Remove Room \(room.name)",
                   { try $0.removeRoom(id: room.id) },
-                  undo: { try $0.addRoom(named: room.name, boardType: boardType) },
+                  undo: { try $0.restoreRoom(room) },
                   reveal: Self.revealRoom(room.id)) {
             tidySelection()
         }
     }
 
-    /// Rename a room, for the Rename sheet. Returns its new ID.
-    func renameRoom(_ id: Room.ID, to newName: String) throws -> Room.ID {
-        guard let event, let oldName = event.room(id: id)?.name else { return id }
-        let newID = try event.renameRoom(id: id, to: newName)
-        roomRenamed(from: id, to: newID)
-        guard newID != id else { return newID }
+    /// Rename a room, for the Rename sheet. The room keeps its ID.
+    func renameRoom(_ id: Room.ID, to newName: String) throws {
+        guard let event, let oldName = event.room(id: id)?.name else { return }
+        try event.renameRoom(id: id, to: newName)
+        // Renaming a room to its own name changes nothing, and has nothing to undo.
+        guard event.room(id: id)?.name != oldName else { return }
         registerUndo("Rename Room", on: event,
-                     undo: { try $0.renameRoom(id: newID, to: oldName) },
+                     undo: { try $0.renameRoom(id: id, to: oldName) },
                      redo: { try $0.renameRoom(id: id, to: newName) },
-                     reveal: Self.revealRoom(newID, id))
-        return newID
+                     reveal: Self.revealRoom(id))
     }
 
     /// Move a board to another room, or swap two boards, for the Move Board
@@ -926,12 +922,6 @@ final class AppModel {
                { try $0.setBoardType(boardType, forRoom: roomID) },
                undo: { try $0.setBoardType(old, forRoom: roomID) },
                reveal: Self.revealRoom(roomID))
-    }
-
-    /// After a rename the room keeps its record but not necessarily its ID.
-    func roomRenamed(from oldID: Room.ID, to newID: Room.ID) {
-        if selectedRoomID == oldID { selectedRoomID = newID }
-        drafts.roomRenamed(from: oldID, to: newID)
     }
 
     // MARK: - SignUpGenius
@@ -970,14 +960,7 @@ final class AppModel {
             let signup = try await client.findActiveSignup(today: event.date)
             let entries = try await client.filledSlots(signupID: signup.id)
             let summary = try event.mergeSignUps(entries, month: String(event.date.prefix(7)))
-            var lines = [
-                "\(summary.addedYouth) youth pre-registered, \(summary.alreadyScheduledYouth) already were.",
-                "\(summary.addedAdults) adults added to the history, \(summary.updatedAdults) updated.",
-            ]
-            if summary.skippedDuplicateAdults > 0 {
-                lines.append("\(summary.skippedDuplicateAdults) skipped: their email is on more than one history record.")
-            }
-            showImportReport(Message(title: "Imported \(signup.title)", text: lines.joined(separator: "\n")))
+            showImportReport(Message(title: "Imported \(signup.title)", text: summary.report))
         } catch {
             showImportReport(Message(title: "Could Not Import Sign-Ups from SignUpGenius", text: error.localizedDescription))
         }

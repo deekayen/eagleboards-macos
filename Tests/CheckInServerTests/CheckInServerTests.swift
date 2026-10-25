@@ -69,7 +69,7 @@ struct CheckInServerTests {
         "/youth-cells?cols=Email,Phone,DOB", "/adult-cells", "/adult-history-cells", "/room-cells",
         "/youth-cells?cols=Last&filter=Phone~555-0101", "/youth-cells?cols=Last&filter=DOB~2011-02-03",
         "/youth-scheduled-cells?cols=Last,Phone", "/youth-scheduled-cells?cols=Last,Phone&fmt=csv&filename=Youth.csv",
-        "/adult-autofill?op=list", "/youth-autofill?op=list", "/config-autofill?Name=DEFAULT",
+        "/adult-autofill", "/adult-autofill?op=list", "/youth-autofill?op=list", "/config-autofill?Name=DEFAULT",
         "/youth-autofill?Email=Lena.Lookup@Example.org&fmt=json",
         "/../Package.swift", "/checkin.js/../../Package.swift", "/index.html",
     ])

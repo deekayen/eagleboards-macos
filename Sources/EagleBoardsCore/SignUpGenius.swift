@@ -64,7 +64,7 @@ public struct SignUpGeniusClient: Sendable {
                 return Signup(id: Self.text(signup["signupid"]), title: title)
             }
         }
-        throw EventError("SignUpGenius has no active Eagle board sign-up covering \(today).")
+        throw EventError("SignUpGenius has no active Eagle board sign-up covering \(Timestamp.shownDate(today)).")
     }
 
     /// Every filled slot in the sign-up.
@@ -92,15 +92,30 @@ public struct SignUpGeniusClient: Sendable {
         do {
             response = try await session.data(from: components.url!)
         } catch {
-            throw EventError("Could not reach SignUpGenius: \(error.localizedDescription)")
+            // The system's reason (offline, timed out, no such host) is kept:
+            // the Mac keeps no log, so it is the only clue there is.
+            let reason = error.localizedDescription
+            let ended = reason.last.map { ".!?".contains($0) } ?? false
+            throw EventError("Couldn't reach SignUpGenius: \(reason)\(ended ? "" : ".") "
+                + "Check the internet connection, and then import again.")
         }
         if let http = response.1 as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
-            throw EventError("SignUpGenius answered with HTTP \(http.statusCode). Check the API key in Settings.")
+            throw EventError(Self.problem(forStatus: http.statusCode))
         }
         guard let json = try? JSONSerialization.jsonObject(with: response.0) as? [String: Any] else {
-            throw EventError("SignUpGenius sent something that is not JSON.")
+            throw EventError("SignUpGenius sent the sign-ups in a form Eagle Boards doesn't recognize.")
         }
         return json
+    }
+
+    /// What a refused request says. Only a 401 or 403 is the key's fault; a
+    /// 429 or a 500 is SignUpGenius having trouble, and sending the operator
+    /// to Settings for it would have them change a key that works. The
+    /// status number stays out of it, as in the Windows version.
+    public static func problem(forStatus code: Int) -> String {
+        code == 401 || code == 403
+            ? "SignUpGenius didn't accept the API key. Check the key in Settings › SignUpGenius, and then import again."
+            : "SignUpGenius couldn't send the sign-ups just now. Try the import again later."
     }
 
     /// JSON values as text, the way Jackson's `asText()` gave them to the Java app.
