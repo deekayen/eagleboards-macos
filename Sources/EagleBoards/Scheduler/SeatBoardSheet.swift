@@ -17,6 +17,7 @@ struct SeatBoardSheet: View {
     @State private var roomID: String?
     @State private var chairID: String?
     @State private var acknowledged: Set<String> = []
+    @State private var problem: String?
 
     var body: some View {
         if let youth = event.scout(id: scoutID) {
@@ -122,23 +123,31 @@ struct SeatBoardSheet: View {
                 }
                 .formStyle(.grouped)
 
-                HStack {
-                    Spacer()
-                    Button("Cancel", role: .cancel) { dismiss() }
-                        .keyboardShortcut(.cancelAction)
-                    Button("Seat Board") {
-                        guard let roomID, let chairID else { return }
-                        if model.seat(scoutID: youth.id, roomID: roomID, chairID: chairID, memberIDs: members.map(\.id)) {
-                            dismiss()
-                        }
+                VStack(alignment: .leading, spacing: 10) {
+                    if let problem {
+                        SheetProblem(text: problem)
                     }
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(!review.canSeat || !chairIsQualified || !warningsCleared)
+                    HStack {
+                        Spacer()
+                        Button("Cancel", role: .cancel) { dismiss() }
+                            .keyboardShortcut(.cancelAction)
+                        Button("Seat Board") {
+                            guard let roomID, let chairID else { return }
+                            do {
+                                try model.seat(scoutID: youth.id, roomID: roomID, chairID: chairID, memberIDs: members.map(\.id))
+                                dismiss()
+                            } catch {
+                                problem = error.localizedDescription
+                            }
+                        }
+                        .keyboardShortcut(.defaultAction)
+                        .disabled(!review.canSeat || !chairIsQualified || !warningsCleared)
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 20)
             }
-            .frame(width: 560, height: 640)
+            .boardSheetFrame()
             .onAppear {
                 roomID = model.drafts[scoutID]?.roomID
                     ?? event.rooms.first { $0.isFree && $0.boardType == youth.boardType }?.id
@@ -149,9 +158,10 @@ struct SeatBoardSheet: View {
                     chairID = chairs.first
                 }
             }
+            // A refusal is about the room and chair it was given.
+            .onChange(of: [roomID, chairID]) { problem = nil }
         } else {
-            ContentUnavailableView("That youth is no longer on the list", systemImage: "person.crop.circle.badge.xmark")
-                .frame(width: 420, height: 240)
+            SheetUnavailable(title: "That Youth Is No Longer on the List", text: "Nothing was seated.")
         }
     }
 
@@ -193,8 +203,6 @@ struct SheetLayout<Fields: View, Buttons: View>: View {
 
             Form { fields }
                 .formStyle(.grouped)
-                .scrollDisabled(true)
-                .fixedSize(horizontal: false, vertical: true)
 
             HStack {
                 Spacer()
@@ -204,6 +212,65 @@ struct SheetLayout<Fields: View, Buttons: View>: View {
             .padding(.bottom, 20)
         }
         .frame(width: width)
+        // As tall as the fields need, until the screen runs out: then they
+        // scroll, and the buttons stay in view.
+        .frame(maxHeight: SheetHeight.available)
+    }
+}
+
+/// How tall a sheet can be on the scheduler's screen. It hangs below the
+/// window's toolbar, so at a low scaled resolution a tall sheet would run off
+/// the bottom of the screen, its buttons with it.
+@MainActor
+enum SheetHeight {
+    static var available: CGFloat {
+        let app = NSApplication.shared
+        let screen = app.keyWindow?.screen ?? app.mainWindow?.screen ?? NSScreen.main
+        // Room for the title bar and toolbar above the sheet.
+        return max(240, (screen?.visibleFrame.height ?? 800) - 80)
+    }
+}
+
+extension View {
+    /// Seat Board's and Change Members' size: 640 points tall where the
+    /// screen has room, shorter where it does not, with the form scrolling.
+    func boardSheetFrame() -> some View {
+        let available = SheetHeight.available
+        return frame(width: 560)
+            .frame(minHeight: min(400, available), idealHeight: min(640, available), maxHeight: available)
+    }
+}
+
+/// A refusal from the step a sheet's button took, shown in the sheet. An
+/// alert would wait behind the sheet until it closed.
+struct SheetProblem: View {
+    let text: String
+
+    var body: some View {
+        Label(text, systemImage: "xmark.octagon.fill")
+            .foregroundStyle(.red)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// What Seat Board or Change Members shows when its youth is gone, or has
+/// no board type: why, and the way out.
+struct SheetUnavailable: View {
+    @Environment(\.dismiss) private var dismiss
+    let title: String
+    let text: String
+
+    var body: some View {
+        ContentUnavailableView {
+            Label(title, systemImage: "person.crop.circle.badge.xmark")
+        } description: {
+            Text(text)
+        } actions: {
+            Button("Close") { dismiss() }
+                .keyboardShortcut(.defaultAction)
+        }
+        .frame(width: 420, height: 240)
     }
 }
 
@@ -216,6 +283,7 @@ struct CompleteBoardSheet: View {
 
     @State private var result: BoardResult = .approved
     @State private var notes = ""
+    @State private var problem: String?
 
     var body: some View {
         let youth = event.scout(id: scoutID)
@@ -235,18 +303,26 @@ struct CompleteBoardSheet: View {
                 .pickerStyle(.radioGroup)
                 TextField("Notes", text: $notes, prompt: Text("Optional"), axis: .vertical)
                     .lineLimit(3...8)
+            } footer: {
+                if let problem {
+                    SheetProblem(text: problem)
+                }
             }
         } buttons: {
             Button("Cancel", role: .cancel) { dismiss() }
                 .keyboardShortcut(.cancelAction)
             Button("Complete") {
-                if model.complete(scoutID: scoutID, result: result, notes: notes.trimmingCharacters(in: .whitespacesAndNewlines)) {
+                do {
+                    try model.complete(scoutID: scoutID, result: result, notes: notes.trimmingCharacters(in: .whitespacesAndNewlines))
                     dismiss()
+                } catch {
+                    problem = error.localizedDescription
                 }
             }
             .keyboardShortcut(.defaultAction)
             .disabled(youth?.status != .inProgress)
         }
+        .onChange(of: result) { problem = nil }
     }
 }
 
@@ -344,6 +420,7 @@ struct SwapRoomsSheet: View {
 
     @State private var secondRoomID: String?
     @State private var mixedTypesConfirmed = false
+    @State private var problem: String?
 
     var body: some View {
         let first = event.room(id: firstRoomID)
@@ -367,19 +444,27 @@ struct SwapRoomsSheet: View {
                     Toggle("Room \(first.name) is for \(first.boardType?.label ?? "?") and room \(second.name) is for "
                         + "\(second.boardType?.label ?? "?"). Move anyway", isOn: $mixedTypesConfirmed)
                 }
+            } footer: {
+                if let problem {
+                    SheetProblem(text: problem)
+                }
             }
         } buttons: {
             Button("Cancel", role: .cancel) { dismiss() }
                 .keyboardShortcut(.cancelAction)
             Button(second?.isFree == false ? "Swap" : "Move") {
                 guard let secondRoomID else { return }
-                if model.swapRooms(firstRoomID, secondRoomID) {
+                do {
+                    try model.swapRooms(firstRoomID, secondRoomID)
                     dismiss()
+                } catch {
+                    problem = error.localizedDescription
                 }
             }
             .keyboardShortcut(.defaultAction)
             .disabled(second == nil || (mixedTypes && !mixedTypesConfirmed))
         }
+        .onChange(of: secondRoomID) { problem = nil }
     }
 
     private func describe(_ room: Room) -> String {

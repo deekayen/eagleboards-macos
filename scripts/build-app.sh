@@ -54,7 +54,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>LSMinimumSystemVersion</key>       <string>14.0</string>
     <key>LSApplicationCategoryType</key>    <string>public.app-category.productivity</string>
     <key>NSHighResolutionCapable</key>      <true/>
-    <key>NSHumanReadableCopyright</key>     <string>Licensed under the Apache License, Version 2.0.</string>
+    <key>NSHumanReadableCopyright</key>     <string>Copyright 2026 David Norman. Apache License 2.0.</string>
     <key>NSLocalNetworkUsageDescription</key>
     <string>Eagle Boards serves the sign-in page to tablets at the door over your local network.</string>
 </dict>

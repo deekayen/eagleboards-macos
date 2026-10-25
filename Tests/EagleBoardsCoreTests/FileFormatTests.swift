@@ -198,6 +198,18 @@ struct TimestampTests {
         #expect(Timestamp.minutesSince(recordStamp: "yesterday", now: later) == nil)
     }
 
+    /// The overdue check and the Dock badge run at the top of each minute,
+    /// the moment a timer counted from a record stamp goes up.
+    @Test func theNextMinuteIsWhenATimerNextGoesUp() throws {
+        let stamped = try #require(Timestamp.date(fromRecordStamp: "2026-09-22_19:05-0400"))
+        let next = Timestamp.nextMinute(after: stamped.addingTimeInterval(30))
+        #expect(next == stamped.addingTimeInterval(60))
+        #expect(Timestamp.nextMinute(after: stamped) == stamped.addingTimeInterval(60), "on the minute, the next one")
+        #expect(Timestamp.nextMinute(after: stamped.addingTimeInterval(59.9)) == stamped.addingTimeInterval(60))
+        #expect(Timestamp.minutesSince(recordStamp: "2026-09-22_19:05-0400", now: next) == 1)
+        #expect(Timestamp.minutesSince(recordStamp: "2026-09-22_19:05-0400", now: next.addingTimeInterval(-0.001)) == 0)
+    }
+
     @Test func dayStampsNameEventFolders() {
         #expect(Timestamp.isDayStamp("2026-09-22"))
         #expect(!Timestamp.isDayStamp("2026-9-22"))

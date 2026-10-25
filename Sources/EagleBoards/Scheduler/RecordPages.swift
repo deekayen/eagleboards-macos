@@ -62,7 +62,10 @@ struct PreRegisteredPage: View {
         .onDeleteCommand(perform: selection.map { id in { model.confirmDeleteYouth(id, scheduled: true) } })
         .overlay {
             if rows.isEmpty {
-                if model.searchText.isEmpty {
+                if model.searchText.isEmpty && model.isImporting {
+                    ContentUnavailableView("Importing Sign-Ups…", systemImage: "square.and.arrow.down",
+                                           description: Text("The youth who signed up for today appear here once SignUpGenius answers."))
+                } else if model.searchText.isEmpty {
                     ContentUnavailableView("No Pre-Registrations", systemImage: "calendar",
                                            description: Text("File › Import Sign-Ups from SignUpGenius brings in the youth who signed up for today."))
                 } else {

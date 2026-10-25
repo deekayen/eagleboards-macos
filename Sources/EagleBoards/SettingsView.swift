@@ -2,21 +2,37 @@ import EagleBoardsCore
 import SwiftUI
 
 struct SettingsView: View {
+    /// The pane last shown, brought back when Settings opens again.
+    @AppStorage("settingsPane") private var pane = "general"
+    /// A failure in Settings is said here, over the Settings window. The
+    /// scheduler's alerts would open behind it, or wait for that window.
+    @State private var problem: AppModel.Message?
+
     var body: some View {
-        TabView {
-            GeneralSettings()
+        TabView(selection: $pane) {
+            GeneralSettings(problem: $problem)
                 .tabItem { Label("General", systemImage: "gearshape") }
-            TimerSettings()
+                .tag("general")
+            TimerSettings(problem: $problem)
                 .tabItem { Label("Timers", systemImage: "timer") }
-            SignUpGeniusSettings()
+                .tag("timers")
+            SignUpGeniusSettings(problem: $problem)
                 .tabItem { Label("SignUpGenius", systemImage: "square.and.arrow.down") }
+                .tag("signUpGenius")
         }
         .frame(width: 560)
+        .alert(problem?.title ?? "", isPresented: Binding(get: { problem != nil }, set: { if !$0 { problem = nil } }),
+               presenting: problem) { _ in
+            Button("OK", role: .cancel) {}
+        } message: { problem in
+            Text(problem.text)
+        }
     }
 }
 
 private struct GeneralSettings: View {
     @Environment(AppModel.self) private var model
+    @Binding var problem: AppModel.Message?
     @State private var portText = ""
 
     var body: some View {
@@ -50,11 +66,12 @@ private struct GeneralSettings: View {
                     .onSubmit(applyPort)
                     .frame(maxWidth: 200)
                 Button("Apply") { applyPort() }
-                    .disabled(Int(portText) == model.port || Int(portText) == nil)
+                    .disabled(LaunchSettings.port(from: portText) == model.port)
             } header: {
                 Text("Sign-in station")
             } footer: {
-                Text("Tablets connect to this port. 8080 is the usual choice; change it only if another program already uses it.")
+                Text("Tablets connect to this port, a number from \(Self.portRange). 8080 is the usual choice; "
+                    + "change it only if another program already uses it.")
                     .foregroundStyle(.secondary)
             }
         }
@@ -62,9 +79,15 @@ private struct GeneralSettings: View {
         .onAppear { portText = String(model.port) }
     }
 
+    private static let portRange = "\(LaunchSettings.allowedPorts.lowerBound) to \(LaunchSettings.allowedPorts.upperBound)"
+
+    /// A port that will not do is said, and left as typed to correct.
     private func applyPort() {
-        guard let port = Int(portText), (1024...65535).contains(port) else {
-            portText = String(model.port)
+        guard let port = LaunchSettings.port(from: portText) else {
+            let typed = portText.trimmingCharacters(in: .whitespaces)
+            problem = AppModel.Message(
+                title: "Choose a port from \(Self.portRange).",
+                text: (typed.isEmpty ? "" : "“\(typed)” is not one. ") + "The sign-in station stays on port \(model.port).")
             return
         }
         model.port = port
@@ -75,6 +98,7 @@ private struct GeneralSettings: View {
 /// someone to check on the room, and nothing stops a board that needs longer.
 private struct TimerSettings: View {
     @Environment(AppModel.self) private var model
+    @Binding var problem: AppModel.Message?
 
     var body: some View {
         if let event = model.event {
@@ -128,7 +152,11 @@ private struct TimerSettings: View {
             set: { newValue in
                 var edited = event.config
                 edited[keyPath: keyPath] = newValue
-                model.attempt("Could not save the settings") { try event.updateConfig(edited) }
+                do {
+                    try event.updateConfig(edited)
+                } catch {
+                    problem = AppModel.Message(title: "Could Not Save the Timers", text: error.localizedDescription)
+                }
             }
         )
     }
@@ -136,6 +164,7 @@ private struct TimerSettings: View {
 
 private struct SignUpGeniusSettings: View {
     @Environment(AppModel.self) private var model
+    @Binding var problem: AppModel.Message?
     @State private var key = ""
     @State private var saved = false
 
@@ -147,6 +176,15 @@ private struct SignUpGeniusSettings: View {
                 HStack {
                     Button("Save Key") {
                         saved = model.saveSignUpGeniusKey(key)
+                        if !saved {
+                            problem = AppModel.Message(
+                                title: "Could Not Save the Key in Your Keychain",
+                                text: "macOS would not store the SignUpGenius key. "
+                                    + (model.hasSignUpGeniusKey
+                                        ? "The key saved before is still there."
+                                        : "No key is saved now, so sign-ups cannot be imported until one is.")
+                                    + " Try Save Key again.")
+                        }
                     }
                     .disabled(!model.signUpGeniusAllowed)
                     if saved {
@@ -169,8 +207,20 @@ private struct SignUpGeniusSettings: View {
             }
             Section {
                 Toggle("Import when today's event is opened", isOn: $model.importOnOpen)
-                Button("Import Now") { Task { await model.importSignUps() } }
+                HStack {
+                    // The import reports in the scheduler window, so it comes
+                    // forward to show it.
+                    Button("Import Now") {
+                        model.openScheduler()
+                        Task { await model.importSignUps() }
+                    }
                     .disabled(model.event == nil || model.isImporting || !model.hasSignUpGeniusKey)
+                    if model.isImporting {
+                        ProgressView()
+                            .controlSize(.small)
+                            .accessibilityLabel("Importing sign-ups from SignUpGenius")
+                    }
+                }
             }
         }
         .formStyle(.grouped)

@@ -12,7 +12,7 @@ struct YouthInspector: View {
     var body: some View {
         if let youth = model.selectedYouth {
             ScrollViewReader { scroller in
-                TimelineView(.periodic(from: .now, by: 20)) { timeline in
+                TimelineView(.everyMinute) { timeline in
                     Form {
                         YouthHeader(youth: youth, event: event, now: timeline.date)
                         switch youth.status {
@@ -139,14 +139,14 @@ private struct DraftBoardSections: View {
                     Button("Start Over") { model.suggestBoard() }
                         .help("Replace this board with a proposed chair, members and room")
                     Button("Fill the Rest") { model.fillDraft() }
-                        .help("Keep the members you've chosen and add a chair and members to complete the board")
+                        .help("Keep who you chose and add a chair and members to complete the board")
                     Button("Clear") { model.clearDraft() }
                         .disabled(members.isEmpty)
                 }
                 HStack {
                     Button("Postpone", role: .destructive) { model.postpone() }
                         .buttonStyle(.link)
-                        .help("Put this board off to another event, for example when the paperwork is not ready")
+                        .help("Put this board off to another event, as when the paperwork is not ready")
                     Spacer()
                     Button(BoardStep.seat.title) { model.beginSeating() }
                         .buttonStyle(.borderedProminent)
@@ -277,7 +277,7 @@ private struct ReviewNotes: View {
 }
 
 /// Adults free to sit on this kind of board, chairs first. Click one to put
-/// them on the board; type to find someone.
+/// them on the board; type to find someone, and Return adds the first found.
 private struct FreeAdultsSection: View {
     @Environment(AppModel.self) private var model
     let youth: Scout
@@ -301,6 +301,9 @@ private struct FreeAdultsSection: View {
         Section("Free for a \(boardType.label) (\(free.count))") {
             TextField("Find an adult", text: $search, prompt: Text("Name or unit"))
                 .labelsHidden()
+                // Only once something is typed: Return in the empty field
+                // would otherwise add whoever heads the list.
+                .onSubmit { if !query.isEmpty, let first = free.first { add(first) } }
             if free.isEmpty {
                 Text(query.isEmpty ? "Everyone who could sit is on a board." : "No free adult matches.")
                     .foregroundStyle(.secondary)
@@ -468,7 +471,7 @@ private struct WithThemSection: View {
                 .menuStyle(.borderlessButton)
                 .fixedSize()
                 .disabled(others.isEmpty)
-                .help("Link the adult who will introduce \(youth.shownFullName) to their board, if they did not say so at sign-in")
+                .help("Link the adult who will introduce \(youth.first.shownValue) to their board")
             }
         }
     }

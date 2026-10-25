@@ -140,9 +140,11 @@ struct EagleBoardsCommands: Commands {
         }
         // Below Close, where a Mac app keeps import and export.
         CommandGroup(after: .importExport) {
-            Button("Import Sign-Ups from SignUpGenius") { Task { await model.importSignUps() } }
-                .keyboardShortcut("i")
-                .disabled(model.event == nil || model.isImporting)
+            Button(model.isImporting ? "Importing Sign-Ups…" : "Import Sign-Ups from SignUpGenius") {
+                Task { await model.importSignUps() }
+            }
+            .keyboardShortcut("i")
+            .disabled(model.event == nil || model.isImporting)
             Button("Export Board Results…") { model.exportReport() }
                 .keyboardShortcut("e")
                 .disabled(model.event == nil)

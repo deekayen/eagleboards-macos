@@ -17,7 +17,7 @@ struct YouthList: View {
         let found = event.scouts
         let selection = Binding(get: { model.selectedYouthID }, set: { model.selectYouth($0) })
 
-        TimelineView(.periodic(from: .now, by: 20)) { timeline in
+        TimelineView(.everyMinute) { timeline in
             List(selection: selection) {
                 section(.waiting, of: found, now: timeline.date)
                 section(.onBoard, of: found, now: timeline.date)

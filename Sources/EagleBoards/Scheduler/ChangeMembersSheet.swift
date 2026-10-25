@@ -15,6 +15,10 @@ struct ChangeMembersSheet: View {
     @State private var chairID: String?
     @State private var acknowledged: Set<String> = []
     @State private var search = ""
+    @State private var problem: String?
+    /// While Find an adult has the cursor, Return adds the first match
+    /// rather than pressing Save Changes.
+    @FocusState private var findFocused: Bool
 
     var body: some View {
         if let youth = event.scout(id: scoutID), let boardType = youth.boardType {
@@ -105,27 +109,36 @@ struct ChangeMembersSheet: View {
                         }
                     }
 
-                    FreeAdultsToAddSection(youth: youth, event: event, boardType: boardType, memberIDs: $memberIDs, search: $search)
+                    FreeAdultsToAddSection(youth: youth, event: event, boardType: boardType, memberIDs: $memberIDs,
+                                           search: $search, findFocused: $findFocused)
                 }
                 .formStyle(.grouped)
 
-                HStack {
-                    Spacer()
-                    Button("Cancel", role: .cancel) { dismiss() }
-                        .keyboardShortcut(.cancelAction)
-                    Button("Save Changes") {
-                        guard let chairID else { return }
-                        if model.changeMembers(scoutID: youth.id, chairID: chairID, memberIDs: memberIDs) {
-                            dismiss()
-                        }
+                VStack(alignment: .leading, spacing: 10) {
+                    if let problem {
+                        SheetProblem(text: problem)
                     }
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(!review.canApply || !chairIsQualified || !warningsCleared)
+                    HStack {
+                        Spacer()
+                        Button("Cancel", role: .cancel) { dismiss() }
+                            .keyboardShortcut(.cancelAction)
+                        Button("Save Changes") {
+                            guard let chairID else { return }
+                            do {
+                                try model.changeMembers(scoutID: youth.id, chairID: chairID, memberIDs: memberIDs)
+                                dismiss()
+                            } catch {
+                                problem = error.localizedDescription
+                            }
+                        }
+                        .keyboardShortcut(findFocused ? nil : .defaultAction)
+                        .disabled(!review.canApply || !chairIsQualified || !warningsCleared)
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 20)
             }
-            .frame(width: 560, height: 640)
+            .boardSheetFrame()
             .onAppear {
                 memberIDs = youth.boardMembers(among: event.adults).members.map(\.id)
                 chairID = youth.boardChairID.isEmpty ? nil : youth.boardChairID
@@ -135,21 +148,27 @@ struct ChangeMembersSheet: View {
                     chairID = chairs.first
                 }
             }
+            // A refusal is about the members and chair it was given.
+            .onChange(of: memberIDs + [chairID ?? ""]) { problem = nil }
+        } else if let youth = event.scout(id: scoutID) {
+            SheetUnavailable(title: "\(youth.shownFullName) Has No Board Type",
+                             text: "Choose Final Board or Proposal Review for them on the Youth page. Nothing was changed.")
         } else {
-            ContentUnavailableView("That youth is no longer on a board", systemImage: "person.crop.circle.badge.xmark")
-                .frame(width: 420, height: 240)
+            SheetUnavailable(title: "That Youth Is No Longer on the List", text: "Nothing was changed.")
         }
     }
 }
 
 /// Adults free to join this board, plus its own members not yet checked
-/// again after being removed by hand. Click one to add them.
+/// again after being removed by hand. Click one to add them, or press Return
+/// in Find an adult to add the first one found.
 private struct FreeAdultsToAddSection: View {
     let youth: Scout
     let event: BoardEvent
     let boardType: BoardType
     @Binding var memberIDs: [String]
     @Binding var search: String
+    let findFocused: FocusState<Bool>.Binding
 
     var body: some View {
         let query = search.trimmingCharacters(in: .whitespaces)
@@ -166,6 +185,10 @@ private struct FreeAdultsToAddSection: View {
         Section("Free for a \(boardType.label) (\(candidates.count))") {
             TextField("Find an adult", text: $search, prompt: Text("Name or unit"))
                 .labelsHidden()
+                .focused(findFocused)
+                // Only once something is typed: Return in the empty field
+                // would otherwise add whoever heads the list.
+                .onSubmit { if !query.isEmpty, let first = candidates.first { add(first) } }
             if candidates.isEmpty {
                 Text(query.isEmpty ? "Everyone who could sit is on a board." : "No free adult matches.")
                     .foregroundStyle(.secondary)

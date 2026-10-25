@@ -26,7 +26,7 @@ struct RoomsGrid: View {
                         .padding([.horizontal, .top], 12)
                         .accessibilityAddTraits(.updatesFrequently)
                 }
-                TimelineView(.periodic(from: .now, by: 20)) { timeline in
+                TimelineView(.everyMinute) { timeline in
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 10)], spacing: 10) {
                         ForEach(rooms) { room in
                             RoomCard(room: room, event: event, now: timeline.date, isSelected: room.id == model.selectedRoomID)
@@ -286,7 +286,7 @@ struct CopyRoomsItems: View {
         }
         .fixedSize()
         .disabled(earlierEvents.isEmpty)
-        .help("Add the rooms from an earlier event, empty. Rooms already here are skipped.")
+        .help("Add an earlier event's rooms, empty, except those already here")
     }
 }
 

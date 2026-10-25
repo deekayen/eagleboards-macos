@@ -54,6 +54,13 @@ public enum Timestamp {
         return Int(now.timeIntervalSince(then) / 60)
     }
 
+    /// The start of the minute after `date`. Record stamps fall on whole
+    /// minutes, so this is when every room timer next goes up by one, and
+    /// when the overdue check next has anything new to find (SPEC.md D-15).
+    public static func nextMinute(after date: Date) -> Date {
+        Date(timeIntervalSince1970: (date.timeIntervalSince1970 / 60).rounded(.down) * 60 + 60)
+    }
+
     /// `19:05` out of a record stamp, for the sign-in list.
     public static func hourMinute(ofRecordStamp stamp: String) -> String {
         let characters = Array(stamp)

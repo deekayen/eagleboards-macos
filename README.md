@@ -118,9 +118,10 @@ from the youth's own unit. The member who will chair it reads **Chair**; anyone
 else on it who may chair reads **Can Chair**.
 
 Change the board in the inspector: click an adult in the free list below it
-to add them (**Find an adult** narrows the list), and **−** takes one off. In
-the **Adults** page you can also Command-click several adults and choose
-**Adult › Add to Board** (**⌘B**), or drag them onto the board. To hand the
+to add them (**Find an adult** narrows the list, and **Return** adds the first
+one), and **−** takes one off. In the **Adults** page you can also
+Command-click several adults and choose **Adult › Add to Board** (**⌘B**), or
+drag them onto the board. To hand the
 chair to someone who reads **Can Chair**, right-click them and choose **Make
 Chair**, or select them on the **Adults** page and choose **Adult › Make
 Chair**. **Fill the Rest** keeps who you chose and adds a chair, if none of
@@ -250,10 +251,10 @@ disabling an adult, or a change to the rooms from the Event page. It is refused
 once the room or a member has been given to another board.
 
 The Dock icon shows how many youth are waiting, and a notification tells you
-when a room goes overdue while you are in another app. If you close the
-scheduler or the sign-in code, **Window › Scheduler** (**⌘1**) or **Window ›
-Sign-In Code** (**⌘3**) brings it back, and so does the Dock icon's menu
-(Control-click the icon).
+when a room goes overdue while you are in another app, with the scheduler
+window open or closed. If you close the scheduler or the sign-in code,
+**Window › Scheduler** (**⌘1**) or **Window › Sign-In Code** (**⌘3**) brings it
+back, and so does the Dock icon's menu (Control-click the icon).
 
 ## If something goes wrong
 

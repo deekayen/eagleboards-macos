@@ -18,6 +18,32 @@ struct SchedulerWindow: View {
         .frame(minWidth: 900, minHeight: 560)
         // For the model's commands, which can run with this window closed.
         .onAppear { model.openWindow = { [openWindow] id in openWindow(id: id) } }
+        .background(WindowReader { [weak model] in model?.schedulerWindow = $0 })
+    }
+}
+
+/// Hands over the AppKit window it is drawn in, for the save and open
+/// panels, which SwiftUI cannot attach to a window itself.
+private struct WindowReader: NSViewRepresentable {
+    let found: @MainActor (NSWindow) -> Void
+
+    func makeNSView(context: Context) -> ReaderView { ReaderView(found: found) }
+    func updateNSView(_ view: ReaderView, context: Context) {}
+
+    final class ReaderView: NSView {
+        let found: @MainActor (NSWindow) -> Void
+
+        init(found: @escaping @MainActor (NSWindow) -> Void) {
+            self.found = found
+            super.init(frame: .zero)
+        }
+
+        required init?(coder: NSCoder) { nil }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            if let window { found(window) }
+        }
     }
 }
 

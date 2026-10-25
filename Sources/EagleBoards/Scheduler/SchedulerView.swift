@@ -79,13 +79,6 @@ struct SchedulerView: View {
             .messageAlert()
             .onChange(of: BoardDrafts.fingerprint(of: event)) { model.refreshProposals() }
             .onAppear { model.undoManager = undoManager }
-            .onChange(of: model.waitingCount, initial: true) { model.attention.showWaiting(model.waitingCount) }
-            .task(id: event.date) {
-                while !Task.isCancelled {
-                    model.checkRoomTimers()
-                    try? await Task.sleep(for: .seconds(30))
-                }
-            }
             .onChange(of: undoManager) { model.undoManager = undoManager }
     }
 
@@ -169,9 +162,19 @@ struct SchedulerView: View {
             Button {
                 Task { await model.importSignUps() }
             } label: {
-                Label("Import Sign-Ups", systemImage: "square.and.arrow.down")
+                if model.isImporting {
+                    Label {
+                        Text("Importing Sign-Ups…")
+                    } icon: {
+                        ProgressView().controlSize(.small)
+                    }
+                } else {
+                    Label("Import Sign-Ups", systemImage: "square.and.arrow.down")
+                }
             }
-            .help("Import today's pre-registrations and adult sign-ups from SignUpGenius")
+            .help(model.isImporting
+                ? "Importing sign-ups from SignUpGenius…"
+                : "Import today's pre-registrations and adult sign-ups from SignUpGenius")
             .disabled(model.isImporting)
 
             Button {
@@ -273,9 +276,9 @@ struct NextStepButton: View {
 
     private func help(for step: BoardStep?) -> String {
         switch step {
-        case .seat: "Put the board members in a room to read the paperwork. The youth waits outside until Start Review."
-        case .startReview: "Bring the youth into the room and begin the review, once the members are done reading."
-        case .complete: "Finish the review and record the result."
+        case .seat: "Put the members in the room to read the paperwork; the youth waits outside"
+        case .startReview: "Bring the youth into the room, once the members have finished reading"
+        case .complete: "Finish the review and record the result"
         case nil: "Select a youth who is waiting or on a board"
         }
     }
