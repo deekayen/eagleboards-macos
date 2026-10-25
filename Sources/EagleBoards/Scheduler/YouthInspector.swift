@@ -27,6 +27,16 @@ struct YouthInspector: View {
                             .id(WithThemSection.scrollID)
                     }
                     .formStyle(.grouped)
+                    // A seating note that appears while the board is drawn
+                    // up is said. On the form, not the board's section,
+                    // which hands its modifiers to every row and would say
+                    // it once a row. Another youth starts a fresh view (the
+                    // `.id` below), and a board just begun has no notes
+                    // before it, so those already there are only shown.
+                    .onChange(of: DraftBoardSections.spokenNotes(for: youth, model: model, event: event)) { previous, current in
+                        guard let previous, let current else { return }
+                        Speech.say(SeatingReview.newlySpoken(current, since: previous))
+                    }
                 }
                 // Board › Locate Leader and Parents. Checked on appearing too:
                 // showing the inspector, or selecting another youth, draws it
@@ -54,30 +64,23 @@ private struct YouthHeader: View {
         Section {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text(youth.shownFullName).font(.title2.bold())
+                    Text(youth.shownFullName).font(.title2.bold()).heading(.h1)
                     Spacer()
                     StatusBadge(statusText: youth.statusText)
                 }
-                Text([youth.regNum, youth.unitName, youth.boardType?.label ?? youth.boardTypeText]
+                let detail = [youth.regNum, youth.unitDisplay, youth.boardType?.label ?? youth.boardTypeText]
                     .filter { !$0.isEmpty }
-                    .joined(separator: " · "))
+                    .joined(separator: " · ")
+                Text(detail)
                     .foregroundStyle(.secondary)
+                    .accessibilityLabel(detail.spokenList)
                 if let minutes = youth.minutesSinceLastUpdate(now: now) {
-                    Text(timeText(minutes)).font(.callout).foregroundStyle(.secondary)
+                    Text(youth.timeText(minutes: minutes)).font(.callout).foregroundStyle(.secondary)
                 }
             }
             if !youth.leader.isEmpty {
                 LabeledContent("Leader", value: youth.leader.shownValue)
             }
-        }
-    }
-
-    private func timeText(_ minutes: Int) -> String {
-        switch youth.status {
-        case .seated: "Board convening for \(minutes) min"
-        case .inProgress: "In review for \(minutes) min"
-        case .completed, .postponed: "Finished \(minutes) min ago"
-        default: "Waiting \(minutes) min"
         }
     }
 }
@@ -93,15 +96,14 @@ private struct DraftBoardSections: View {
     var body: some View {
         if let draft = model.draft, let boardType = youth.boardType {
             let members = model.draftMembers(for: youth.id)
-            let room = draft.roomID.flatMap { event.room(id: $0) }
-            let review = SeatingReview(scout: youth, members: members, room: room)
             let chairID = draft.chair(among: members, for: boardType)
+            let notes = Self.notes(for: youth, draft: draft, members: members, event: event)
 
             Section {
                 Picker("Room", selection: Binding(get: { draft.roomID }, set: { model.setDraftRoom($0) })) {
                     Text("None").tag(Room.ID?.none)
                     ForEach(roomChoices(for: boardType)) { choice in
-                        Text(roomLabel(choice)).tag(Optional(choice.id))
+                        Text(roomLabel(choice)).accessibilityLabel(roomLabel(choice).spokenList).tag(Optional(choice.id))
                     }
                 }
                 ForEach(members) { member in
@@ -121,11 +123,10 @@ private struct DraftBoardSections: View {
                     Spacer()
                     Text(sizeText(members.count, boardType)).foregroundStyle(.secondary)
                 }
+                .accessibilityElement(children: .combine)
+                .heading(.h2)
             } footer: {
-                // An empty board is one being picked, not a mistake: say what
-                // stops it only once someone is on it.
-                ReviewNotes(problems: draft.problems + (members.isEmpty ? [] : review.blockingProblems),
-                            warnings: review.warnings)
+                ReviewNotes(problems: notes.problems, warnings: notes.warnings)
             }
             // Outlined as well as tinted while adults are dragged over it, as a
             // room card is for a youth: the tint alone is faint.
@@ -176,6 +177,24 @@ private struct DraftBoardSections: View {
         }
     }
 
+    /// What the board being drawn up shows under it: the draft's own
+    /// problems and the review's, each once, then the review's warnings. An
+    /// empty board is one being picked, not a mistake: what stops it is
+    /// said only once someone is on it.
+    static func notes(for youth: Scout, draft: BoardDraft, members: [Adult], event: BoardEvent)
+        -> (problems: [String], warnings: [SeatingReview.Warning]) {
+        let review = SeatingReview(scout: youth, members: members, room: draft.roomID.flatMap { event.room(id: $0) })
+        return ((draft.problems + (members.isEmpty ? [] : review.blockingProblems)).uniqued, review.warnings)
+    }
+
+    /// The same notes as VoiceOver reads them. Nil while the youth has no
+    /// board being drawn up.
+    static func spokenNotes(for youth: Scout, model: AppModel, event: BoardEvent) -> [String]? {
+        guard youth.status?.isWaitingForBoard ?? true, youth.boardType != nil, let draft = model.draft else { return nil }
+        let notes = notes(for: youth, draft: draft, members: model.draftMembers(for: youth.id), event: event)
+        return SeatingReview.spoken(problems: notes.problems, warnings: notes.warnings)
+    }
+
     /// Free rooms of the right kind first, then other free rooms.
     private func roomChoices(for boardType: BoardType) -> [Room] {
         let free = event.rooms.filter(\.isFree)
@@ -205,21 +224,32 @@ private struct MemberRow: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            VStack(alignment: .leading, spacing: 1) {
-                HStack(spacing: 4) {
-                    Text(member.shownFullName)
-                    AdultMarks(adult: member, youth: youth)
+            // One element for what the row says; the button stays its own,
+            // for Full Keyboard Access and Voice Control.
+            HStack(spacing: 6) {
+                VStack(alignment: .leading, spacing: 1) {
+                    HStack(spacing: 4) {
+                        Text(member.shownFullName)
+                        AdultMarks(adult: member, youth: youth)
+                    }
+                    if let busy {
+                        // The red symbol says it stops them sitting; red words
+                        // would be too faint to read.
+                        NoticeLabel.problem(busy).font(.caption)
+                    } else {
+                        Text(member.unitDisplay).font(.caption).foregroundStyle(.secondary)
+                    }
                 }
-                if let busy {
-                    // The red symbol says it stops them sitting; red words
-                    // would be too faint to read.
-                    NoticeLabel.problem(busy).font(.caption)
-                } else {
-                    Text(member.unitLabel).font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                role
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(member.spokenRow(youth: youth, place: busy ?? member.unitDisplay, role: roleWords))
+            .accessibilityActions {
+                if member.canChair(boardType) && !isChair {
+                    Button("Make Chair", action: makeChair)
                 }
             }
-            Spacer()
-            role
             Button(action: remove) {
                 Image(systemName: "minus.circle").memberButtonTarget()
             }
@@ -243,6 +273,13 @@ private struct MemberRow: View {
         } else {
             RoleText(role: member.role(for: boardType)?.rawValue ?? "")
         }
+    }
+
+    /// What `role` shows, for VoiceOver.
+    private var roleWords: String {
+        if isChair { return BoardRole.chair.label }
+        if member.canChair(boardType) { return "Can Chair" }
+        return member.role(for: boardType)?.label ?? ""
     }
 
     private var busy: String? {
@@ -277,15 +314,19 @@ private struct ReviewNotes: View {
     let warnings: [SeatingReview.Warning]
 
     var body: some View {
-        let unique = problems.reduce(into: [String]()) { if !$0.contains($1) { $0.append($1) } }
+        let unique = problems.uniqued
         if !unique.isEmpty || !warnings.isEmpty {
             VStack(alignment: .leading, spacing: 4) {
                 ForEach(unique, id: \.self) { problem in
                     NoticeLabel.problem(problem)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(SeatingReview.spoken(problem: problem))
                 }
                 ForEach(warnings) { warning in
                     NoticeLabel.warning(warning.title)
                         .help(warning.detail)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(SeatingReview.spoken(warning: warning))
                 }
             }
             .font(.callout)
@@ -309,14 +350,15 @@ private struct FreeAdultsSection: View {
         let free = event.adults
             .filter { $0.canJoin(boardType) && !draftIDs.contains($0.id) }
             .filter { query.isEmpty || $0.shownFullName.localizedCaseInsensitiveContains(query)
-                || $0.unitName.localizedCaseInsensitiveContains(query) || $0.unitLabel.localizedCaseInsensitiveContains(query) }
+                || $0.unitName.localizedCaseInsensitiveContains(query) || $0.unitLabel.localizedCaseInsensitiveContains(query)
+                || $0.unitDisplay.localizedCaseInsensitiveContains(query) }
             .sorted { lhs, rhs in
                 let lhsChairs = lhs.canChair(boardType), rhsChairs = rhs.canChair(boardType)
                 if lhsChairs != rhsChairs { return lhsChairs }
                 return (lhs.last, lhs.first) < (rhs.last, rhs.first)
             }
 
-        Section("Free for a \(boardType.label) (\(free.count))") {
+        Section {
             TextField("Find an adult", text: $search, prompt: Text("Name or unit"))
                 .labelsHidden()
                 // Only once something is typed: Return in the empty field
@@ -328,11 +370,16 @@ private struct FreeAdultsSection: View {
             }
             ForEach(free) { adult in
                 HStack(spacing: 6) {
-                    Text(adult.shownFullName)
-                    AdultMarks(adult: adult, youth: youth)
-                    Spacer()
-                    Text(adult.unitLabel).font(.caption).foregroundStyle(.secondary)
-                    RoleText(role: adult.role(for: boardType)?.rawValue ?? "")
+                    HStack(spacing: 6) {
+                        Text(adult.shownFullName)
+                        AdultMarks(adult: adult, youth: youth)
+                        Spacer()
+                        Text(adult.unitDisplay).font(.caption).foregroundStyle(.secondary)
+                        RoleText(role: adult.role(for: boardType)?.rawValue ?? "")
+                    }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(adult.spokenRow(youth: youth, place: adult.unitDisplay,
+                                                        role: adult.role(for: boardType)?.label ?? ""))
                     Button {
                         add(adult)
                     } label: {
@@ -346,6 +393,8 @@ private struct FreeAdultsSection: View {
                 .onTapGesture { add(adult) }
                 .draggable(DragPayload.adult(adult.id))
             }
+        } header: {
+            Text("Free for a \(boardType.label) (\(free.count))").heading(.h2)
         }
     }
 
@@ -365,7 +414,7 @@ private struct SittingBoardSection: View {
     let now: Date
 
     var body: some View {
-        Section("Board") {
+        Section {
             LabeledContent("Room") {
                 HStack {
                     Text(youth.room)
@@ -381,6 +430,8 @@ private struct SittingBoardSection: View {
             }
             Button("Change Members…") { model.beginChangingMembers() }
                 .help("Remove or add members without resetting the room timer")
+        } header: {
+            Text("Board").heading(.h2)
         }
         Section {
             HStack {
@@ -407,7 +458,7 @@ private struct ResultSection: View {
     let youth: Scout
 
     var body: some View {
-        Section(youth.status == .postponed ? "Postponed" : "Result") {
+        Section {
             if youth.status == .postponed {
                 Text("Put off to another event. Edit › Undo brings them back to the waiting list, if it was the last thing done.")
                     .foregroundStyle(.secondary)
@@ -428,6 +479,8 @@ private struct ResultSection: View {
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)
             }
+        } header: {
+            Text(youth.status == .postponed ? "Postponed" : "Result").heading(.h2)
         }
     }
 }
@@ -479,7 +532,7 @@ private struct WithThemSection: View {
             }
         } header: {
             HStack {
-                Text("With Them")
+                Text("With Them").heading(.h2)
                 Spacer()
                 Menu {
                     if !ownUnit.isEmpty {
@@ -507,5 +560,12 @@ private struct WithThemSection: View {
         Button(adult.unitDisplay.isEmpty ? adult.shownFullName : "\(adult.shownFullName) · \(adult.unitDisplay)") {
             model.setSupporting(true, adultID: adult.id, scoutID: youth.id)
         }
+    }
+}
+
+extension Array where Element == String {
+    /// Each one once, in order: a draft's problem can also be the review's.
+    var uniqued: [String] {
+        reduce(into: []) { if !$0.contains($1) { $0.append($1) } }
     }
 }

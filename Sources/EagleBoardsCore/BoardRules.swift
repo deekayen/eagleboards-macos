@@ -224,6 +224,30 @@ public struct SeatingReview: Sendable {
     }
 }
 
+extension SeatingReview {
+    /// The inspector's notes as VoiceOver reads them: a symbol and its color
+    /// tell a problem that stops the board from a warning, and VoiceOver
+    /// hears neither, so each says which it is, in the seating sheet's words.
+    public static func spoken(problem: String) -> String {
+        "Cannot seat yet: \(problem)"
+    }
+
+    public static func spoken(warning: Warning) -> String {
+        "Check before seating: \(warning.title). \(warning.detail)"
+    }
+
+    public static func spoken(problems: [String], warnings: [Warning]) -> [String] {
+        problems.map { spoken(problem: $0) } + warnings.map { spoken(warning: $0) }
+    }
+
+    /// The notes that appeared since `previous`, while the operator builds
+    /// the same youth's board, in one announcement. Those already there when
+    /// the youth was opened are only shown.
+    public static func newlySpoken(_ current: [String], since previous: [String]) -> String {
+        current.filter { !previous.contains($0) }.joined(separator: " ")
+    }
+}
+
 /// Everything the operator needs to decide before changing who sits on a
 /// board that is already Seated or InProgress: the same composition rules
 /// `SeatingReview` checks, but the room is the one the board already holds,

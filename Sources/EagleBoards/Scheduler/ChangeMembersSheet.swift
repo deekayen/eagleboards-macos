@@ -29,7 +29,7 @@ struct ChangeMembersSheet: View {
 
             VStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Change \(youth.shownFullName)'s Board Members").font(.headline)
+                    Text("Change \(youth.shownFullName)'s Board Members").font(.headline).heading(.h1)
                     Text("Room \(youth.room) keeps its timer; this does not restart it.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
@@ -45,12 +45,20 @@ struct ChangeMembersSheet: View {
                         }
                         ForEach(members) { member in
                             HStack {
-                                Text(member.shownFullName)
-                                AdultMarks(adult: member, youth: youth)
-                                Spacer()
-                                Text(member.unitLabel).foregroundStyle(.secondary)
-                                RoleText(role: member.role(for: boardType)?.rawValue ?? "")
-                                    .frame(width: 72, alignment: .trailing)
+                                // One element for what the row says; the
+                                // button stays its own, for Full Keyboard
+                                // Access and Voice Control.
+                                HStack {
+                                    Text(member.shownFullName)
+                                    AdultMarks(adult: member, youth: youth)
+                                    Spacer()
+                                    Text(member.unitDisplay).foregroundStyle(.secondary)
+                                    RoleText(role: member.role(for: boardType)?.rawValue ?? "")
+                                        .frame(width: 72, alignment: .trailing)
+                                }
+                                .accessibilityElement(children: .ignore)
+                                .accessibilityLabel(member.spokenRow(youth: youth, place: member.unitDisplay,
+                                                                     role: member.role(for: boardType)?.label ?? ""))
                                 Button {
                                     memberIDs.removeAll { $0 == member.id }
                                 } label: {
@@ -62,7 +70,7 @@ struct ChangeMembersSheet: View {
                             }
                         }
                     } header: {
-                        Text("Board members (\(members.count))")
+                        Text("Board members (\(members.count))").heading(.h2)
                     }
 
                     Section {
@@ -81,15 +89,17 @@ struct ChangeMembersSheet: View {
                     }
 
                     if !review.blockingProblems.isEmpty {
-                        Section("Cannot save yet") {
+                        Section {
                             ForEach(review.blockingProblems, id: \.self) { problem in
                                 NoticeLabel.problem(problem)
                             }
+                        } header: {
+                            Text("Cannot save yet").heading(.h2)
                         }
                     }
 
                     if !review.warnings.isEmpty {
-                        Section("Check before saving") {
+                        Section {
                             ForEach(review.warnings) { warning in
                                 VStack(alignment: .leading, spacing: 4) {
                                     NoticeLabel.warning(warning.title)
@@ -104,6 +114,8 @@ struct ChangeMembersSheet: View {
                                 }
                                 .padding(.vertical, 2)
                             }
+                        } header: {
+                            Text("Check before saving").heading(.h2)
                         }
                     }
 
@@ -173,14 +185,15 @@ private struct FreeAdultsToAddSection: View {
         let candidates = event.adults
             .filter { ($0.canJoin(boardType) || $0.room == youth.room) && !memberIDs.contains($0.id) }
             .filter { query.isEmpty || $0.shownFullName.localizedCaseInsensitiveContains(query)
-                || $0.unitName.localizedCaseInsensitiveContains(query) || $0.unitLabel.localizedCaseInsensitiveContains(query) }
+                || $0.unitName.localizedCaseInsensitiveContains(query) || $0.unitLabel.localizedCaseInsensitiveContains(query)
+                || $0.unitDisplay.localizedCaseInsensitiveContains(query) }
             .sorted { lhs, rhs in
                 let lhsChairs = lhs.canChair(boardType), rhsChairs = rhs.canChair(boardType)
                 if lhsChairs != rhsChairs { return lhsChairs }
                 return (lhs.last, lhs.first) < (rhs.last, rhs.first)
             }
 
-        Section("Free for a \(boardType.label) (\(candidates.count))") {
+        Section {
             TextField("Find an adult", text: $search, prompt: Text("Name or unit"))
                 .labelsHidden()
                 .focused(findFocused)
@@ -193,11 +206,16 @@ private struct FreeAdultsToAddSection: View {
             }
             ForEach(candidates) { adult in
                 HStack(spacing: 6) {
-                    Text(adult.shownFullName)
-                    AdultMarks(adult: adult, youth: youth)
-                    Spacer()
-                    Text(adult.unitLabel).font(.caption).foregroundStyle(.secondary)
-                    RoleText(role: adult.role(for: boardType)?.rawValue ?? "")
+                    HStack(spacing: 6) {
+                        Text(adult.shownFullName)
+                        AdultMarks(adult: adult, youth: youth)
+                        Spacer()
+                        Text(adult.unitDisplay).font(.caption).foregroundStyle(.secondary)
+                        RoleText(role: adult.role(for: boardType)?.rawValue ?? "")
+                    }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(adult.spokenRow(youth: youth, place: adult.unitDisplay,
+                                                        role: adult.role(for: boardType)?.label ?? ""))
                     Button {
                         add(adult)
                     } label: {
@@ -210,6 +228,8 @@ private struct FreeAdultsToAddSection: View {
                 .contentShape(Rectangle())
                 .onTapGesture { add(adult) }
             }
+        } header: {
+            Text("Free for a \(boardType.label) (\(candidates.count))").heading(.h2)
         }
     }
 

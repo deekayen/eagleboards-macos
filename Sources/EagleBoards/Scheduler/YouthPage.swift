@@ -61,7 +61,7 @@ struct YouthPage: View {
                 // Widens far enough for a room named Fellowship Hall, and
                 // shows the whole name on hover where it is still cut off.
                 TableColumn("Room", value: \Scout.room) { youth in
-                    Text(youth.room).help(youth.room)
+                    CellText(youth.room).help(youth.room)
                 }
                 .width(min: 40, ideal: 50, max: 200)
                 TableColumn("Status", value: \Scout.statusRank) { youth in
@@ -78,6 +78,8 @@ struct YouthPage: View {
         } rows: {
             ForEach(rows) { TableRow($0) }
         }
+        .accessibilityLabel(model.page.title)
+        .speaksSearchCount(model.searchText, shown: rows.count, total: event.scouts.count)
         .contextMenu(forSelectionType: Scout.ID.self) { ids in
             if let id = ids.first {
                 Button("Show on Event Page") { model.showOnEventPage(id) }
@@ -110,7 +112,8 @@ struct YouthPage: View {
     private func matches(_ search: String, _ youth: Scout) -> Bool {
         let query = search.trimmingCharacters(in: .whitespaces)
         guard !query.isEmpty else { return true }
-        return [youth.shownFullName, youth.unitName, youth.unitLabel, youth.leader.shownValue, youth.room, youth.regNum, youth.email]
+        return [youth.shownFullName, youth.unitName, youth.unitLabel, youth.unitDisplay, youth.leader.shownValue, youth.room,
+                youth.regNum, youth.email]
             .contains { $0.localizedCaseInsensitiveContains(query) }
     }
 }

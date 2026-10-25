@@ -17,7 +17,7 @@ struct PreRegisteredPage: View {
 
     var body: some View {
         let rows = event.scheduledScouts
-            .filter { matches(model.searchText, $0.shownFullName, $0.email, $0.unitName, $0.leader.shownValue) }
+            .filter { matches(model.searchText, $0.shownFullName, $0.email, $0.unitName, $0.unitDisplay, $0.leader.shownValue) }
             .sorted(using: sortOrder)
 
         Table(of: Scout.self, selection: $selection, sortOrder: $sortOrder) {
@@ -54,6 +54,8 @@ struct PreRegisteredPage: View {
         } rows: {
             ForEach(rows) { TableRow($0) }
         }
+        .accessibilityLabel(model.page.title)
+        .speaksSearchCount(model.searchText, shown: rows.count, total: event.scheduledScouts.count)
         .contextMenu(forSelectionType: Scout.ID.self) { ids in
             if let id = ids.first {
                 Button("Delete Pre-Registration…", role: .destructive) { model.confirmDeleteYouth(id, scheduled: true) }
@@ -101,14 +103,19 @@ struct AdultHistoryPage: View {
         @Bindable var model = model
         let signedIn = Set(event.adults.map(\.id))
         let rows = event.adultHistory
-            .filter { matches(model.searchText, $0.shownFullName, $0.email, $0.unitName) }
+            .filter { matches(model.searchText, $0.shownFullName, $0.email, $0.unitName, $0.unitDisplay) }
             .map { Row(adult: $0, signedIn: signedIn.contains($0.id)) }
+        let today = model.today
         // AppKit, not a SwiftUI Table: see PlainTable.
         PlainTable(
             rows: rows,
             columns: [
-                PlainColumn(id: "lastEvent", title: "Last Event", width: 110, style: .digits, ascendingFirst: false,
-                            text: { $0.adult.lastEvent }, checked: \.signedIn),
+                // The date in words, "Today" for today's, sorted by the
+                // folder's name, which is the help.
+                PlainColumn(id: "lastEvent", title: "Last Event", width: 140, style: .digits, ascendingFirst: false,
+                            text: { $0.adult.lastEvent == today ? "Today" : Timestamp.shownDate($0.adult.lastEvent) },
+                            toolTip: { $0.adult.lastEvent.isEmpty ? nil : $0.adult.lastEvent }, checked: \.signedIn,
+                            sortText: { $0.adult.lastEvent }),
                 PlainColumn(id: "last", title: "Last Name", width: 130, text: { $0.adult.last.shownValue }),
                 PlainColumn(id: "first", title: "First Name", width: 130, text: { $0.adult.first.shownValue }),
                 PlainColumn(id: "unit", title: "Unit", width: 90, text: { $0.adult.unitDisplay }),
@@ -132,6 +139,7 @@ struct AdultHistoryPage: View {
                               action: { model.signInFromHistory($0.subtracting(signedIn)) }),
             ]
         )
+        .speaksSearchCount(model.searchText, shown: rows.count, total: event.adultHistory.count)
         .overlay {
             if rows.isEmpty {
                 if model.searchText.isEmpty {
@@ -162,9 +170,9 @@ struct ApprovedProposalsPage: View {
         VStack(alignment: .leading, spacing: 0) {
             if let found {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(found.summary)
-                    ForEach(found.unreadable, id: \.self) { problem in
-                        NoticeLabel.warning("Could not read \(problem)")
+                    Text(found.shownSummary()).help(found.summary)
+                    ForEach(found.unreadable, id: \.event) { problem in
+                        NoticeLabel.warning(problem.shownLine()).help(problem.event)
                     }
                 }
                 .foregroundStyle(.secondary)
@@ -177,7 +185,8 @@ struct ApprovedProposalsPage: View {
                     PlainColumn(id: "last", title: "Last Name", width: 130, text: \.last),
                     PlainColumn(id: "first", title: "First Name", width: 120, text: \.first),
                     PlainColumn(id: "unit", title: "Unit", width: 100, text: \.unit),
-                    PlainColumn(id: "event", title: "Approved On", width: 100, style: .digits, ascendingFirst: false, text: \.event),
+                    PlainColumn(id: "event", title: "Approved On", width: 140, style: .digits, ascendingFirst: false,
+                                text: { Timestamp.shownDate($0.event) }, toolTip: { $0.event }, sortText: \.event),
                     PlainColumn(id: "chair", title: "Chair", width: 150, text: \.chair),
                     PlainColumn(id: "members", title: "Other Members", width: 240, text: { $0.otherMembers.joined(separator: ", ") }),
                     PlainColumn(id: "notes", title: "Notes", width: 260, text: \.notes, toolTip: { $0.notes.isEmpty ? nil : $0.notes }),
@@ -186,6 +195,7 @@ struct ApprovedProposalsPage: View {
                 name: "Approved Proposals",
                 selection: $selection
             )
+            .speaksSearchCount(model.searchText, shown: approvals.count, total: found?.approvals.count ?? 0)
             .overlay {
                 if found != nil && approvals.isEmpty {
                     if model.searchText.isEmpty {
@@ -230,15 +240,18 @@ struct RoomsPage: View {
                 }
             }
             .width(min: 110, ideal: 130, max: 160)
+            // Empty for a free room: an old file's "-" is neither shown nor read.
             TableColumn("Youth", value: \Room.scoutName) { room in
-                Text(room.scoutName.shownValue)
+                CellText(room.isFree ? "" : room.scoutName.shownValue)
             }
             TableColumn("Members", value: \Room.leaderNames) { room in
-                Text(room.leaderNames.withListSeparators).help(room.leaderNames.withListSeparators)
+                CellText(room.leaderNames.withListSeparators).help(room.leaderNames.withListSeparators)
             }
         } rows: {
             ForEach(rows) { TableRow($0) }
         }
+        .accessibilityLabel(model.page.title)
+        .speaksSearchCount(model.searchText, shown: rows.count, total: event.rooms.count)
         .contextMenu(forSelectionType: Room.ID.self) { ids in
             // A context menu lists only what applies: a room in use cannot
             // be removed.

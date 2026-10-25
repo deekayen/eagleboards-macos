@@ -39,18 +39,39 @@ public struct ApprovedProposals: Equatable, Sendable {
     /// The earlier events read, oldest first.
     public let eventsRead: [String]
     /// Earlier events whose youth file could not be read, with why.
-    public let unreadable: [String]
+    public let unreadable: [Unreadable]
+
+    /// An earlier event whose youth file could not be read.
+    public struct Unreadable: Equatable, Sendable {
+        /// The event's folder name, `2026-08-25`.
+        public let event: String
+        public let reason: String
+
+        /// "Could not read the August 25, 2026 event: ...", with the date as
+        /// the Mac writes dates.
+        public func shownLine(locale: Locale = .current) -> String {
+            "Could not read the \(Timestamp.shownDate(event, locale: locale)) event: \(reason)"
+        }
+    }
 
     /// The line above the list: how many earlier events were read, from
     /// which date to which, in the Windows version's words
     /// (`EarlierEvents.ApprovedProposals.About`).
-    public var summary: String {
+    public var summary: String { summary { $0 } }
+
+    /// The same line with its dates as the Mac writes dates, as the page
+    /// shows it: "Read from 2 earlier events, May 28, 2019 to August 25, 2026."
+    public func shownSummary(locale: Locale = .current) -> String {
+        summary { Timestamp.shownDate($0, locale: locale) }
+    }
+
+    private func summary(_ date: (String) -> String) -> String {
         guard let first = eventsRead.first, let last = eventsRead.last else {
             return "No earlier events in this data folder."
         }
         return eventsRead.count == 1
-            ? "Read from 1 earlier event, \(first)."
-            : "Read from \(eventsRead.count) earlier events, \(first) to \(last)."
+            ? "Read from 1 earlier event, \(date(first))."
+            : "Read from \(eventsRead.count) earlier events, \(date(first)) to \(date(last))."
     }
 }
 
@@ -63,7 +84,7 @@ extension DataFolder {
     public func approvedProposals(before date: String) -> ApprovedProposals {
         var approvals: [ApprovedProposal] = []
         var eventsRead: [String] = []
-        var unreadable: [String] = []
+        var unreadable: [ApprovedProposals.Unreadable] = []
         for event in events().filter({ $0 < date }).sorted()
         where FileManager.default.fileExists(atPath: youthURL(event: event).path) {
             do {
@@ -73,7 +94,7 @@ extension DataFolder {
                     .filter { $0.boardType == .projectReview && BoardResult(rawValue: $0.result) == .approved }
                     .map { ApprovedProposal($0, event: event) }
             } catch {
-                unreadable.append("\(event): \(error.localizedDescription)")
+                unreadable.append(.init(event: event, reason: error.localizedDescription))
             }
         }
         approvals.sort {

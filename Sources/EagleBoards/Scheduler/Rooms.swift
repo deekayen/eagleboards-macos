@@ -18,6 +18,8 @@ struct RoomsGrid: View {
     @FocusState private var focusedRoomID: Room.ID?
     /// How many cards fit across, for Up and Down.
     @State private var columns = 1
+    /// What the find last said to VoiceOver.
+    @State private var findSaid = ""
 
     var body: some View {
         if event.rooms.isEmpty {
@@ -25,6 +27,10 @@ struct RoomsGrid: View {
         } else {
             let find = event.find(model.searchText)
             let rooms = find.rooms
+            // Whom the narrowed cards hold, which only the cards show, then
+            // the note: said once the typing pauses, and again only when it
+            // changes, not on every sign-in at the door.
+            let spoken = PersonFind.spoken(model.searchText, people: find.people, rooms: event.rooms)
             ScrollViewReader { scroller in
                 ScrollView {
                     if let note = find.note {
@@ -33,6 +39,7 @@ struct RoomsGrid: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding([.horizontal, .top], 12)
                             .accessibilityAddTraits(.updatesFrequently)
+                            .accessibilityLabel(spoken)
                     }
                     TimelineView(.everyMinute) { timeline in
                         grid(rooms, now: timeline.date, scroller: scroller)
@@ -49,6 +56,11 @@ struct RoomsGrid: View {
                     if focusedRoomID != nil, let id, rooms.contains(where: { $0.id == id }) {
                         focusedRoomID = id
                     }
+                }
+                .task(id: spoken) {
+                    guard (try? await Task.sleep(for: .milliseconds(500))) != nil, spoken != findSaid else { return }
+                    findSaid = spoken
+                    Speech.say(spoken)
                 }
             }
         }
@@ -97,6 +109,8 @@ struct RoomsGrid: View {
                     .youthDropDestination(room: room)
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Rooms")
         .onGeometryChange(for: Double.self) { $0.size.width } action: { width in
             columns = CardGrid.columns(width: width, minimum: Self.cardWidth, spacing: Self.spacing)
         }
@@ -230,7 +244,10 @@ struct RoomCard: View {
         .background(RoundedRectangle(cornerRadius: 8).fill(fill))
         .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(border, lineWidth: isSelected ? 2 : 1))
         .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
+        // One label, with the members named as members. Read child by
+        // child, they were bare names after the status.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(room.spokenLabel(occupant: occupant, minutes: minutes, timer: timer))
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
 
@@ -310,17 +327,17 @@ struct TimerBadge: View {
 
     private var help: String {
         switch state {
-        case .okay: "\(minutes) minutes since the last step"
-        case .warning: "\(minutes) minutes: running long, past the time in Settings. Worth checking on."
-        case .overdue: "\(minutes) minutes: overdue, past the time in Settings."
+        case .okay: "\(Count.minutes(minutes)) since the last step"
+        case .warning: "\(Count.minutes(minutes)): running long, past the time in Settings. Worth checking on."
+        case .overdue: "\(Count.minutes(minutes)): overdue, past the time in Settings."
         }
     }
 
     private var spoken: String {
         switch state {
-        case .okay: "\(minutes) minutes"
-        case .warning: "\(minutes) minutes, running long"
-        case .overdue: "\(minutes) minutes, overdue"
+        case .okay: Count.minutes(minutes)
+        case .warning: "\(Count.minutes(minutes)), running long"
+        case .overdue: "\(Count.minutes(minutes)), overdue"
         }
     }
 }
@@ -368,7 +385,8 @@ struct CopyRoomsItems: View {
         let earlierEvents = event.map { event in event.folder.events().filter { $0 < event.date } } ?? []
         Menu("Copy Rooms From") {
             ForEach(earlierEvents.prefix(12), id: \.self) { earlier in
-                Button(earlier) { model.copyRooms(from: earlier) }
+                Button(Timestamp.shownDate(earlier)) { model.copyRooms(from: earlier) }
+                    .help(earlier)
             }
         }
         .fixedSize()

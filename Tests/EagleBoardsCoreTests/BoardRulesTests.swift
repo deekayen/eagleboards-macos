@@ -1,4 +1,5 @@
 import EagleBoardsCore
+import Foundation
 import Testing
 
 // The composition rules as pure functions, where only the Mac has them. The
@@ -188,6 +189,43 @@ struct SeatingReviewTests {
     }
 }
 
+/// The inspector's notes as VoiceOver reads them, and which are said as
+/// they appear (Windows' ShowIssues reads "Error:" or "Warning:").
+@Suite("Seating review, read aloud")
+struct SeatingReviewSpokenTests {
+    @Test func eachNoteSaysWhetherItStopsTheBoard() throws {
+        let members = [
+            adult("Chris", "Chair", unitName: "Troop1", final: .chair),
+            adult("Morgan", "Member", unitName: "Troop2"),
+            adult("Taylor", "Member", unitName: "Troop3"),
+        ]
+        let warning = try #require(SeatingReview(scout: scout(), members: members, room: room("200A", .projectReview)).warnings.first)
+        #expect(SeatingReview.spoken(problem: "Choose a free room.") == "Cannot seat yet: Choose a free room.")
+        #expect(SeatingReview.spoken(warning: warning)
+                == "Check before seating: Room 200A is a Proposal Review room. Casey Candidate is here for a Final Board.")
+        #expect(SeatingReview.spoken(problems: ["Choose a free room."], warnings: [warning])
+                == ["Cannot seat yet: Choose a free room.", SeatingReview.spoken(warning: warning)], "problems first, as shown")
+    }
+
+    @Test func onlyANoteThatAppearedIsSaid() {
+        let before = ["Cannot seat yet: A Final Board needs at least 3. Add 1 more."]
+        let after = ["Cannot seat yet: Choose a free room.", before[0]]
+        #expect(SeatingReview.newlySpoken(after, since: before) == "Cannot seat yet: Choose a free room.")
+        #expect(SeatingReview.newlySpoken(before, since: after).isEmpty, "one that went away is not said")
+        #expect(SeatingReview.newlySpoken(["A.", "B."], since: []) == "A. B.", "several, in one announcement")
+    }
+
+    /// The live review's own problems, read with their prefix.
+    @Test func aRealReviewReadsWithItsPrefix() {
+        let members = ["A", "B", "C"].map { adult($0, "Member", unitName: "Troop9") }
+        let review = SeatingReview(scout: scout(), members: members, room: nil)
+        #expect(SeatingReview.spoken(problems: review.blockingProblems, warnings: review.warnings) == [
+            "Cannot seat yet: None of the members can chair a Final Board. Add a qualified chair, or make someone a chair on the Adults page.",
+            "Cannot seat yet: Choose a free room.",
+        ])
+    }
+}
+
 @Suite("Board suggestion")
 struct BoardSuggestionTests {
     @Test func picksAChairTwoMembersAndAFreeRoomOfTheRightKind() {
@@ -367,6 +405,61 @@ struct RoomTimerTests {
     }
 }
 
+/// A room turning running long or overdue is said once, as Windows'
+/// UpdateRoomTimers says it, and opening an event reads out nothing.
+@Suite("Room timers, read aloud")
+struct RoomTimerSpeechTests {
+    let config = Config.standard
+    let clock = Date(timeIntervalSince1970: 1_790_118_300)
+
+    private func board(_ first: String, room: String, _ status: BoardStatus, _ boardType: BoardType = .finalBoard,
+                       minutesAgo: Int) -> Scout {
+        var youth = scout(first, "Doe", boardType: boardType, status: status)
+        youth.room = room
+        youth.lastUpdateTime = Timestamp.recordStamp(for: clock.addingTimeInterval(TimeInterval(-minutesAgo * 60)))
+        return youth
+    }
+
+    private func check(_ previous: RoomTimerSpeech.States?, _ youth: [Scout], minutesLater: Int = 0)
+        -> (states: RoomTimerSpeech.States, spoken: String) {
+        RoomTimerSpeech.check(previous: previous, youth: youth, config: config, now: clock.addingTimeInterval(TimeInterval(minutesLater * 60)))
+    }
+
+    @Test func theFirstCheckOnlyRecords() {
+        let first = check(nil, [board("Jane", room: "101", .inProgress, minutesAgo: 50)])
+        #expect(first.spoken.isEmpty, "a room already overdue when the event opens is not read out")
+        #expect(first.states.values.contains(.overdue))
+    }
+
+    @Test func aRoomTurningIsSaidOnce() {
+        let youth = [board("Jane", room: "101", .inProgress, minutesAgo: 29), board("Bill", room: "102", .seated, minutesAgo: 10)]
+        let start = check(nil, youth)
+        let long = check(start.states, youth, minutesLater: 2)
+        #expect(long.spoken == "Room 101 is running long: Jane Doe, 31 minutes.")
+        #expect(check(long.states, youth, minutesLater: 3).spoken.isEmpty, "still running long: not said again")
+        let overdue = check(long.states, youth, minutesLater: 21)
+        #expect(overdue.spoken == "Room 101 is overdue: Jane Doe, 50 minutes. Room 102 is overdue: Bill Doe, 31 minutes.",
+                "every room that turned, in one announcement")
+    }
+
+    @Test func aBoardNotSeenBeforeCountsAsOnTime() {
+        let start = check(nil, [])
+        let late = check(start.states, [board("Ann", room: "200A", .inProgress, .projectReview, minutesAgo: 1)], minutesLater: 0)
+        #expect(late.spoken.isEmpty)
+        let undone = check(start.states, [board("Ann", room: "200A", .inProgress, .projectReview, minutesAgo: 41)])
+        #expect(undone.spoken == "Room 200A is overdue: Ann Doe, 41 minutes.", "a board put back by Undo, already over")
+    }
+
+    @Test func oneMinuteIsSingular() {
+        var quick = config
+        quick.finalYellowMinutes = 1
+        let youth = [board("Jane", room: "101", .inProgress, minutesAgo: 0)]
+        let start = RoomTimerSpeech.check(previous: nil, youth: youth, config: quick, now: clock)
+        let turned = RoomTimerSpeech.check(previous: start.states, youth: youth, config: quick, now: clock.addingTimeInterval(60))
+        #expect(turned.spoken == "Room 101 is running long: Jane Doe, 1 minute.")
+    }
+}
+
 /// The scheduler's Next Step button and Return key follow the lifecycle.
 @Suite("The next step for a board")
 struct NextStepTests {
@@ -471,5 +564,25 @@ struct PersonFindTests {
         let found = PersonFind.people("pat", youth: crowd, adults: [])
         #expect(PersonFind.note(people: found, roomsFound: PersonFind.rooms("pat", people: found, rooms: rooms))
                 == "Pat Waiting1 is waiting. Pat Waiting2 is waiting. Pat Waiting3 is waiting. Pat Waiting4 is waiting. And 2 more.")
+    }
+
+    /// VoiceOver hears whom the narrowed cards hold, which only the cards
+    /// show, then the note (Windows' UpdatePersonFind).
+    @Test func theFindSaysWhomTheRoomsHold() {
+        let rooms = [room("101", .finalBoard, scoutName: "Arthur Eldred"), room("102", .finalBoard), room("200A", .projectReview)]
+        func spoken(_ query: String, youth: [Scout]? = nil) -> String {
+            let found = PersonFind.people(query, youth: youth ?? signedIn.youth, adults: signedIn.adults)
+            return PersonFind.spoken(query, people: found, rooms: rooms)
+        }
+        #expect(spoken("").isEmpty && spoken("  ").isEmpty)
+        #expect(spoken("armstrong") == "Neil Armstrong is in room 101.")
+        #expect(spoken("ar") == "Arthur Eldred is in room 101. Neil Armstrong is in room 101. Charles Duke has gone home.")
+        #expect(spoken("20") == "1 room by that name: 200A.")
+        #expect(spoken("10") == "2 rooms by that name: 101, 102.")
+        #expect(spoken("bill") == "Bill Amend is waiting.")
+        #expect(spoken("Spielberg") == "No one by that name has signed in.")
+        let crowd = (1...6).map { youth("Pat", "Seated\($0)", .inProgress, room: "10\($0)") }
+        #expect(spoken("pat", youth: crowd) == "Pat Seated1 is in room 101. Pat Seated2 is in room 102. Pat Seated3 is in room 103. "
+            + "Pat Seated4 is in room 104. And 2 more in rooms.")
     }
 }

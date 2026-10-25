@@ -16,8 +16,9 @@ struct ResultsPage: View {
     @State private var sortOrder = [KeyPathComparator(\Scout.queueOrder)]
 
     var body: some View {
-        let rows = event.scouts
-            .filter { !($0.status?.isWaitingForBoard ?? true) && matches(model.searchText, $0) }
+        let boards = event.scouts.filter { !($0.status?.isWaitingForBoard ?? true) }
+        let rows = boards
+            .filter { matches(model.searchText, $0) }
             .sorted(using: sortOrder)
         let selection = Binding(get: { model.selectedYouthID }, set: { model.selectYouth($0) })
 
@@ -60,7 +61,7 @@ struct ResultsPage: View {
                 // Widens far enough for a room named Fellowship Hall, and
                 // shows the whole name on hover where it is still cut off.
                 TableColumn("Room", value: \Scout.room) { youth in
-                    Text(youth.room).help(youth.room)
+                    CellText(youth.room).help(youth.room)
                 }
                 .width(min: 40, ideal: 50, max: 200)
                 TableColumn("Result", value: \Scout.result) { youth in
@@ -72,12 +73,12 @@ struct ResultsPage: View {
                 // Who sat changes on the Event page, under the rules for
                 // seating; never typed into a table (P-6).
                 TableColumn("Chair", value: \Scout.boardChair) { youth in
-                    Text(youth.boardChair.shownValue)
+                    CellText(youth.boardChair.shownValue)
                 }
             }
             Group {
                 TableColumn("Members", value: \Scout.boardMembers) { youth in
-                    Text(youth.boardMembers.withListSeparators).help(youth.boardMembers.withListSeparators)
+                    CellText(youth.boardMembers.withListSeparators).help(youth.boardMembers.withListSeparators)
                 }
                 TableColumn("Leader", value: \Scout.leader) { youth in
                     EditableText(youth.leader.shownValue, name: "Leader") { value in edit(youth) { $0.leader = value } }
@@ -89,6 +90,8 @@ struct ResultsPage: View {
         } rows: {
             ForEach(rows) { TableRow($0) }
         }
+        .accessibilityLabel(model.page.title)
+        .speaksSearchCount(model.searchText, shown: rows.count, total: boards.count)
         .contextMenu(forSelectionType: Scout.ID.self) { ids in
             if let id = ids.first {
                 Button("Show on Event Page") { model.showOnEventPage(id) }
@@ -118,7 +121,7 @@ struct ResultsPage: View {
         let query = search.trimmingCharacters(in: .whitespaces)
         guard !query.isEmpty else { return true }
         let result = BoardResult(rawValue: youth.result)?.label ?? youth.result
-        return [youth.shownFullName, youth.unitName, youth.unitLabel, youth.leader.shownValue, youth.room, youth.regNum,
+        return [youth.shownFullName, youth.unitName, youth.unitLabel, youth.unitDisplay, youth.leader.shownValue, youth.room, youth.regNum,
                 youth.boardChair.shownValue, youth.boardMembers.shownValue, result, youth.notes.shownValue]
             .contains { $0.localizedCaseInsensitiveContains(query) }
     }

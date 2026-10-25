@@ -131,6 +131,7 @@ struct EagleBoardsCommands: Commands {
                         model.openScheduler()
                         model.open(folder: folder, event: name)
                     }
+                    .help(name)
                     .disabled(name == model.event?.date)
                 }
             }

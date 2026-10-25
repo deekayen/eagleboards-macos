@@ -49,11 +49,4 @@ extension String {
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .joined(separator: ", ")
     }
-
-    /// A list of names, one per line.
-    var memberLines: [String] {
-        split(whereSeparator: { $0 == "," || $0 == "~" })
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-    }
 }

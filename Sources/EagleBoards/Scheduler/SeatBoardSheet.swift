@@ -29,7 +29,7 @@ struct SeatBoardSheet: View {
 
             VStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Seat \(youth.shownFullName)'s Board").font(.headline)
+                    Text("Seat \(youth.shownFullName)'s Board").font(.headline).heading(.h1)
                     Text("The members get the room and the paperwork. \(youth.first.shownValue) waits outside until Start Review.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
@@ -40,7 +40,7 @@ struct SeatBoardSheet: View {
                 Form {
                     Section {
                         LabeledContent("Youth", value: youth.shownFullName)
-                        LabeledContent("Unit", value: youth.unitName)
+                        LabeledContent("Unit", value: youth.unitDisplay)
                         LabeledContent("Board", value: youth.boardType?.label ?? youth.boardTypeText)
                         if !youth.leader.isEmpty {
                             LabeledContent("Leader", value: youth.leader.shownValue)
@@ -51,7 +51,7 @@ struct SeatBoardSheet: View {
                         Picker("Room", selection: $roomID) {
                             Text("Choose a Room").tag(String?.none)
                             ForEach(roomChoices) { choice in
-                                Text(roomLabel(choice)).tag(Optional(choice.id))
+                                Text(roomLabel(choice)).accessibilityLabel(roomLabel(choice).spokenList).tag(Optional(choice.id))
                             }
                         }
                     }
@@ -61,17 +61,20 @@ struct SeatBoardSheet: View {
                             Text("No one is checked yet.").foregroundStyle(.secondary)
                         }
                         ForEach(members) { member in
+                            let role = youth.boardType.flatMap { member.role(for: $0) }
                             HStack {
                                 Text(member.shownFullName)
                                 AdultMarks(adult: member, youth: youth)
                                 Spacer()
-                                Text(member.unitLabel).foregroundStyle(.secondary)
-                                RoleText(role: youth.boardType.flatMap { member.role(for: $0)?.rawValue } ?? "")
+                                Text(member.unitDisplay).foregroundStyle(.secondary)
+                                RoleText(role: role?.rawValue ?? "")
                                     .frame(width: 72, alignment: .trailing)
                             }
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel(member.spokenRow(youth: youth, place: member.unitDisplay, role: role?.label ?? ""))
                         }
                     } header: {
-                        Text("Board members (\(members.count))")
+                        Text("Board members (\(members.count))").heading(.h2)
                     } footer: {
                         Text("Change who sits on the board in the inspector.")
                             .foregroundStyle(.secondary)
@@ -93,15 +96,17 @@ struct SeatBoardSheet: View {
                     }
 
                     if !review.blockingProblems.isEmpty {
-                        Section("Cannot seat yet") {
+                        Section {
                             ForEach(review.blockingProblems, id: \.self) { problem in
                                 NoticeLabel.problem(problem)
                             }
+                        } header: {
+                            Text("Cannot seat yet").heading(.h2)
                         }
                     }
 
                     if !review.warnings.isEmpty {
-                        Section("Check before seating") {
+                        Section {
                             ForEach(review.warnings) { warning in
                                 VStack(alignment: .leading, spacing: 4) {
                                     NoticeLabel.warning(warning.title)
@@ -116,6 +121,8 @@ struct SeatBoardSheet: View {
                                 }
                                 .padding(.vertical, 2)
                             }
+                        } header: {
+                            Text("Check before seating").heading(.h2)
                         }
                     }
                 }
@@ -180,6 +187,9 @@ struct SeatBoardSheet: View {
 struct SheetLayout<Fields: View, Buttons: View>: View {
     let title: String
     var message: String?
+    /// The message as VoiceOver reads it, where the one shown joins its
+    /// parts with middle dots.
+    var spokenMessage: String?
     var width: CGFloat = 440
     @ViewBuilder var fields: Fields
     @ViewBuilder var buttons: Buttons
@@ -187,12 +197,13 @@ struct SheetLayout<Fields: View, Buttons: View>: View {
     var body: some View {
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(title).font(.headline)
+                Text(title).font(.headline).heading(.h1)
                 if let message {
                     Text(message)
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityLabel(spokenMessage ?? message)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -239,18 +250,6 @@ extension View {
     }
 }
 
-/// A refusal from the step a sheet's button took, shown in the sheet. An
-/// alert would wait behind the sheet until it closed.
-struct SheetProblem: View {
-    let text: String
-
-    var body: some View {
-        NoticeLabel.problem(text)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
 /// What Seat Board or Change Members shows when its youth is gone, or has
 /// no board type: why, and the way out.
 struct SheetUnavailable: View {
@@ -284,12 +283,14 @@ struct CompleteBoardSheet: View {
 
     var body: some View {
         let youth = event.scout(id: scoutID)
+        let message = youth.map {
+            "Room \($0.room) · \($0.boardType?.label ?? $0.boardTypeText) · chaired by \($0.boardChair.shownValue). "
+                + "The room and the members are freed for the next board."
+        }
         SheetLayout(
             title: "Complete \(youth.map { "\($0.shownFullName)'s" } ?? "the") Board",
-            message: youth.map {
-                "Room \($0.room) · \($0.boardType?.label ?? $0.boardTypeText) · chaired by \($0.boardChair.shownValue). "
-                    + "The room and the members are freed for the next board."
-            }
+            message: message,
+            spokenMessage: message?.spokenList
         ) {
             Section {
                 Picker("Result", selection: $result) {
@@ -483,7 +484,7 @@ struct OpenEventSheet: View {
             Section {
                 Picker("Event", selection: $chosen) {
                     ForEach(eventsOnFile, id: \.self) { name in
-                        Text(DataFolder.eventLabel(name, today: model.today)).tag(Optional(name))
+                        Text(DataFolder.eventLabel(name, today: model.today)).help(name).tag(Optional(name))
                     }
                 }
             } footer: {

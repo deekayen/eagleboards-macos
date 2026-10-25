@@ -236,7 +236,8 @@ final board runs long at 30 minutes and is overdue at 45. A proposal review
 runs long at 25 and is overdue at 40. Running long is a timer on an orange tint;
 overdue is an alarm clock on a solid pink-red fill, so the two differ in shape
 and lightness and read with color blindness. They are prompts, not limits.
-Change them in **Settings › Timers**.
+Change them in **Settings › Timers**. VoiceOver announces a room once as it
+turns running long, and again as it turns overdue.
 
 ## SignUpGenius
 

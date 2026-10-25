@@ -96,13 +96,17 @@ struct PlainColumn<Row> {
     var toolTip: (Row) -> String? = { _ in nil }
     var checked: (Row) -> Bool = { _ in false }
     var sortKey: ((Row) -> Int)?
+    /// What the column sorts by when it shows something else: a date in
+    /// words sorts by its `2026-08-25` stamp.
+    var sortText: ((Row) -> String)?
 
     func compare(_ a: Row, _ b: Row) -> ComparisonResult {
         if let sortKey {
             let (left, right) = (sortKey(a), sortKey(b))
             return left == right ? .orderedSame : (left < right ? .orderedAscending : .orderedDescending)
         }
-        return text(a).localizedStandardCompare(text(b))
+        let key = sortText ?? text
+        return key(a).localizedStandardCompare(key(b))
     }
 
     func cell(_ row: Row) -> PlainCell.Content {

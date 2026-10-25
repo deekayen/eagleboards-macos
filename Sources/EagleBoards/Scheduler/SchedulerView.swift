@@ -78,6 +78,12 @@ struct SchedulerView: View {
             }
             .messageAlert()
             .onChange(of: BoardDrafts.fingerprint(of: event)) { model.refreshProposals() }
+            // Who signed in at the door, said once the sign-ins pause: a
+            // newer one restarts the wait, so a rush is one sentence.
+            .task(id: [event.scouts.map(\.id), event.adults.map(\.id)]) {
+                guard (try? await Task.sleep(for: .seconds(1))) != nil else { return }
+                model.sayArrivals()
+            }
             .onAppear { model.undoManager = undoManager }
             .onChange(of: undoManager) { model.undoManager = undoManager }
     }
@@ -137,7 +143,8 @@ struct SchedulerView: View {
     }
 
     private var eventSubtitle: String {
-        event.date == model.today ? "Today, \(event.date)" : "\(event.date) (an earlier event)"
+        let date = Timestamp.shownDate(event.date)
+        return event.date == model.today ? "Today, \(date)" : "\(date) (an earlier event)"
     }
 
     @ToolbarContentBuilder

@@ -46,9 +46,11 @@ public struct DataFolder: Sendable, Hashable {
     }
 
     /// An event as File › Open Recent Event and the Open Another Event sheet
-    /// both name it: its date, with "(Today)" after today's.
-    public static func eventLabel(_ event: String, today: String) -> String {
-        event == today ? "\(event) (Today)" : event
+    /// both name it: its date as the Mac writes dates, with "(Today)" after
+    /// today's. The items' help is the folder's name.
+    public static func eventLabel(_ event: String, today: String, locale: Locale = .current) -> String {
+        let shown = Timestamp.shownDate(event, locale: locale)
+        return event == today ? "\(shown) (Today)" : shown
     }
 
     /// What the sign-in station's status adds when the open event is not

@@ -81,4 +81,20 @@ public enum PersonFind {
         let said = elsewhere.prefix(4).map(\.sentence).joined(separator: " ")
         return elsewhere.count > 4 ? "\(said) And \(elsewhere.count - 4) more." : said
     }
+
+    /// What VoiceOver hears for a find: whom the narrowed rooms hold, which
+    /// only the cards show, four at most; the rooms named by the query; then
+    /// the note. "Arthur Eldred is in room 101. 1 room by that name: 101."
+    /// Empty for an empty query. Windows' `UpdatePersonFind` says the same.
+    public static func spoken(_ query: String, people found: [PersonPlace], rooms: [Room]) -> String {
+        let query = query.trimmingCharacters(in: .whitespaces)
+        guard !query.isEmpty else { return "" }
+        let inRooms = found.filter { $0.room != nil }
+        let named = rooms.map(\.name).filter { $0.localizedCaseInsensitiveContains(query) }
+        var parts = inRooms.prefix(4).map(\.sentence)
+        if inRooms.count > 4 { parts.append("And \(inRooms.count - 4) more in rooms.") }
+        if !named.isEmpty { parts.append("\(Count.of(named.count, "room", "rooms")) by that name: \(named.joined(separator: ", ")).") }
+        if let note = note(people: found, roomsFound: self.rooms(query, people: found, rooms: rooms)) { parts.append(note) }
+        return parts.joined(separator: " ")
+    }
 }

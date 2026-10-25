@@ -52,11 +52,14 @@ struct WelcomeView: View {
 
     var body: some View {
         VStack(spacing: 18) {
+            // Decoration above the title, which says it.
             Image(systemName: "person.3.sequence.fill")
                 .font(.system(size: 54))
                 .foregroundStyle(.tint)
+                .accessibilityHidden(true)
             Text("Eagle Boards")
                 .font(.largeTitle.bold())
+                .heading(.h1)
             Text("Check youth and adults in on a tablet at the door, seat each board, and record the results.")
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -88,7 +91,7 @@ struct WelcomeView: View {
             .frame(maxWidth: 560)
 
             if let error = model.openError {
-                NoticeLabel(error, systemImage: "exclamationmark.triangle.fill", tint: .red)
+                SheetProblem(text: error)
                     .textSelection(.enabled)
                     .frame(maxWidth: 560)
             }

@@ -156,7 +156,7 @@ private struct TimerSettings: View {
 
     private func minutes(_ label: String, _ keyPath: WritableKeyPath<Config, Int>, _ event: BoardEvent) -> some View {
         Stepper(value: configBinding(keyPath, event), in: 0...240) {
-            LabeledContent(label, value: event.config[keyPath: keyPath] == 0 ? "off" : "\(event.config[keyPath: keyPath]) min")
+            LabeledContent(label, value: event.config[keyPath: keyPath] == 0 ? "off" : Count.minutes(event.config[keyPath: keyPath]))
         }
     }
 

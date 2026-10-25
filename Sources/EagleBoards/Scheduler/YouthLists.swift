@@ -23,6 +23,7 @@ struct YouthList: View {
                 section(.onBoard, of: found, now: timeline.date)
                 section(.finished, of: found, now: timeline.date)
             }
+            .accessibilityLabel("Youth")
         }
         .contextMenu(forSelectionType: Scout.ID.self) { ids in
             if let id = ids.first {
@@ -64,6 +65,7 @@ struct YouthList: View {
                 Text("\(rows.count)").monospacedDigit()
             }
             .accessibilityElement(children: .combine)
+            .heading(.h2)
         }
     }
 }
@@ -111,13 +113,15 @@ enum QueueGroup {
 
 /// One youth: their name, then sign-in number, unit, and board type or room;
 /// on the right, how long they have waited, or the board's status and timer,
-/// or how it ended.
+/// or how it ended. VoiceOver reads the name, then where they are in words
+/// and the second line with commas for its dots.
 private struct YouthRow: View {
     let event: BoardEvent
     let youth: Scout
     let now: Date
 
     var body: some View {
+        let minutes = youth.minutesSinceLastUpdate(now: now)
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(youth.shownFullName)
@@ -127,24 +131,31 @@ private struct YouthRow: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                    .help(youth.regNumHelp)
             }
             Spacer(minLength: 0)
             // The status pill and timer keep their size in a narrow list; the
             // name gives way instead, rather than the pill wrapping to two lines.
-            trailing
+            trailing(minutes)
                 .fixedSize()
         }
         .padding(.vertical, 2)
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(youth.shownFullName)
+        .accessibilityValue(youth.queueValue(minutes: minutes, timer: timer(minutes)))
+        // On the whole row, so it shows on keyboard focus too.
+        .help(youth.queueHelp(minutes: minutes))
+    }
+
+    private func timer(_ minutes: Int?) -> RoomTimer.State? {
+        minutes.flatMap { RoomTimer.state(status: youth.status, boardType: youth.boardType, minutes: $0, config: event.config) }
     }
 
     private var detail: String {
-        var parts = [youth.regNum, youth.unitLabel]
+        var parts = [youth.regNum, youth.unitDisplay]
         if youth.status == .seated || youth.status == .inProgress {
             parts.append("Room \(youth.room)")
         } else {
-            parts.append(youth.boardType == .projectReview ? "Project" : youth.boardTypeText)
+            parts.append(youth.boardType?.label ?? youth.boardTypeText)
         }
         if youth.status == .completed, let result = BoardResult(rawValue: youth.result) {
             parts.append(result.label)
@@ -153,22 +164,19 @@ private struct YouthRow: View {
     }
 
     @ViewBuilder
-    private var trailing: some View {
-        let minutes = youth.minutesSinceLastUpdate(now: now)
+    private func trailing(_ minutes: Int?) -> some View {
         if youth.status?.isWaitingForBoard ?? true {
             if let minutes {
                 Text("\(minutes) min")
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
-                    .help("Waiting \(minutes) minutes")
             }
         } else if youth.status?.isFinished == true {
             StatusBadge(statusText: youth.statusText)
         } else {
             HStack(spacing: 6) {
                 StatusBadge(statusText: youth.statusText)
-                if let minutes,
-                   let state = RoomTimer.state(status: youth.status, boardType: youth.boardType, minutes: minutes, config: event.config) {
+                if let minutes, let state = timer(minutes) {
                     TimerBadge(minutes: minutes, state: state)
                 }
             }

@@ -35,14 +35,14 @@ final class Attention {
             guard let minutes = youth.minutesSinceLastUpdate(now: now),
                   RoomTimer.state(status: youth.status, boardType: youth.boardType, minutes: minutes, config: event.config) == .overdue
             else { continue }
-            let key = "\(youth.id)|\(youth.statusText)|\(youth.lastUpdateTime)"
+            let key = RoomTimerSpeech.key(for: youth)
             guard announced.insert(key).inserted, canNotify, !NSApplication.shared.isActive else { continue }
 
             let content = UNMutableNotificationContent()
             content.title = "Room \(youth.room) is overdue"
             content.body = youth.status == .seated
-                ? "\(youth.shownFullName)'s board has been convening for \(minutes) minutes."
-                : "\(youth.shownFullName)'s review has run \(minutes) minutes."
+                ? "\(youth.shownFullName)'s board has been convening for \(Count.minutes(minutes))."
+                : "\(youth.shownFullName)'s review has run \(Count.minutes(minutes))."
             content.sound = .default
             UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: key, content: content, trigger: nil))
         }

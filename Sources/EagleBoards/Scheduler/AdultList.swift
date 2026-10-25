@@ -67,7 +67,7 @@ struct AdultList: View {
                 // Whom they introduce to their board of review (SPEC.md D-23).
                 TableColumn("Introduces", value: \Adult.supporting) { adult in
                     let names = supportedNames(adult)
-                    Text(names).foregroundStyle(.secondary).help(names)
+                    CellText(names).foregroundStyle(.secondary).help(names)
                 }
             }
             Group {
@@ -83,6 +83,8 @@ struct AdultList: View {
                 TableRow(adult).draggable(DragPayload.adult(adult.id))
             }
         }
+        .accessibilityLabel(model.page.title)
+        .speaksSearchCount(model.searchText, shown: rows.count, total: event.adults.count)
         .contextMenu(forSelectionType: Adult.ID.self) { ids in
             if ids.isEmpty {
                 Button("Add Adult…") { model.present(.addAdult) }
@@ -127,7 +129,7 @@ struct AdultList: View {
     private func matches(_ search: String, _ adult: Adult) -> Bool {
         let query = search.trimmingCharacters(in: .whitespaces)
         guard !query.isEmpty else { return true }
-        return [adult.shownFullName, adult.unitName, adult.unitLabel, adult.room, adult.email]
+        return [adult.shownFullName, adult.unitName, adult.unitLabel, adult.unitDisplay, adult.room, adult.email]
             .contains { $0.localizedCaseInsensitiveContains(query) }
     }
 }
@@ -254,6 +256,11 @@ struct AddAdultSheet: View {
     @State private var projectReview: BoardRole?
     @State private var woodBadge = false
     @State private var problem: String?
+    /// What the history search last said to VoiceOver.
+    @State private var foundSaid: String?
+
+    /// The matches listed under the search; how many there are in all is said.
+    private static let matchesShown = 5
 
     var body: some View {
         SheetLayout(
@@ -271,7 +278,7 @@ struct AddAdultSheet: View {
                     }
                 } else {
                     TextField("Signed in before?", text: $search, prompt: Text("Search the adult history by name, email or unit"))
-                    ForEach(model.event?.historyMatches(for: search, limit: 5) ?? []) { match in
+                    ForEach(model.event?.historyMatches(for: search, limit: Self.matchesShown) ?? []) { match in
                         Button {
                             fill(from: match)
                         } label: {
@@ -330,6 +337,20 @@ struct AddAdultSheet: View {
             }
             .keyboardShortcut(.defaultAction)
             .disabled(first.trimmingCharacters(in: .whitespaces).isEmpty || last.trimmingCharacters(in: .whitespaces).isEmpty)
+        }
+        // How many in the history match, said once typing pauses, since the
+        // list shows only the first few.
+        .task(id: search) {
+            guard known == nil, !search.trimmingCharacters(in: .whitespaces).isEmpty else {
+                foundSaid = nil
+                return
+            }
+            guard (try? await Task.sleep(for: .milliseconds(400))) != nil, let event = model.event else { return }
+            let total = event.historyMatches(for: search, limit: .max).count
+            let text = SearchSpeech.historyFound(total: total, shown: min(total, Self.matchesShown))
+            guard text != foundSaid else { return }
+            foundSaid = text
+            Speech.say(text)
         }
     }
 

@@ -191,10 +191,13 @@ struct FileFormatTests {
         #expect(scratch.dataFolder.events() == ["2026-09-22"])
     }
 
-    /// The submenu and the sheet that open an event write today's the same way.
+    /// The submenu and the sheet that open an event write today's the same
+    /// way, with the date as the Mac writes dates.
     @Test func todaysEventIsNamedTheSameInEveryList() {
-        #expect(DataFolder.eventLabel("2026-10-27", today: "2026-10-27") == "2026-10-27 (Today)")
-        #expect(DataFolder.eventLabel("2026-09-22", today: "2026-10-27") == "2026-09-22")
+        let us = Locale(identifier: "en_US")
+        #expect(DataFolder.eventLabel("2026-10-27", today: "2026-10-27", locale: us) == "October 27, 2026 (Today)")
+        #expect(DataFolder.eventLabel("2026-09-22", today: "2026-10-27", locale: us) == "September 22, 2026")
+        #expect(DataFolder.eventLabel("2026-09-22", today: "2026-10-27", locale: Locale(identifier: "en_GB")) == "22 September 2026")
     }
 
     /// The sign-in station names the event it serves only when that is not

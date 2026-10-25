@@ -108,6 +108,7 @@ struct HelpView: View {
             "The Dock icon shows how many youth are waiting. If a room goes overdue while you are in another app, a notification says so; macOS asks once whether to allow them, after the first board is seated. Both keep going with the scheduler window closed.",
             "Each busy room shows the minutes since its last step, with a stopwatch. While a board convenes it goes overdue after 30 minutes. Once the review starts, a final board runs long at 30 and is overdue at 45; a proposal review at 25 and 40. Running long is a timer on an orange tint and overdue an alarm clock on a solid pink-red fill, so they differ in shape and lightness, not only color.",
             "They are prompts, not limits. Change them in Settings › Timers.",
+            "VoiceOver announces a room once as it turns running long, and again as it turns overdue.",
         ]),
         HelpSection("Menus", [
             "Every action is in the Board, Adult and Room menus, dimmed when it does not apply. The right-click menu of a youth, an adult or a room lists only what can be done to them now; a youth's starts with their next step.",
