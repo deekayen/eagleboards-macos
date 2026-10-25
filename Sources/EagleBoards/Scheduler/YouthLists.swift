@@ -286,10 +286,10 @@ extension Scout {
     var regNumHelp: String {
         let number = regNum.drop(while: \.isLetter)
         if isPreRegistered {
-            return "Pre-registered -- matched a sign-up. #\(number) of the pre-registered to sign in."
+            return "Pre-registered: matched a sign-up. #\(number) of the pre-registered to sign in."
         }
         if isWalkIn {
-            return "Walk-in -- no pre-registration matched. #\(number) of the walk-ins to sign in."
+            return "Walk-in: no pre-registration matched. #\(number) of the walk-ins to sign in."
         }
         return ""
     }

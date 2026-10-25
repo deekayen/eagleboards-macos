@@ -82,7 +82,15 @@ struct EditableChoice<Label: View>: View {
         .buttonStyle(.plain)
         .fixedSize()
         .accessibilityLabel(name)
+        // The label above names the column; this is what is chosen, in the
+        // menu's words, so a cell drawn as a mark (Wood Badge) reads too.
+        .accessibilityValue(Self.label(of: value, in: choices) ?? (value.isEmpty ? "None" : value))
         .help("Choose the \(name.lowercased())")
+    }
+
+    /// The menu's words for a stored value, if it is one of the choices.
+    static func label(of value: String, in choices: [(value: String, label: String)]) -> String? {
+        choices.first { $0.value == value }?.label
     }
 }
 
@@ -90,7 +98,7 @@ extension EditableChoice where Label == Text {
     /// The choice's own label, or the stored value if it is not one of them.
     init(_ value: String, choices: [(value: String, label: String)], name: String, save: @escaping (String) -> Bool) {
         self.init(value: value, choices: choices, name: name, save: save) {
-            Text(choices.first { $0.value == value }?.label ?? value)
+            Text(Self.label(of: value, in: choices) ?? value)
         }
     }
 }

@@ -21,30 +21,30 @@ struct PreRegisteredPage: View {
             .sorted(using: sortOrder)
 
         Table(of: Scout.self, selection: $selection, sortOrder: $sortOrder) {
-            TableColumn("Last", value: \Scout.last) { youth in
+            TableColumn("Last Name", value: \Scout.last) { youth in
                 EditableText(youth.last.shownValue, name: "Last name") { value in edit(youth) { $0.last = value } }
             }
-            TableColumn("First", value: \Scout.first) { youth in
+            TableColumn("First Name", value: \Scout.first) { youth in
                 EditableText(youth.first.shownValue, name: "First name") { value in edit(youth) { $0.first = value } }
             }
-            TableColumn("Type", value: \Scout.unitType) { youth in
+            TableColumn("Unit Type", value: \Scout.unitType) { youth in
                 EditableChoice(youth.unitType, choices: RecordChoices.youthUnitTypes, name: "Unit type") { value in
                     edit(youth) { $0.unitType = value }
                 }
             }
-            .width(min: 50, ideal: 64, max: 80)
+            .width(min: 60, ideal: 76, max: 100)
             TableColumn("Unit", value: \Scout.unit) { youth in
                 EditableText(youth.unit, name: "Unit number") { value in edit(youth) { $0.unit = value } }
             }
             .width(min: 40, ideal: 50, max: 70)
-            TableColumn("Board", value: \Scout.boardTypeText) { youth in
-                EditableChoice(value: youth.boardTypeText, choices: RecordChoices.boardTypes, name: "Board") { value in
+            TableColumn("Board Type", value: \Scout.boardTypeText) { youth in
+                EditableChoice(value: youth.boardTypeText, choices: RecordChoices.boardTypes, name: "Board type") { value in
                     edit(youth) { $0.boardTypeText = value }
                 } label: {
                     BoardTypeText(youth: youth)
                 }
             }
-            .width(min: 50, ideal: 70, max: 90)
+            .width(min: 68, ideal: 82, max: 140)
             TableColumn("Leader", value: \Scout.leader) { youth in
                 EditableText(youth.leader.shownValue, name: "Leader") { value in edit(youth) { $0.leader = value } }
             }
@@ -66,8 +66,7 @@ struct PreRegisteredPage: View {
                     ContentUnavailableView("Importing Sign-Ups…", systemImage: "square.and.arrow.down",
                                            description: Text("The youth who signed up for today appear here once SignUpGenius answers."))
                 } else if model.searchText.isEmpty {
-                    ContentUnavailableView("No Pre-Registrations", systemImage: "calendar",
-                                           description: Text("File › Import Sign-Ups from SignUpGenius brings in the youth who signed up for today."))
+                    NoPreRegistrations()
                 } else {
                     ContentUnavailableView.search(text: model.searchText)
                 }
@@ -110,11 +109,12 @@ struct AdultHistoryPage: View {
             columns: [
                 PlainColumn(id: "lastEvent", title: "Last Event", width: 110, style: .digits, ascendingFirst: false,
                             text: { $0.adult.lastEvent }, checked: \.signedIn),
-                PlainColumn(id: "last", title: "Last", width: 130, text: { $0.adult.last.shownValue }),
-                PlainColumn(id: "first", title: "First", width: 130, text: { $0.adult.first.shownValue }),
+                PlainColumn(id: "last", title: "Last Name", width: 130, text: { $0.adult.last.shownValue }),
+                PlainColumn(id: "first", title: "First Name", width: 130, text: { $0.adult.first.shownValue }),
                 PlainColumn(id: "unit", title: "Unit", width: 90, text: { $0.adult.unitDisplay }),
-                PlainColumn(id: "final", title: "Final", width: 70, style: .role, text: { $0.adult.finalBoardRoleText }),
-                PlainColumn(id: "project", title: "Project", width: 70, style: .role, text: { $0.adult.projectReviewRoleText }),
+                PlainColumn(id: "final", title: "Final Board Role", width: 106, style: .role, text: { $0.adult.finalBoardRoleText }),
+                PlainColumn(id: "project", title: "Proposal Review Role", width: 132, style: .role,
+                            text: { $0.adult.projectReviewRoleText }),
                 PlainColumn(id: "events", title: "Events", width: 55, style: .digits, text: { "\($0.adult.eventCount)" },
                             toolTip: { $0.adult.boardHistory }, sortKey: { $0.adult.eventCount }),
                 PlainColumn(id: "email", title: "Email", width: 220, text: { $0.adult.email }),
@@ -164,8 +164,7 @@ struct ApprovedProposalsPage: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(found.summary)
                     ForEach(found.unreadable, id: \.self) { problem in
-                        Label("Could not read \(problem)", systemImage: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
+                        NoticeLabel.warning("Could not read \(problem)")
                     }
                 }
                 .foregroundStyle(.secondary)
@@ -175,10 +174,10 @@ struct ApprovedProposalsPage: View {
             PlainTable(
                 rows: approvals,
                 columns: [
-                    PlainColumn(id: "last", title: "Last", width: 130, text: \.last),
-                    PlainColumn(id: "first", title: "First", width: 120, text: \.first),
+                    PlainColumn(id: "last", title: "Last Name", width: 130, text: \.last),
+                    PlainColumn(id: "first", title: "First Name", width: 120, text: \.first),
                     PlainColumn(id: "unit", title: "Unit", width: 100, text: \.unit),
-                    PlainColumn(id: "event", title: "Approved", width: 100, style: .digits, ascendingFirst: false, text: \.event),
+                    PlainColumn(id: "event", title: "Approved On", width: 100, style: .digits, ascendingFirst: false, text: \.event),
                     PlainColumn(id: "chair", title: "Chair", width: 150, text: \.chair),
                     PlainColumn(id: "members", title: "Other Members", width: 240, text: { $0.otherMembers.joined(separator: ", ") }),
                     PlainColumn(id: "notes", title: "Notes", width: 260, text: \.notes, toolTip: { $0.notes.isEmpty ? nil : $0.notes }),
@@ -207,6 +206,7 @@ struct ApprovedProposalsPage: View {
 /// The rooms table: what each room is used for today, and whose board is in
 /// it. The board type is changed in place; the name, and who is in the room,
 /// change from the Event page's room cards (Room › Rename…, Move Board…).
+/// Double-click a room, or choose Show on Event Page, to see its card.
 struct RoomsPage: View {
     @Environment(AppModel.self) private var model
     let event: BoardEvent
@@ -219,8 +219,10 @@ struct RoomsPage: View {
             .sorted(using: sortOrder)
 
         Table(of: Room.self, selection: $model.selectedRoomID, sortOrder: $sortOrder) {
-            TableColumn("Room", value: \Room.name)
-                .width(min: 50, ideal: 70, max: 100)
+            TableColumn("Room", value: \Room.name) { room in
+                Text(room.name).help(room.name)
+            }
+            .width(min: 50, ideal: 70, max: 200)
             TableColumn("Used For", value: \Room.boardTypeText) { room in
                 EditableChoice(room.boardTypeText, choices: RecordChoices.boardTypes, name: "Used for") { value in
                     guard let boardType = BoardType(rawValue: value) else { return false }
@@ -238,9 +240,12 @@ struct RoomsPage: View {
             ForEach(rows) { TableRow($0) }
         }
         .contextMenu(forSelectionType: Room.ID.self) { ids in
-            // A context menu lists only what applies: a room in use has nothing.
+            // A context menu lists only what applies: a room in use cannot
+            // be removed.
             if let id = ids.first, let room = event.room(id: id) {
+                Button("Show on Event Page") { model.showRoomOnEventPage(id) }
                 if room.isFree {
+                    Divider()
                     Button("Remove Room") {
                         model.selectedRoomID = id
                         model.removeSelectedRoom()
@@ -250,21 +255,52 @@ struct RoomsPage: View {
                 Button("Add Room…") { model.present(.addRoom) }
             }
         } primaryAction: { ids in
-            if ids.isEmpty { model.present(.addRoom) }
+            // As on Results and Youth, double-clicking a row shows it on the
+            // Event page; below the last row it adds a room.
+            if let id = ids.first {
+                model.showRoomOnEventPage(id)
+            } else {
+                model.present(.addRoom)
+            }
         }
         // Room › Remove Room, which a room in use dims, as it does Edit › Delete.
         .onDeleteCommand(perform: model.selectedRoom?.isFree == true ? { model.removeSelectedRoom() } : nil)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            ListFooter("Add Room", help: "Add a room for today") { model.present(.addRoom) }
+            ListFooter("Add Room…", help: "Add a room for today") { model.present(.addRoom) }
         }
         .overlay {
             if rows.isEmpty {
                 if model.searchText.isEmpty {
-                    ContentUnavailableView("No Rooms Yet", systemImage: "door.left.hand.closed",
-                                           description: Text("Add Room, at the foot of this list, adds one."))
+                    NoRoomsYet(event: event)
                 } else {
                     ContentUnavailableView.search(text: model.searchText)
                 }
+            }
+        }
+    }
+}
+
+/// The Pre-Registered page before any sign-ups are in, offering the import,
+/// or Settings when no SignUpGenius key is saved yet.
+private struct NoPreRegistrations: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        if model.hasSignUpGeniusKey {
+            ContentUnavailableView {
+                Label("No Pre-Registrations", systemImage: "calendar")
+            } description: {
+                Text("Import the youth who signed up on SignUpGenius for today.")
+            } actions: {
+                Button("Import Sign-Ups") { Task { await model.importSignUps() } }
+            }
+        } else {
+            ContentUnavailableView {
+                Label("No Pre-Registrations", systemImage: "calendar")
+            } description: {
+                Text("Save a SignUpGenius key in Settings to import the youth who signed up for today.")
+            } actions: {
+                SettingsLink { Text("Open Settings…") }
             }
         }
     }

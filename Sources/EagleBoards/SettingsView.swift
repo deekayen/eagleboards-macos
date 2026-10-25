@@ -188,8 +188,7 @@ private struct SignUpGeniusSettings: View {
                     }
                     .disabled(!model.signUpGeniusAllowed)
                     if saved {
-                        Label("Saved in your keychain", systemImage: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
+                        NoticeLabel("Saved in your keychain", systemImage: "checkmark.circle.fill", tint: .green)
                     }
                 }
             } header: {
@@ -200,9 +199,9 @@ private struct SignUpGeniusSettings: View {
                     + "The key is kept in your macOS keychain, not in the data folder.")
                     .foregroundStyle(.secondary)
                 if !model.signUpGeniusAllowed {
-                    Text("Off for this run: EAGLEBOARDS_DATA_FOLDER is set, so the keychain is not read. "
+                    NoticeLabel.warning("Off for this run: EAGLEBOARDS_DATA_FOLDER is set, so the keychain is not read. "
                         + "Set EAGLEBOARDS_SIGNUPGENIUS=1 to use it with a scratch folder.")
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(.secondary)
                 }
             }
             Section {

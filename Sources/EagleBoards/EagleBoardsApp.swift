@@ -112,6 +112,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 struct EagleBoardsCommands: Commands {
     let model: AppModel
     @Environment(\.openWindow) private var openWindow
+    /// Set while the Help window is in front.
+    @FocusedValue(\.helpSearch) private var helpSearch
 
     var body: some Commands {
         CommandGroup(after: .newItem) {
@@ -161,12 +163,18 @@ struct EagleBoardsCommands: Commands {
             .disabled(model.localSignInURL == nil)
         }
         CommandGroup(after: .textEditing) {
+            // The search of the window in front: Help's own, or else the
+            // scheduler's, which comes forward for it.
             Button("Find…") {
-                openWindow(id: WindowID.scheduler)
-                model.findRequested = true
+                if let helpSearch {
+                    helpSearch.start()
+                } else {
+                    openWindow(id: WindowID.scheduler)
+                    model.findRequested = true
+                }
             }
             .keyboardShortcut("f")
-            .disabled(model.event == nil)
+            .disabled(helpSearch == nil && model.event == nil)
         }
         InspectorCommands()
         // The pages (SPEC.md P-1, P-6): the event, then a page per table,

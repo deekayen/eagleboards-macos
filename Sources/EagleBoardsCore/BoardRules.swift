@@ -193,7 +193,7 @@ public struct SeatingReview: Sendable {
         }
 
         guard let boardType = scout.boardType else {
-            blockingProblems.append("\(scoutName) has no board type. Set Final or Project in the Board column of the Youth page.")
+            blockingProblems.append("\(scoutName) has no board type. Set Final or Project in the Board Type column of the Youth page.")
             return
         }
 

@@ -193,7 +193,8 @@ final class AppModel {
     private static func describe(serverError error: Error, port: Int) -> String {
         let text = String(describing: error)
         if text.contains("Address already in use") {
-            return "Port \(port) is already in use by another program. Quit it -- the Java Eagle Board Scheduler also uses 8080 -- or choose another port in Settings."
+            return "Port \(port) is already in use by another program. "
+                + "Quit that program (the Java Eagle Board Scheduler also uses 8080), or choose another port in Settings."
         }
         if text.contains("Permission denied") {
             return "macOS would not let Eagle Boards listen on port \(port). Choose a port above 1024 in Settings."
@@ -393,6 +394,12 @@ final class AppModel {
         selectYouth(id)
     }
 
+    /// A room picked on the Rooms page, its card selected on the Event page.
+    func showRoomOnEventPage(_ id: Room.ID) {
+        show(.event)
+        selectRoom(id)
+    }
+
     /// Selecting a waiting youth proposes a board, the way the Java scheduler
     /// did, unless the operator has already drawn one up for them by hand.
     func selectYouth(_ id: Scout.ID?) {
@@ -534,22 +541,26 @@ final class AppModel {
         present(.seatBoard(scoutID: youth.id))
     }
 
-    /// A youth dropped on a room: seat their board there.
-    func seat(scoutID: Scout.ID, inRoom roomID: Room.ID) {
-        guard let event, let youth = event.scout(id: scoutID), let room = event.room(id: roomID) else { return }
+    /// A youth dropped on a room: seat their board there. False when the
+    /// drop is refused, so the dragged youth slides back as the message
+    /// says why.
+    @discardableResult
+    func seat(scoutID: Scout.ID, inRoom roomID: Room.ID) -> Bool {
+        guard let event, let youth = event.scout(id: scoutID), let room = event.room(id: roomID) else { return false }
         guard youth.status?.isWaitingForBoard == true else {
             message = Message(title: "\(youth.shownFullName) is not waiting.",
                               text: "Only a youth who is waiting for a board can be seated in a room.")
-            return
+            return false
         }
         guard room.isFree else {
             message = Message(title: "Room \(room.name) is in use.",
                               text: "\(room.scoutName.shownValue)'s board is in room \(room.name). Choose a free room.")
-            return
+            return false
         }
         selectYouth(scoutID)
         drafts.setRoom(roomID, for: scoutID)
         beginSeating()
+        return true
     }
 
     /// Seat Board's sheet, which shows a refusal inside itself.
@@ -1136,7 +1147,7 @@ final class AppModel {
         panel.canCreateDirectories = true
         panel.prompt = "Use This Folder"
         panel.message = "Choose the folder for Eagle Boards data. If you used the Java Eagle Board Scheduler, "
-            + "choose the folder it ran in -- the one with Master_AdultHistory.csv and the dated folders."
+            + "choose the folder it ran in, the one holding Master_AdultHistory.csv and the dated folders."
         // Beside the folder in use, so it and its neighbors are in view.
         panel.directoryURL = dataFolder?.root.deletingLastPathComponent()
         run(panel) { [weak self] url in self?.chooseDataFolder(url) }

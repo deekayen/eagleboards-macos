@@ -227,7 +227,8 @@ final class PlainCell: NSTableCellView {
     enum Style {
         case plain
         case digits
-        /// A board role: Chair marked, "No thanks" as a dash.
+        /// A board role: Chair in semibold, and Unavailable as the role
+        /// menus say it, No Thanks.
         case role
     }
 
@@ -266,18 +267,21 @@ final class PlainCell: NSTableCellView {
     func show(_ content: Content) {
         check.isHidden = !content.checked
         toolTip = content.toolTip
+        // A value cut off shows in full on hover, as in Mac tables, except
+        // in a column with its own tooltip (Notes), which already shows the
+        // whole value: the expanded copy would cover it.
+        label.allowsExpansionToolTips = content.toolTip == nil
         let body = NSFont.systemFont(ofSize: NSFont.systemFontSize)
         switch (content.style, BoardRole(rawValue: content.text)) {
         case (.role, .chair):
             label.attributedStringValue = NSAttributedString(string: "Chair", attributes: [
                 .font: NSFont.systemFont(ofSize: NSFont.systemFontSize, weight: .semibold),
-                .foregroundColor: NSColor.controlAccentColor,
+                .foregroundColor: NSColor.labelColor,
             ])
         case (.role, .unavailable):
-            label.attributedStringValue = NSAttributedString(string: "—", attributes: [
+            label.attributedStringValue = NSAttributedString(string: "No Thanks", attributes: [
                 .font: body, .foregroundColor: NSColor.secondaryLabelColor,
             ])
-            toolTip = "No thanks"
         case (.digits, _):
             label.attributedStringValue = NSAttributedString(string: content.text, attributes: [
                 .font: NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular),

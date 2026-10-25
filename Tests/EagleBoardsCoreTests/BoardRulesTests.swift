@@ -152,6 +152,18 @@ struct SeatingReviewTests {
         ]
         #expect(SeatingReview(scout: scout(status: .verified), members: members, room: finalRoom).canSeat)
     }
+
+    /// The refusal names the column by its heading on the Youth page.
+    @Test func noBoardTypeSaysWhichColumnToSetIt() {
+        let youth = Scout(fields: [
+            "Type": "SCOUT", "ID": "SCOUT:Candidate:Casey", "First": "Casey", "Last": "Candidate",
+            "UnitName": "Troop1234", "BoardType": "", "Status": BoardStatus.registered.rawValue,
+        ])
+        let review = SeatingReview(scout: youth, members: [], room: finalRoom)
+        #expect(review.blockingProblems.contains {
+            $0 == "Casey Candidate has no board type. Set Final or Project in the Board Type column of the Youth page."
+        })
+    }
 }
 
 @Suite("Board suggestion")

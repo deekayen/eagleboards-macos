@@ -84,6 +84,7 @@ struct CheckInDetails: View {
                         .font(.headline)
                     Text("Join the venue's Wi-Fi so a tablet can reach the sign-in page. It is open on this Mac at http://127.0.0.1:\(port)/.")
                         .fixedSize(horizontal: false, vertical: true)
+                        .textSelection(.enabled)
                 }
                 HStack {
                     Button("Open Sign-In Page Here") {
@@ -97,10 +98,12 @@ struct CheckInDetails: View {
                         .foregroundStyle(.secondary)
                 }
             case .failed(let message):
-                Label("The sign-in station is not running", systemImage: "exclamationmark.triangle.fill")
+                NoticeLabel("The sign-in station is not running", systemImage: "exclamationmark.triangle.fill", tint: .red)
                     .font(.headline)
-                    .foregroundStyle(.red)
-                Text(message).fixedSize(horizontal: false, vertical: true)
+                // To copy into a message or a search.
+                Text(message)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
                 Button("Try Again") { model.startServer() }
             case .starting:
                 ProgressView("Starting the sign-in station…")

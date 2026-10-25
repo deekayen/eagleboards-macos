@@ -23,42 +23,46 @@ struct ResultsPage: View {
 
         Table(of: Scout.self, selection: selection, sortOrder: $sortOrder) {
             Group {
-                TableColumn("#", value: \Scout.queueOrder) { youth in
+                TableColumn("Sign-In Number", value: \Scout.queueOrder) { youth in
                     Text(youth.regNum).help(youth.regNumHelp)
                 }
-                .width(min: 30, ideal: 36, max: 50)
-                TableColumn("Last", value: \Scout.last) { youth in
+                .width(min: 90, ideal: 104, max: 130)
+                TableColumn("Last Name", value: \Scout.last) { youth in
                     EditableText(youth.last.shownValue, name: "Last name") { value in edit(youth) { $0.last = value } }
                 }
-                TableColumn("First", value: \Scout.first) { youth in
+                TableColumn("First Name", value: \Scout.first) { youth in
                     EditableText(youth.first.shownValue, name: "First name") { value in edit(youth) { $0.first = value } }
                 }
-                TableColumn("Type", value: \Scout.unitType) { youth in
+                TableColumn("Unit Type", value: \Scout.unitType) { youth in
                     EditableChoice(youth.unitType, choices: RecordChoices.youthUnitTypes, name: "Unit type") { value in
                         edit(youth) { $0.unitType = value }
                     }
                 }
-                .width(min: 50, ideal: 64, max: 80)
+                .width(min: 60, ideal: 76, max: 100)
                 TableColumn("Unit", value: \Scout.unit) { youth in
                     EditableText(youth.unit, name: "Unit number") { value in edit(youth) { $0.unit = value } }
                 }
                 .width(min: 40, ideal: 50, max: 70)
             }
             Group {
-                TableColumn("Board", value: \Scout.boardTypeText) { youth in
-                    EditableChoice(value: youth.boardTypeText, choices: RecordChoices.boardTypes, name: "Board") { value in
+                TableColumn("Board Type", value: \Scout.boardTypeText) { youth in
+                    EditableChoice(value: youth.boardTypeText, choices: RecordChoices.boardTypes, name: "Board type") { value in
                         edit(youth) { $0.boardTypeText = value }
                     } label: {
                         BoardTypeText(youth: youth)
                     }
                 }
-                .width(min: 50, ideal: 70, max: 90)
+                .width(min: 68, ideal: 82, max: 140)
                 TableColumn("Status", value: \Scout.statusRank) { youth in
                     StatusBadge(statusText: youth.statusText)
                 }
                 .width(min: 80, ideal: 100, max: 120)
-                TableColumn("Room", value: \Scout.room)
-                    .width(min: 40, ideal: 50, max: 70)
+                // Widens far enough for a room named Fellowship Hall, and
+                // shows the whole name on hover where it is still cut off.
+                TableColumn("Room", value: \Scout.room) { youth in
+                    Text(youth.room).help(youth.room)
+                }
+                .width(min: 40, ideal: 50, max: 200)
                 TableColumn("Result", value: \Scout.result) { youth in
                     EditableChoice(youth.result, choices: RecordChoices.results, name: "Result") { value in
                         edit(youth) { $0.result = value }

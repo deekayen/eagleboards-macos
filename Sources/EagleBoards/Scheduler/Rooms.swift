@@ -8,9 +8,16 @@ import SwiftUI
 /// the rooms holding someone whose name matches, youth or board member, and
 /// any room named by it, and says above them where anyone it matched in no
 /// room is. Return opens the first room found, or the youth found.
+///
+/// The cards are one focus section and take focus as a collection's items
+/// do: the card with focus is the selected room, the arrow keys move through
+/// the cards, and Return takes the room's next step, as a double click does.
 struct RoomsGrid: View {
     @Environment(AppModel.self) private var model
     let event: BoardEvent
+    @FocusState private var focusedRoomID: Room.ID?
+    /// How many cards fit across, for Up and Down.
+    @State private var columns = 1
 
     var body: some View {
         if event.rooms.isEmpty {
@@ -18,45 +25,107 @@ struct RoomsGrid: View {
         } else {
             let find = event.find(model.searchText)
             let rooms = find.rooms
-            ScrollView {
-                if let note = find.note {
-                    Label(note, systemImage: "person.fill.questionmark")
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding([.horizontal, .top], 12)
-                        .accessibilityAddTraits(.updatesFrequently)
-                }
-                TimelineView(.everyMinute) { timeline in
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 10)], spacing: 10) {
-                        ForEach(rooms) { room in
-                            RoomCard(room: room, event: event, now: timeline.date, isSelected: room.id == model.selectedRoomID)
-                                // A double click alongside the single one, not
-                                // before it: an exclusive double click makes
-                                // every single click wait to see if it is one.
-                                .onTapGesture { model.selectRoom(room.id) }
-                                .simultaneousGesture(TapGesture(count: 2).onEnded { model.performNextStep() })
-                                // The same through VoiceOver: pressing the card
-                                // selects it, and its board's next step is an
-                                // action, as a double click would take it.
-                                .accessibilityAction { model.selectRoom(room.id) }
-                                .accessibilityActions {
-                                    if let step = event.occupant(of: room)?.status?.nextStep {
-                                        Button(step.title) {
-                                            model.selectRoom(room.id)
-                                            model.performNextStep()
-                                        }
-                                    }
-                                }
-                                .contextMenu {
-                                    RoomActionButtons(model: model, event: event, roomID: room.id, inContextMenu: true)
-                                }
-                                .youthDropDestination(room: room)
-                        }
+            ScrollViewReader { scroller in
+                ScrollView {
+                    if let note = find.note {
+                        Label(note, systemImage: "person.fill.questionmark")
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding([.horizontal, .top], 12)
+                            .accessibilityAddTraits(.updatesFrequently)
                     }
-                    .padding(12)
+                    TimelineView(.everyMinute) { timeline in
+                        grid(rooms, now: timeline.date, scroller: scroller)
+                    }
+                }
+                .onChange(of: focusedRoomID) { _, id in
+                    guard let id else { return }
+                    if id != model.selectedRoomID { model.selectRoom(id) }
+                    scroller.scrollTo(id)
+                }
+                // A room selected another way (its youth, a drop, the
+                // search) is where the arrow keys go on from.
+                .onChange(of: model.selectedRoomID) { _, id in
+                    if focusedRoomID != nil, let id, rooms.contains(where: { $0.id == id }) {
+                        focusedRoomID = id
+                    }
                 }
             }
         }
+    }
+
+    private func grid(_ rooms: [Room], now: Date, scroller: ScrollViewProxy) -> some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: Self.cardWidth), spacing: Self.spacing)], spacing: Self.spacing) {
+            ForEach(rooms) { room in
+                RoomCard(room: room, event: event, now: now, isSelected: room.id == model.selectedRoomID)
+                    // Focus shows as the selection, not a ring: a highlight
+                    // in a collection, as in a list.
+                    .focusable()
+                    .focused($focusedRoomID, equals: room.id)
+                    .focusEffectDisabled()
+                    // A double click alongside the single one, not
+                    // before it: an exclusive double click makes
+                    // every single click wait to see if it is one.
+                    .onTapGesture {
+                        model.selectRoom(room.id)
+                        focusedRoomID = room.id
+                    }
+                    .simultaneousGesture(TapGesture(count: 2).onEnded { model.performNextStep() })
+                    .onKeyPress(.return) {
+                        if model.selectedRoomID != room.id { model.selectRoom(room.id) }
+                        model.performNextStep()
+                        return .handled
+                    }
+                    .onMoveCommand { direction in
+                        move(direction, from: room.id, in: rooms, scroller: scroller)
+                    }
+                    // The same through VoiceOver: pressing the card
+                    // selects it, and its board's next step is an
+                    // action, as a double click would take it.
+                    .accessibilityAction { model.selectRoom(room.id) }
+                    .accessibilityActions {
+                        if let step = event.occupant(of: room)?.status?.nextStep {
+                            Button(step.title) {
+                                model.selectRoom(room.id)
+                                model.performNextStep()
+                            }
+                        }
+                    }
+                    .contextMenu {
+                        RoomActionButtons(model: model, event: event, roomID: room.id, inContextMenu: true)
+                    }
+                    .youthDropDestination(room: room)
+            }
+        }
+        .onGeometryChange(for: Double.self) { $0.size.width } action: { width in
+            columns = CardGrid.columns(width: width, minimum: Self.cardWidth, spacing: Self.spacing)
+        }
+        .focusSection()
+        .padding(12)
+    }
+
+    private static let cardWidth = 220.0
+    private static let spacing = 10.0
+
+    /// An arrow key on a card: focus, and with it the selection, moves to
+    /// the card beside, above or below it.
+    private func move(_ direction: MoveCommandDirection, from roomID: Room.ID, in rooms: [Room], scroller: ScrollViewProxy) {
+        let move: CardGrid.Move
+        switch direction {
+        case .left: move = .left
+        case .right: move = .right
+        case .up: move = .up
+        case .down: move = .down
+        @unknown default: return
+        }
+        guard let index = rooms.firstIndex(where: { $0.id == roomID }),
+              let next = CardGrid.index(after: move, from: index, count: rooms.count, columns: columns)
+        else { return }
+        let id = rooms[next].id
+        // Into view first: the grid is lazy, so a card out of sight may not
+        // be built yet for focus to land on.
+        scroller.scrollTo(id)
+        focusedRoomID = id
     }
 }
 
@@ -104,8 +173,8 @@ private struct YouthDropTarget: ViewModifier {
             }
             .dropDestination(for: String.self) { items, _ in
                 guard let scoutID = DragPayload.youthIDs(in: items).first else { return false }
-                model.seat(scoutID: scoutID, inRoom: room.id)
-                return true
+                // A refused drop slides back, as the message says why.
+                return model.seat(scoutID: scoutID, inRoom: room.id)
             } isTargeted: { isTargeted = $0 }
     }
 }
@@ -115,6 +184,8 @@ struct RoomCard: View {
     let event: BoardEvent
     let now: Date
     let isSelected: Bool
+    @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.controlActiveState) private var activeState
 
     var body: some View {
         let occupant = event.occupant(of: room)
@@ -156,11 +227,27 @@ struct RoomCard: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, minHeight: 72, alignment: .topLeading)
-        .background(RoundedRectangle(cornerRadius: 8).fill(isSelected ? Color.accentColor.opacity(0.12) : Color(nsColor: .controlBackgroundColor)))
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(isSelected ? Color.accentColor : Color.secondary.opacity(0.25), lineWidth: isSelected ? 2 : 1))
+        .background(RoundedRectangle(cornerRadius: 8).fill(fill))
+        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(border, lineWidth: isSelected ? 2 : 1))
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+    }
+
+    /// The selection in gray while the window is not the key window, as a
+    /// Mac list shows it.
+    private var isEmphasized: Bool { activeState == .key }
+
+    private var fill: Color {
+        guard isSelected else { return Color(nsColor: .controlBackgroundColor) }
+        return isEmphasized ? Color.accentColor.opacity(0.12) : Color(nsColor: .unemphasizedSelectedContentBackgroundColor)
+    }
+
+    /// An unselected card's edge: the separator color, or the label color
+    /// under Increase Contrast, which asks for edges that stand out.
+    private var border: Color {
+        if isSelected { return isEmphasized ? Color.accentColor : Color.secondary }
+        return contrast == .increased ? Color.primary : Color(nsColor: .separatorColor)
     }
 }
 

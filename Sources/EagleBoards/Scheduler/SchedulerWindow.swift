@@ -71,7 +71,7 @@ struct WelcomeView: View {
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text("Moving from the Java Eagle Board Scheduler? Choose the folder it ran in -- the one holding "
+                    Text("Moving from the Java Eagle Board Scheduler? Choose the folder it ran in, the one holding "
                         + "Master_AdultHistory.csv and the dated folders. Both programs read the same files.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
@@ -88,8 +88,8 @@ struct WelcomeView: View {
             .frame(maxWidth: 560)
 
             if let error = model.openError {
-                Label(error, systemImage: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.red)
+                NoticeLabel(error, systemImage: "exclamationmark.triangle.fill", tint: .red)
+                    .textSelection(.enabled)
                     .frame(maxWidth: 560)
             }
         }

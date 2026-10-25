@@ -18,8 +18,9 @@ writes the same data files, so a district can switch between them.
 </picture>
 
 **Running an event? This page is the whole manual.** The same guide is
-in the app under **Help › Eagle Boards Help**. The pictures use a made-up
-event whose cast is famous Eagle Scouts; nothing in them is real.
+in the app under **Help › Eagle Boards Help**, with a search field that
+**Edit › Find…** (**⌘F**) goes to while Help is in front. The pictures use a
+made-up event whose cast is famous Eagle Scouts; nothing in them is real.
 
 ## Before the first event
 
@@ -85,7 +86,7 @@ Each person appears on the Mac the moment they register. Youth are numbered
 youth are listed ahead of walk-ins.
 
 An adult who would rather not use the tablet can be signed in on the Mac:
-choose **Adult › Add Adult…** (**⌘N**), or click **Add Adult** at the foot of
+choose **Adult › Add Adult…** (**⌘N**), or click **Add Adult…** at the foot of
 the **Adults** page. Search the adult history to fill the form in for someone
 who has served before. On the **Adult History CSV** page, double-click someone, or
 select them and choose **Adult › Sign In for Today**, to sign them in for today.
@@ -103,6 +104,9 @@ order), **On a Board** (by room) and **Finished** (the most recent first), each
 with its count, and a card for every room filling the rest of the window, so a
 room's timer is never out of sight. Drag the line between them to widen the
 list. The inspector on the right follows the selected youth on every page.
+Click a room card, or Tab to the cards, and the arrow keys move from room to
+room; **Return** takes the selected room's next step, as a double-click on its
+card does.
 
 **Find a person's room.** Type part of anyone's name, youth or adult, in the
 search at the top right; **Edit › Find…** (**⌘F**) puts the cursor there. The
@@ -132,8 +136,8 @@ Until you change it, the proposed board keeps up with the event: when an adult
 signs in, goes home or comes back, or leaves a board, it is proposed again.
 Choosing its room is not a change, and it stays in the room you chose while
 that room is free. Once you take someone off, add someone, use **Fill the
-Rest** or **Clear**, or make someone else chair, the board is yours, kept while
-you look at other youth.
+Rest** or **Clear Board**, or make someone else chair, the board is yours,
+kept while you look at other youth.
 
 To pick every board yourself, set **Settings › General › When you select a
 waiting youth** to **Start with an empty board**. Selecting a youth then picks
@@ -163,9 +167,10 @@ inspector lists who introduces the youth, then their leader and parents, under
 **With Them**; **Board › Locate Leader and Parents** (**⌘L**) scrolls to it.
 
 If the adult introducing a youth did not say so at sign-in, select the youth
-and use **Link an Adult** under **With Them**. On the **Adults** page, with
-the youth still selected, **Adult › Introduces** and the youth's name links the
-selected adult, or unlinks them if it has a check.
+and use **Link an Adult** under **With Them**, which lists the adults from the
+youth's unit first. On the **Adults** page, with the youth still selected,
+**Adult › Introduces** and the youth's name links the selected adult, or
+unlinks them if it has a check.
 
 ### 5. Complete
 
@@ -210,11 +215,11 @@ members. There is no separate records window.
 | Page | What it holds |
 | --- | --- |
 | **Results** (⌥⌘2) | Every board and its result. Correct a result or its notes here. Double-click a board, or choose **Board › Show on Event Page**, to see it on the Event page. |
-| **Adults** (⌥⌘3) | The event's adults. Promote someone to Chair, mark Wood Badge, or fix a name; a change to a name, unit, contact or role reaches the adult history too. **Add Adult** at the foot signs someone in by hand. |
+| **Adults** (⌥⌘3) | The event's adults. Promote someone to Chair, mark Wood Badge, or fix a name; a change to a name, unit, contact or role reaches the adult history too. **Add Adult…** at the foot signs someone in by hand. |
 | **Youth** (⌥⌘4) | Every youth who signed in, in sign-in order. Double-click one, or choose **Board › Show on Event Page**, to see them on the Event page. |
 | **Pre-Registered** (⌥⌘5) | The youth who signed up on SignUpGenius for today. |
 | **Adult History CSV** (⌥⌘6) | Every adult who has ever signed in, across events, read-only, searched by name, email or unit. **Last Event** has a check for those signed in today; double-click someone, or choose **Adult › Sign In for Today**, to sign them in. |
-| **Rooms** (⌥⌘7) | What each room is used for today, and whose board is in it. **Add Room** at the foot adds one, and **Delete** removes a free one; **Edit › Undo** puts it back. |
+| **Rooms** (⌥⌘7) | What each room is used for today, and whose board is in it. Double-click a room, or choose **Show on Event Page** from its right-click menu, to see its card on the Event page. **Add Room…** at the foot adds one, and **Delete** removes a free one; **Edit › Undo** puts it back. |
 | **Approved Proposals** (⌥⌘8) | Every project proposal approved at an earlier event in the data folder, however long ago, for a youth who comes without the signed page: who, their unit, when, the chair and the other members. Read only. |
 
 To delete a youth, a pre-registration, or an adult, select them and press
@@ -262,7 +267,7 @@ back, and so does the Dock icon's menu (Control-click the icon).
 | --- | --- |
 | The tablet cannot open the address | Check both are on the same Wi-Fi. Click the sign-in address and try another address listed there. Check that Eagle Boards is allowed in System Settings › Network › Firewall. |
 | "Port 8080 is already in use" | Quit the other program (the Java Eagle Board Scheduler uses 8080 too) and choose **File › Restart Sign-In Station**, or change the port in Settings › General. |
-| "Not qualified to chair" | Promote someone: on the **Adults** page, click their Final or Project role and choose **Chair**. |
+| "Not qualified to chair" | Promote someone: on the **Adults** page, click their **Final Board Role** or **Proposal Review Role** and choose **Chair**. |
 | A board was seated by mistake | Select the youth and choose **Board › Reset Board**, or **Edit › Undo** right after seating. |
 
 ## Donating

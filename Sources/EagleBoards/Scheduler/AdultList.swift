@@ -8,7 +8,7 @@ import SwiftUI
 /// saved as it is left and stays off the Undo stack, and a change to their
 /// name, unit, contact or roles reaches the adult history too. Their room is
 /// read-only: it changes only through the Event page's steps.
-/// Add Adult, at the foot of the list, in the Adult menu, or by
+/// Add Adult…, at the foot of the list, in the Adult menu, or by
 /// double-clicking below the last row, signs in someone who would rather not
 /// use the tablet.
 struct AdultList: View {
@@ -29,41 +29,41 @@ struct AdultList: View {
                     AdultStatusLabel(adult: adult, isOnDraft: draft?.memberIDs.contains(adult.id) == true)
                 }
                 .width(min: 80, ideal: 110, max: 150)
-                TableColumn("Last", value: \Adult.last) { adult in
+                TableColumn("Last Name", value: \Adult.last) { adult in
                     EditableText(adult.last.shownValue, name: "Last name") { value in edit(adult) { $0.last = value } }
                 }
-                TableColumn("First", value: \Adult.first) { adult in
+                TableColumn("First Name", value: \Adult.first) { adult in
                     EditableText(adult.first.shownValue, name: "First name") { value in edit(adult) { $0.first = value } }
                 }
-                TableColumn("Type", value: \Adult.unitType) { adult in
+                TableColumn("Unit Type", value: \Adult.unitType) { adult in
                     EditableChoice(adult.unitType, choices: RecordChoices.adultUnitTypes, name: "Unit type") { value in
                         edit(adult) { $0.unitType = value }
                     }
                 }
-                .width(min: 50, ideal: 70, max: 90)
+                .width(min: 60, ideal: 80, max: 110)
                 TableColumn("Unit", value: \Adult.unit) { adult in
                     EditableText(adult.unit, name: "Unit number") { value in edit(adult) { $0.unit = value } }
                 }
                 .width(min: 40, ideal: 50, max: 70)
             }
             Group {
-                TableColumn("Final", value: \Adult.finalBoardRoleText) { adult in
+                TableColumn("Final Board Role", value: \Adult.finalBoardRoleText) { adult in
                     RoleChoice(role: adult.finalBoardRoleText, name: "Final Board role") { value in
                         edit(adult) { $0.finalBoardRoleText = value }
                     }
                 }
-                .width(min: 60, ideal: 80, max: 100)
-                TableColumn("Project", value: \Adult.projectReviewRoleText) { adult in
+                .width(min: 92, ideal: 106, max: 140)
+                TableColumn("Proposal Review Role", value: \Adult.projectReviewRoleText) { adult in
                     RoleChoice(role: adult.projectReviewRoleText, name: "Proposal Review role") { value in
                         edit(adult) { $0.projectReviewRoleText = value }
                     }
                 }
-                .width(min: 60, ideal: 80, max: 100)
+                .width(min: 120, ideal: 132, max: 160)
                 // Volunteering toward a Wood Badge ticket item.
-                TableColumn("WB", value: \Adult.woodBadge) { adult in
+                TableColumn("Wood Badge", value: \Adult.woodBadge) { adult in
                     WoodBadgeChoice(value: adult.woodBadge) { value in edit(adult) { $0.woodBadge = value } }
                 }
-                .width(min: 40, ideal: 48, max: 60)
+                .width(min: 74, ideal: 88, max: 110)
                 // Whom they introduce to their board of review (SPEC.md D-23).
                 TableColumn("Introduces", value: \Adult.supporting) { adult in
                     let names = supportedNames(adult)
@@ -100,7 +100,7 @@ struct AdultList: View {
         // One adult at a time, as in the context menu, asking first.
         .onDeleteCommand(perform: model.singleSelectedAdult.map { adult in { model.confirmDeleteAdult(adult.id) } })
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            ListFooter("Add Adult", help: "Sign in an adult who would rather not use the tablet") { model.present(.addAdult) }
+            ListFooter("Add Adult…", help: "Sign in an adult who would rather not use the tablet") { model.present(.addAdult) }
         }
         .overlay {
             if rows.isEmpty {
@@ -132,7 +132,7 @@ struct AdultList: View {
     }
 }
 
-/// Free, on a board in a room, or gone home -- in words and a symbol, not
+/// Free, on a board in a room, or gone home: in words and a symbol, not
 /// only a color.
 struct AdultStatusLabel: View {
     let adult: Adult
@@ -147,9 +147,14 @@ struct AdultStatusLabel: View {
             Label("Room \(adult.room)", systemImage: "person.3.fill")
                 .help("On the board in room \(adult.room)")
         } else if isOnDraft {
-            Label("This board", systemImage: "checkmark.circle.fill")
-                .foregroundStyle(.tint)
-                .help("On the board being drawn up for the selected youth")
+            // The tint on the symbol only: accent-colored words fall short of
+            // the contrast text needs.
+            Label {
+                Text("This board")
+            } icon: {
+                Image(systemName: "checkmark.circle.fill").foregroundStyle(.tint)
+            }
+            .help("On the board being drawn up for the selected youth")
         } else {
             Label("Free", systemImage: "circle")
                 .foregroundStyle(.secondary)
@@ -304,7 +309,7 @@ struct AddAdultSheet: View {
                     Text("As Last Time uses the role in the adult history, or Member for someone new.")
                         .foregroundStyle(.secondary)
                     if let problem {
-                        Text(problem).foregroundStyle(.red)
+                        SheetProblem(text: problem)
                     }
                 }
             }
@@ -420,16 +425,17 @@ struct ListFooter: View {
     }
 }
 
-/// A board role, with Chair made easy to spot.
+/// A board role, with Chair made easy to spot by its weight, and
+/// Unavailable in the role menus' words.
 struct RoleText: View {
     let role: String
 
     var body: some View {
         switch BoardRole(rawValue: role) {
         case .chair:
-            Text("Chair").fontWeight(.semibold).foregroundStyle(.tint)
+            Text("Chair").fontWeight(.semibold)
         case .unavailable:
-            Text("—").foregroundStyle(.secondary).help("No thanks")
+            Text("No Thanks").foregroundStyle(.secondary)
         default:
             Text(role)
         }

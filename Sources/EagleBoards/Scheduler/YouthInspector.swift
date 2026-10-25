@@ -127,7 +127,9 @@ private struct DraftBoardSections: View {
                 ReviewNotes(problems: draft.problems + (members.isEmpty ? [] : review.blockingProblems),
                             warnings: review.warnings)
             }
-            .listRowBackground(isTargeted ? Color.accentColor.opacity(0.12) : nil)
+            // Outlined as well as tinted while adults are dragged over it, as a
+            // room card is for a youth: the tint alone is faint.
+            .listRowBackground(isTargeted ? DropHighlight() : nil)
             .dropDestination(for: String.self) { items, _ in
                 let ids = DragPayload.adultIDs(in: items)
                 model.addToDraft(ids)
@@ -140,11 +142,12 @@ private struct DraftBoardSections: View {
                         .help("Replace this board with a proposed chair, members and room")
                     Button("Fill the Rest") { model.fillDraft() }
                         .help("Keep who you chose and add a chair and members to complete the board")
-                    Button("Clear") { model.clearDraft() }
+                    Button("Clear Board") { model.clearDraft() }
                         .disabled(members.isEmpty)
                 }
                 HStack {
-                    Button("Postpone", role: .destructive) { model.postpone() }
+                    // Not styled destructive: Edit › Undo brings them back.
+                    Button("Postpone") { model.postpone() }
                         .buttonStyle(.link)
                         .help("Put this board off to another event, as when the paperwork is not ready")
                     Spacer()
@@ -157,16 +160,13 @@ private struct DraftBoardSections: View {
             FreeAdultsSection(youth: youth, event: event, boardType: boardType, draftIDs: Set(draft.memberIDs))
         } else if youth.boardType == nil {
             Section {
-                Label("\(youth.shownFullName) has no board type. Set Final or Project in the Board column of the Youth page.",
-                      systemImage: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
+                NoticeLabel.warning(
+                    "\(youth.shownFullName) has no board type. Set Final or Project in the Board Type column of the Youth page.")
             }
         } else if youth.status == nil {
             Section {
-                Label("\(youth.shownFullName)'s status is not one Eagle Boards knows, so it cannot draw up a board. "
-                    + "The Youth page shows it in the Status column.",
-                      systemImage: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
+                NoticeLabel.warning("\(youth.shownFullName)'s status is not one Eagle Boards knows, so it cannot draw up a board. "
+                    + "The Youth page shows it in the Status column.")
             }
         } else {
             // No board yet, so there is nothing to start over.
@@ -183,7 +183,7 @@ private struct DraftBoardSections: View {
     }
 
     private func roomLabel(_ room: Room) -> String {
-        "\(room.name) -- \(room.boardType?.label ?? room.boardTypeText)"
+        "\(room.name) · \(room.boardType?.label ?? room.boardTypeText)"
     }
 
     private func sizeText(_ count: Int, _ boardType: BoardType) -> String {
@@ -211,7 +211,9 @@ private struct MemberRow: View {
                     AdultMarks(adult: member, youth: youth)
                 }
                 if let busy {
-                    Text(busy).font(.caption).foregroundStyle(.red)
+                    // The red symbol says it stops them sitting; red words
+                    // would be too faint to read.
+                    NoticeLabel.problem(busy).font(.caption)
                 } else {
                     Text(member.unitLabel).font(.caption).foregroundStyle(.secondary)
                 }
@@ -219,7 +221,7 @@ private struct MemberRow: View {
             Spacer()
             role
             Button(action: remove) {
-                Image(systemName: "minus.circle")
+                Image(systemName: "minus.circle").memberButtonTarget()
             }
             .buttonStyle(.borderless)
             .help("Take \(member.shownFullName) off this board")
@@ -251,6 +253,24 @@ private struct MemberRow: View {
     }
 }
 
+extension Image {
+    /// An add or remove button's symbol, with room around it to click: a
+    /// borderless button is otherwise only as large as the glyph.
+    func memberButtonTarget() -> some View {
+        frame(width: 24, height: 24).contentShape(Rectangle())
+    }
+}
+
+/// The board's rows while adults are dragged over it: tinted, and outlined in
+/// the accent color.
+private struct DropHighlight: View {
+    var body: some View {
+        Rectangle()
+            .fill(Color.accentColor.opacity(0.12))
+            .overlay { Rectangle().strokeBorder(Color.accentColor, lineWidth: 2) }
+    }
+}
+
 /// Why the board cannot be seated yet, and what Seat Board will ask about.
 private struct ReviewNotes: View {
     let problems: [String]
@@ -261,12 +281,10 @@ private struct ReviewNotes: View {
         if !unique.isEmpty || !warnings.isEmpty {
             VStack(alignment: .leading, spacing: 4) {
                 ForEach(unique, id: \.self) { problem in
-                    Label(problem, systemImage: "xmark.octagon.fill")
-                        .foregroundStyle(.red)
+                    NoticeLabel.problem(problem)
                 }
                 ForEach(warnings) { warning in
-                    Label(warning.title, systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
+                    NoticeLabel.warning(warning.title)
                         .help(warning.detail)
                 }
             }
@@ -318,7 +336,7 @@ private struct FreeAdultsSection: View {
                     Button {
                         add(adult)
                     } label: {
-                        Image(systemName: "plus.circle")
+                        Image(systemName: "plus.circle").memberButtonTarget()
                     }
                     .buttonStyle(.borderless)
                     .help("Put \(adult.shownFullName) on this board")
@@ -431,6 +449,10 @@ private struct WithThemSection: View {
         let others = event.adults
             .filter { !$0.supports(youth.id) }
             .sorted { ($0.last, $0.first) < ($1.last, $1.first) }
+        // The youth's own leaders are usually who introduces them, so their
+        // unit comes first, out of a list of every adult at the event.
+        let ownUnit = youth.unitName.isEmpty ? [] : others.filter { $0.unitName == youth.unitName }
+        let everyoneElse = others.filter { $0.unitName != youth.unitName || youth.unitName.isEmpty }
 
         Section {
             if people.isEmpty {
@@ -460,11 +482,15 @@ private struct WithThemSection: View {
                 Text("With Them")
                 Spacer()
                 Menu {
-                    ForEach(others) { adult in
-                        Button(adult.shownFullName) {
-                            model.setSupporting(true, adultID: adult.id, scoutID: youth.id)
+                    if !ownUnit.isEmpty {
+                        Section(youth.unitDisplay) {
+                            ForEach(ownUnit) { linkItem($0) }
+                        }
+                        if !everyoneElse.isEmpty {
+                            Divider()
                         }
                     }
+                    ForEach(everyoneElse) { linkItem($0) }
                 } label: {
                     Label("Link an Adult", systemImage: "link")
                 }
@@ -473,6 +499,13 @@ private struct WithThemSection: View {
                 .disabled(others.isEmpty)
                 .help("Link the adult who will introduce \(youth.first.shownValue) to their board")
             }
+        }
+    }
+
+    /// One adult in Link an Adult, with their unit, as Windows lists them.
+    private func linkItem(_ adult: Adult) -> some View {
+        Button(adult.unitDisplay.isEmpty ? adult.shownFullName : "\(adult.shownFullName) · \(adult.unitDisplay)") {
+            model.setSupporting(true, adultID: adult.id, scoutID: youth.id)
         }
     }
 }

@@ -50,11 +50,11 @@ struct ChangeMembersSheet: View {
                                 Spacer()
                                 Text(member.unitLabel).foregroundStyle(.secondary)
                                 RoleText(role: member.role(for: boardType)?.rawValue ?? "")
-                                    .frame(width: 60, alignment: .trailing)
+                                    .frame(width: 72, alignment: .trailing)
                                 Button {
                                     memberIDs.removeAll { $0 == member.id }
                                 } label: {
-                                    Image(systemName: "minus.circle")
+                                    Image(systemName: "minus.circle").memberButtonTarget()
                                 }
                                 .buttonStyle(.borderless)
                                 .help("Take \(member.shownFullName) off this board")
@@ -83,8 +83,7 @@ struct ChangeMembersSheet: View {
                     if !review.blockingProblems.isEmpty {
                         Section("Cannot save yet") {
                             ForEach(review.blockingProblems, id: \.self) { problem in
-                                Label(problem, systemImage: "xmark.octagon.fill")
-                                    .foregroundStyle(.red)
+                                NoticeLabel.problem(problem)
                             }
                         }
                     }
@@ -93,8 +92,7 @@ struct ChangeMembersSheet: View {
                         Section("Check before saving") {
                             ForEach(review.warnings) { warning in
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Label(warning.title, systemImage: "exclamationmark.triangle.fill")
-                                        .foregroundStyle(.orange)
+                                    NoticeLabel.warning(warning.title)
                                         .font(.headline)
                                     Text(warning.detail).fixedSize(horizontal: false, vertical: true)
                                     Toggle("Save anyway", isOn: Binding(
@@ -203,7 +201,7 @@ private struct FreeAdultsToAddSection: View {
                     Button {
                         add(adult)
                     } label: {
-                        Image(systemName: "plus.circle")
+                        Image(systemName: "plus.circle").memberButtonTarget()
                     }
                     .buttonStyle(.borderless)
                     .help("Put \(adult.shownFullName) on this board")

@@ -49,7 +49,7 @@ struct SeatBoardSheet: View {
 
                     Section {
                         Picker("Room", selection: $roomID) {
-                            Text("Choose a room").tag(String?.none)
+                            Text("Choose a Room").tag(String?.none)
                             ForEach(roomChoices) { choice in
                                 Text(roomLabel(choice)).tag(Optional(choice.id))
                             }
@@ -67,7 +67,7 @@ struct SeatBoardSheet: View {
                                 Spacer()
                                 Text(member.unitLabel).foregroundStyle(.secondary)
                                 RoleText(role: youth.boardType.flatMap { member.role(for: $0)?.rawValue } ?? "")
-                                    .frame(width: 60, alignment: .trailing)
+                                    .frame(width: 72, alignment: .trailing)
                             }
                         }
                     } header: {
@@ -95,8 +95,7 @@ struct SeatBoardSheet: View {
                     if !review.blockingProblems.isEmpty {
                         Section("Cannot seat yet") {
                             ForEach(review.blockingProblems, id: \.self) { problem in
-                                Label(problem, systemImage: "xmark.octagon.fill")
-                                    .foregroundStyle(.red)
+                                NoticeLabel.problem(problem)
                             }
                         }
                     }
@@ -105,8 +104,7 @@ struct SeatBoardSheet: View {
                         Section("Check before seating") {
                             ForEach(review.warnings) { warning in
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Label(warning.title, systemImage: "exclamationmark.triangle.fill")
-                                        .foregroundStyle(.orange)
+                                    NoticeLabel.warning(warning.title)
                                         .font(.headline)
                                     Text(warning.detail).fixedSize(horizontal: false, vertical: true)
                                     Toggle("Seat anyway", isOn: Binding(
@@ -172,7 +170,7 @@ struct SeatBoardSheet: View {
 
     private func roomLabel(_ room: Room) -> String {
         let kind = room.boardType?.label ?? room.boardTypeText
-        return room.isFree ? "\(room.name) -- \(kind)" : "\(room.name) -- \(kind), in use by \(room.scoutName.shownValue)"
+        return room.isFree ? "\(room.name) · \(kind)" : "\(room.name) · \(kind) · in use by \(room.scoutName.shownValue)"
     }
 }
 
@@ -247,8 +245,7 @@ struct SheetProblem: View {
     let text: String
 
     var body: some View {
-        Label(text, systemImage: "xmark.octagon.fill")
-            .foregroundStyle(.red)
+        NoticeLabel.problem(text)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -348,7 +345,7 @@ struct AddRoomSheet: View {
                 }
             } footer: {
                 if let problem {
-                    Text(problem).foregroundStyle(.red)
+                    SheetProblem(text: problem)
                 }
             }
         } buttons: {
@@ -391,7 +388,7 @@ struct RenameRoomSheet: View {
                 TextField("New name", text: $name, prompt: Text("101 or 200A"))
             } footer: {
                 if let problem {
-                    Text(problem).foregroundStyle(.red)
+                    SheetProblem(text: problem)
                 }
             }
         } buttons: {
@@ -492,7 +489,7 @@ struct OpenEventSheet: View {
                 }
             } footer: {
                 if let problem {
-                    Text(problem).foregroundStyle(.red)
+                    SheetProblem(text: problem)
                 }
             }
         } buttons: {

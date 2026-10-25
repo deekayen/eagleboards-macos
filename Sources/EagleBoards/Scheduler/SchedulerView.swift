@@ -115,20 +115,10 @@ struct SchedulerView: View {
     }
 
     /// Edit › Find…: put the cursor in the toolbar search, as Ctrl+F does on
-    /// Windows and in Java (SPEC.md D-21).
+    /// Windows and in Java (SPEC.md D-21). Find has just brought this window
+    /// forward.
     private func startSearch() {
-        if #available(macOS 15, *) {
-            searchFocused = true
-        } else {
-            // macOS 14 has no searchFocused; the toolbar's search item starts
-            // its own interaction instead. Front to back, so it is the
-            // scheduler's search, which Find has just brought forward.
-            NSApplication.shared.orderedWindows
-                .lazy
-                .compactMap { $0.toolbar?.items.lazy.compactMap { $0 as? NSSearchToolbarItem }.first }
-                .first?
-                .beginSearchInteraction()
-        }
+        startToolbarSearch($searchFocused)
     }
 
     private var title: String { model.page.title }
@@ -225,19 +215,6 @@ private struct ColumnResizer: View {
                 @unknown default: break
                 }
             }
-    }
-}
-
-/// Binds the toolbar search's focus where the system can (macOS 15 and later).
-private struct SearchFocus: ViewModifier {
-    let isFocused: FocusState<Bool>.Binding
-
-    func body(content: Content) -> some View {
-        if #available(macOS 15, *) {
-            content.searchFocused(isFocused)
-        } else {
-            content
-        }
     }
 }
 
