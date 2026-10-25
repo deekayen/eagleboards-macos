@@ -335,7 +335,7 @@ struct NoRoomsYet: View {
         ContentUnavailableView {
             Label("No Rooms Yet", systemImage: "door.left.hand.closed")
         } description: {
-            Text("A board cannot be seated without a room. Mark each one Final or Project by what it is used for today.")
+            Text("A board cannot be seated without a room. Mark each one Final Board or Proposal Review by what it is used for today.")
         } actions: {
             HStack {
                 Button("Add Room…") { model.present(.addRoom) }

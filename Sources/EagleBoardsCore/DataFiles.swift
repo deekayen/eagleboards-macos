@@ -214,4 +214,12 @@ public enum Reports {
         }
         return text
     }
+
+    /// An export as it is saved for a spreadsheet: after a byte-order mark,
+    /// so Excel reads an accented name as UTF-8 (Windows' exports carry one
+    /// for the same reason). The data files never do: they stay in the Java
+    /// app's dialect (`CSVFile.write`).
+    public static func forSpreadsheet(_ text: String) -> String {
+        "\u{FEFF}" + text
+    }
 }

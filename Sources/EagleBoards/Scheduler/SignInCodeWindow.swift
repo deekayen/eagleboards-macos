@@ -7,13 +7,27 @@ import SwiftUI
 struct SignInCodeWindow: View {
     @Environment(AppModel.self) private var model
     @Environment(\.openWindow) private var openWindow
+    @AppStorage(CheckInAddress.chosenHostKey) private var chosenHost = ""
 
     var body: some View {
         Group {
-            if let url = model.checkInURLs.first {
+            let addresses = model.checkInAddresses
+            if let url = addresses.chosen(chosenHost)?.url {
                 VStack(spacing: 20) {
-                    Text("Sign in for Eagle Boards")
-                        .font(.largeTitle.bold())
+                    VStack(spacing: 6) {
+                        Text("Sign in for Eagle Boards")
+                            .font(.largeTitle.bold())
+                            .accessibilityAddTraits(.isHeader)
+                            .accessibilityHeading(.h1)
+                        if let note = model.servedEventNote {
+                            Text("Signing in \(note)")
+                                .font(.title2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    if addresses.count > 1 {
+                        NetworkPicker(addresses: addresses, chosenHost: $chosenHost)
+                    }
                     QRCodeImage(text: url.absoluteString)
                         .padding(16)
                         .background(Color.white, in: RoundedRectangle(cornerRadius: 12))

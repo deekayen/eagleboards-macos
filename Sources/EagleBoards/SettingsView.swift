@@ -122,6 +122,7 @@ private struct TimerSettings: View {
                     Text("Guide to Advancement 8.0.3.0 #9: Eagle boards generally last 30 minutes or somewhat longer, but "
                         + "rarely should one last longer than 45 minutes.")
                         .foregroundStyle(.secondary)
+                    runningLongNote(\.finalYellowMinutes, \.finalRedMinutes, event)
                 }
                 Section {
                     minutes("Running long after", \.projectYellowMinutes, event)
@@ -131,12 +132,25 @@ private struct TimerSettings: View {
                 } footer: {
                     Text("District practice. A proposal review is not a board of review, so the Guide sets no length for it.")
                         .foregroundStyle(.secondary)
+                    runningLongNote(\.projectYellowMinutes, \.projectRedMinutes, event)
                 }
             }
             .formStyle(.grouped)
         } else {
             ContentUnavailableView("Open an event first", systemImage: "timer")
                 .frame(height: 200)
+        }
+    }
+
+    /// Said rather than prevented: a Running long stepper bounded by Overdue
+    /// would still be left past it whenever Overdue is lowered.
+    @ViewBuilder
+    private func runningLongNote(_ yellow: KeyPath<Config, Int>, _ red: KeyPath<Config, Int>, _ event: BoardEvent) -> some View {
+        let runningLong = event.config[keyPath: yellow]
+        let overdue = event.config[keyPath: red]
+        if runningLong > 0, overdue > 0, runningLong >= overdue {
+            NoticeLabel.warning("Running long is at or past Overdue, so these reviews go from on time straight to overdue.")
+                .foregroundStyle(.secondary)
         }
     }
 

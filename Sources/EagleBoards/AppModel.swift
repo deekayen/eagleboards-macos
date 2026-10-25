@@ -129,9 +129,23 @@ final class AppModel {
     }
 
     /// Addresses the sign-in station can use, venue network first.
-    var checkInURLs: [URL] {
+    var checkInAddresses: [CheckInAddress] {
         guard case .running(let runningPort) = serverState else { return [] }
-        return NetworkAddresses.current().compactMap { URL(string: "http://\($0.ipv4):\(runningPort)/") }
+        let names = NetworkAddresses.displayNames()
+        // One item per address: the Network picker tags each by its host.
+        var seen: Set<String> = []
+        return NetworkAddresses.current().compactMap { address in
+            URL(string: "http://\(address.ipv4):\(runningPort)/").map {
+                CheckInAddress(network: names[address.interface] ?? address.interface, url: $0)
+            }
+        }
+        .filter { seen.insert($0.host).inserted }
+    }
+
+    /// The event the sign-in station is serving, said beside it when that
+    /// is not today's.
+    var servedEventNote: String? {
+        event.flatMap { DataFolder.servedEventNote($0.date, today: today) }
     }
 
     var isServing: Bool {
@@ -1088,7 +1102,7 @@ final class AppModel {
         panel.nameFieldStringValue = "\(page.exportName) \(event.date).csv"
         panel.allowedContentTypes = [.commaSeparatedText]
         panel.message = "This list holds personal information. Keep the file somewhere private."
-        run(panel) { [weak self] url in self?.save(text, to: url) }
+        run(panel) { [weak self] url in self?.save(Reports.forSpreadsheet(text), to: url) }
     }
 
     func exportReport() {
@@ -1098,7 +1112,7 @@ final class AppModel {
         panel.allowedContentTypes = [.commaSeparatedText]
         panel.message = "The report holds names and contact details, including those of minors. Keep it somewhere private."
         run(panel) { [weak self] url in
-            self?.save(Reports.csv(event.scouts, columns: Reports.boardResultColumns), to: url)
+            self?.save(Reports.forSpreadsheet(Reports.csv(event.scouts, columns: Reports.boardResultColumns)), to: url)
         }
     }
 

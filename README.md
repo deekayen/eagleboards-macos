@@ -52,8 +52,9 @@ click **Allow**. Otherwise the tablet cannot reach it.
 
 Click the green **Sign-in** address at the top left of the window. Scan the QR
 code with the tablet's camera, or type the address into the tablet's browser.
-For a second display or a projector, **Window › Sign-In Code** shows the code
-as large as the window.
+If the Mac is on more than one network, choose the tablet's from the
+**Network** menu above the code. For a second display or a projector,
+**Window › Sign-In Code** shows the same code as large as the window.
 
 Only the sign-in pages are on the network. The scheduler, the records and the
 settings stay on the Mac, so nobody at the door can look up anyone's details.
@@ -242,7 +243,7 @@ Change them in **Settings › Timers**.
 Put the district's SignUpGenius API key in **Settings › SignUpGenius**.
 Eagle Boards keeps it in your macOS keychain. When today's event opens, it imports
 the sign-up: youth become pre-registrations and adults join the history. Use
-**File › Import Sign-Ups** to do it again.
+**File › Import Sign-Ups from SignUpGenius** to do it again.
 
 ## After the event
 
@@ -265,7 +266,7 @@ back, and so does the Dock icon's menu (Control-click the icon).
 
 | Problem | What to do |
 | --- | --- |
-| The tablet cannot open the address | Check both are on the same Wi-Fi. Click the sign-in address and try another address listed there. Check that Eagle Boards is allowed in System Settings › Network › Firewall. |
+| The tablet cannot open the address | Check both are on the same Wi-Fi. Click the sign-in address and choose another network from its **Network** menu. Check that Eagle Boards is allowed in System Settings › Network › Firewall. |
 | "Port 8080 is already in use" | Quit the other program (the Java Eagle Board Scheduler uses 8080 too) and choose **File › Restart Sign-In Station**, or change the port in Settings › General. |
 | "Not qualified to chair" | Promote someone: on the **Adults** page, click their **Final Board Role** or **Proposal Review Role** and choose **Chair**. |
 | A board was seated by mistake | Select the youth and choose **Board › Reset Board**, or **Edit › Undo** right after seating. |

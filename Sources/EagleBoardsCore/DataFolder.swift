@@ -50,4 +50,11 @@ public struct DataFolder: Sendable, Hashable {
     public static func eventLabel(_ event: String, today: String) -> String {
         event == today ? "\(event) (Today)" : event
     }
+
+    /// What the sign-in station's status adds when the open event is not
+    /// today's, "for 2026-09-22": a tablet at the door signs people in to
+    /// whichever event is open. Nil for today's, which needs no saying.
+    public static func servedEventNote(_ event: String, today: String) -> String? {
+        event == today ? nil : "for \(event)"
+    }
 }

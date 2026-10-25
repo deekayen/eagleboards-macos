@@ -5,6 +5,7 @@ import SwiftUI
 /// The toolbar's report on the sign-in station, and where to point a tablet.
 struct CheckInStatusButton: View {
     @Environment(AppModel.self) private var model
+    @AppStorage(CheckInAddress.chosenHostKey) private var chosenHost = ""
     @State private var showingDetails = false
 
     var body: some View {
@@ -15,10 +16,16 @@ struct CheckInStatusButton: View {
                 Circle()
                     .fill(indicatorColor)
                     .frame(width: 9, height: 9)
+                if servedEventNote != nil {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .accessibilityHidden(true)
+                }
                 Text(summary)
             }
         }
-        .help("Where the sign-in tablets connect")
+        .help(servedEventNote.map { "Where the sign-in tablets connect. They sign people in \($0), the open event, not today." }
+            ?? "Where the sign-in tablets connect")
         .popover(isPresented: $showingDetails, arrowEdge: .bottom) {
             CheckInDetails()
                 .environment(model)
@@ -34,9 +41,16 @@ struct CheckInStatusButton: View {
         }
     }
 
+    /// Said only while serving: a stopped or failed station signs nobody in.
+    private var servedEventNote: String? {
+        model.isServing ? model.servedEventNote : nil
+    }
+
     private var summary: String {
         switch model.serverState {
-        case .running: model.checkInURLs.first.map { "Sign-in: \($0.host() ?? ""):\($0.port ?? 0)" } ?? "Sign-in: this Mac only"
+        case .running:
+            (model.checkInAddresses.chosen(chosenHost).map { "Sign-in: \($0.host):\($0.url.port ?? 0)" } ?? "Sign-in: this Mac only")
+                + (servedEventNote.map { " \($0)" } ?? "")
         case .starting: "Starting sign-in…"
         case .stopped: "Sign-in stopped"
         case .failed: "Sign-in not running"
@@ -47,20 +61,28 @@ struct CheckInStatusButton: View {
 struct CheckInDetails: View {
     @Environment(AppModel.self) private var model
     @Environment(\.openWindow) private var openWindow
+    @AppStorage(CheckInAddress.chosenHostKey) private var chosenHost = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             switch model.serverState {
             case .running(let port):
-                let addresses = model.checkInURLs
-                if let primary = addresses.first {
-                    Text("Open this on the sign-in tablet").font(.headline)
+                let addresses = model.checkInAddresses
+                if let primary = addresses.chosen(chosenHost) {
+                    Text("Open this on the sign-in tablet" + (model.servedEventNote.map { " \($0)" } ?? ""))
+                        .font(.headline)
+                    if addresses.count > 1 {
+                        NetworkPicker(addresses: addresses, chosenHost: $chosenHost)
+                    }
                     HStack(alignment: .top, spacing: 16) {
-                        QRCodeImage(text: primary.absoluteString)
+                        // Dark on white whatever the appearance, so a camera can read it.
+                        QRCodeImage(text: primary.url.absoluteString)
                             .frame(width: 150, height: 150)
-                            .accessibilityLabel("QR code for \(primary.absoluteString)")
+                            .padding(12)
+                            .background(Color.white, in: RoundedRectangle(cornerRadius: 8))
+                            .accessibilityLabel("QR code for \(primary.url.absoluteString)")
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(primary.absoluteString)
+                            Text(primary.url.absoluteString)
                                 .font(.title3.monospaced())
                                 .textSelection(.enabled)
                             Text("Scan the code with the tablet's camera, or type the address into its browser. "
@@ -68,14 +90,6 @@ struct CheckInDetails: View {
                                 .font(.callout)
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
-                            if addresses.count > 1 {
-                                Text("Other addresses for this Mac:")
-                                    .font(.callout.bold())
-                                    .padding(.top, 4)
-                                ForEach(addresses.dropFirst(), id: \.self) { url in
-                                    Text(url.absoluteString).font(.callout.monospaced()).textSelection(.enabled)
-                                }
-                            }
                         }
                         .frame(width: 280, alignment: .leading)
                     }
@@ -112,7 +126,27 @@ struct CheckInDetails: View {
             }
         }
         .padding(16)
-        .frame(width: 480)
+        .frame(width: 504)
+    }
+}
+
+/// The networks this Mac is on, to choose the one the sign-in tablet is on.
+/// The choice is kept, so the Sign-In Code window and the toolbar popover
+/// draw the same code.
+struct NetworkPicker: View {
+    let addresses: [CheckInAddress]
+    @Binding var chosenHost: String
+
+    var body: some View {
+        Picker("Network", selection: Binding(
+            get: { addresses.chosen(chosenHost)?.host ?? "" },
+            set: { chosenHost = $0 }
+        )) {
+            ForEach(addresses) { address in
+                Text("\(address.network) (\(address.host))").tag(address.host)
+            }
+        }
+        .fixedSize()
     }
 }
 
@@ -131,11 +165,16 @@ struct QRCodeImage: View {
         }
     }
 
+    /// One pixel per module. Core Image leaves one module of white around
+    /// the code; four more clear the standard's four-module quiet zone, so
+    /// a camera reads it on any background.
     private static func render(_ text: String) -> CGImage? {
         let filter = CIFilter.qrCodeGenerator()
         filter.message = Data(text.utf8)
         filter.correctionLevel = "M"
         guard let output = filter.outputImage else { return nil }
-        return CIContext().createCGImage(output, from: output.extent)
+        let padded = output.extent.insetBy(dx: -4, dy: -4)
+        let onWhite = output.composited(over: CIImage(color: .white).cropped(to: padded))
+        return CIContext().createCGImage(onWhite, from: padded)
     }
 }

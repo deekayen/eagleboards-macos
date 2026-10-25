@@ -171,6 +171,13 @@ struct FileFormatTests {
         #expect(DataFolder.eventLabel("2026-10-27", today: "2026-10-27") == "2026-10-27 (Today)")
         #expect(DataFolder.eventLabel("2026-09-22", today: "2026-10-27") == "2026-09-22")
     }
+
+    /// The sign-in station names the event it serves only when that is not
+    /// today's, after Open Recent Event or Choose Data Folder moved it.
+    @Test func theSignInStationNamesAnEarlierEventItServes() {
+        #expect(DataFolder.servedEventNote("2026-09-22", today: "2026-10-27") == "for 2026-09-22")
+        #expect(DataFolder.servedEventNote("2026-10-27", today: "2026-10-27") == nil)
+    }
 }
 
 @Suite("Timestamps")
@@ -250,5 +257,26 @@ struct ReportTests {
         #expect(exported.contains("jan@example.org"))
         #expect(!exported.contains("1/2/2010") && !exported.contains("770-555-0100"))
         #expect(youth.phone == "770-555-0100", "the record keeps it")
+    }
+
+    /// Exports open in Excel, which needs the byte-order mark to read UTF-8;
+    /// the data files stay without one, as the Java app writes them.
+    @Test func anExportStartsWithAByteOrderMarkAndTheDataFilesDoNot() throws {
+        var youth = Scout.blank(at: Date())
+        youth.first = "José"
+        youth.last = "Muñoz"
+        let bom: [UInt8] = [0xEF, 0xBB, 0xBF]
+
+        let report = Reports.forSpreadsheet(Reports.csv([youth], columns: Reports.boardResultColumns))
+        #expect(Array(Data(report.utf8).prefix(3)) == bom)
+        #expect(report.dropFirst() == Reports.csv([youth], columns: Reports.boardResultColumns))
+        let list = Reports.forSpreadsheet(CSVFile.render([youth.forExport]))
+        #expect(Array(Data(list.utf8).prefix(3)) == bom)
+
+        #expect(Array(Data(CSVFile.render([youth]).utf8).prefix(3)) != bom)
+        let scratch = try ScratchFolder()
+        try CSVFile.write([youth], to: scratch.url.appending(path: "scouts.csv"))
+        let written = try Data(contentsOf: scratch.url.appending(path: "scouts.csv"))
+        #expect(Array(written.prefix(3)) == Array("Typ".utf8))
     }
 }

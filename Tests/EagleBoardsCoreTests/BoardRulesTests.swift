@@ -275,6 +275,40 @@ struct RoomTimerTests {
         #expect(RoomTimer.state(status: .inProgress, boardType: .projectReview, minutes: 40, config: config) == .overdue)
     }
 
+    /// Settings › Timers shows each limit at 0 as off, so turning Running
+    /// long off leaves the overdue alarm on (as Windows' TimerFor does).
+    @Test(arguments: [BoardType.finalBoard, .projectReview])
+    func runningLongOffStillGoesOverdue(boardType: BoardType) {
+        var noYellow = config
+        noYellow.finalYellowMinutes = 0
+        noYellow.finalRedMinutes = 45
+        noYellow.projectYellowMinutes = 0
+        noYellow.projectRedMinutes = 45
+        #expect(RoomTimer.state(status: .inProgress, boardType: boardType, minutes: 44, config: noYellow) == .okay)
+        #expect(RoomTimer.state(status: .inProgress, boardType: boardType, minutes: 45, config: noYellow) == .overdue)
+    }
+
+    @Test(arguments: [BoardType.finalBoard, .projectReview])
+    func overdueOffStillRunsLongAndNeverGoesOverdue(boardType: BoardType) {
+        var noRed = config
+        noRed.finalRedMinutes = 0
+        noRed.projectRedMinutes = 0
+        let yellow = boardType == .finalBoard ? config.finalYellowMinutes : config.projectYellowMinutes
+        #expect(RoomTimer.state(status: .inProgress, boardType: boardType, minutes: yellow - 1, config: noRed) == .okay)
+        #expect(RoomTimer.state(status: .inProgress, boardType: boardType, minutes: yellow, config: noRed) == .warning)
+        #expect(RoomTimer.state(status: .inProgress, boardType: boardType, minutes: 500, config: noRed) == .warning)
+    }
+
+    @Test(arguments: [BoardType.finalBoard, .projectReview])
+    func aReviewWithBothLimitsOffIsNotTimed(boardType: BoardType) {
+        var off = config
+        off.finalYellowMinutes = 0
+        off.finalRedMinutes = 0
+        off.projectYellowMinutes = 0
+        off.projectRedMinutes = 0
+        #expect(RoomTimer.state(status: .inProgress, boardType: boardType, minutes: 500, config: off) == nil)
+    }
+
     @Test func nothingElseIsTimed() {
         #expect(RoomTimer.state(status: .registered, boardType: .finalBoard, minutes: 500, config: config) == nil)
         #expect(RoomTimer.state(status: .completed, boardType: .finalBoard, minutes: 500, config: config) == nil)

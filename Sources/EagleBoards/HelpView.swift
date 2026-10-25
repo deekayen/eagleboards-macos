@@ -15,10 +15,15 @@ struct HelpView: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
+                        // Headings for VoiceOver's rotor, at the levels Windows' Help uses.
                         Text("Running an Eagle Boards event").font(.largeTitle.bold())
+                            .accessibilityAddTraits(.isHeader)
+                            .accessibilityHeading(.h1)
                         ForEach(sections) { section in
                             VStack(alignment: .leading, spacing: 8) {
                                 Text(section.title).font(.title2.bold())
+                                    .accessibilityAddTraits(.isHeader)
+                                    .accessibilityHeading(.h2)
                                 ForEach(section.items, id: \.self) { bullet($0) }
                             }
                         }
@@ -47,15 +52,15 @@ struct HelpView: View {
     static let guide = [
         HelpSection("Before anyone arrives", [
             "Open Eagle Boards on the admin Mac. It opens today's event and starts the sign-in station.",
-            "Click the sign-in status at the top left of the window. Scan the QR code with the tablet at the door, or type the address into its browser. The tablet must be on the same Wi-Fi as the Mac.",
-            "For a second display or a projector by the door, choose Window › Sign-In Code (Command-3) and make it as large as you like.",
-            "Add today's rooms with Room › Add Room… (Shift-Command-N), marking each Final or Project by what it is used for today. After the first event, Room › Copy Rooms From brings back last month's rooms.",
+            "Click the sign-in status at the top left of the window. Scan the QR code with the tablet at the door, or type the address into its browser. The tablet must be on the same Wi-Fi as the Mac. If the Mac is on more than one network, choose the tablet's from the Network menu above the code.",
+            "For a second display or a projector by the door, choose Window › Sign-In Code (Command-3) and make it as large as you like. It shows the same network's code.",
+            "Add today's rooms with Room › Add Room… (Shift-Command-N), marking each Final Board or Proposal Review by what it is used for today. After the first event, Room › Copy Rooms From brings back last month's rooms.",
             "To hold two proposal reviews in one room, add it twice, e.g. 200A and 200B.",
             "To rename a room, right-click its card and choose Rename…. A board already in it moves with it; nobody is reseated.",
             "If macOS asks whether Eagle Boards may accept incoming network connections, click Allow. Otherwise the tablet cannot reach it.",
         ]),
         HelpSection("People sign in", [
-            "At the tablet, a youth taps I am a Youth and an adult taps I am 21+. Each fills in the form.",
+            "At the tablet, a youth taps I am a youth and an adult taps I am 21 or older. Each fills in the form.",
             "People who pre-registered on SignUpGenius, and adults who have served before, are recognized by email and their form fills itself in.",
             "They appear in the scheduler the moment they register. Youth are numbered P1, P2… if they pre-registered and W1, W2… if they walked in, and the list keeps pre-registered youth ahead of walk-ins.",
             "An adult who would rather not use the tablet can be signed in on the Mac: choose Adult › Add Adult… (Command-N), or click Add Adult… at the foot of the Adults page. Search the adult history to fill the form in for someone who has served before. On the Adult History CSV page, double-click someone, or select them and choose Adult › Sign In for Today, to sign them in for today.",
@@ -76,7 +81,7 @@ struct HelpView: View {
         ]),
         HelpSection("Start the review", [
             "When the members have finished reading, select the youth and press Start Review (Command-Return again). For a board of review, the confirmation names whom to fetch to introduce the youth to the board and where they are, even on another board: the adult linked to them, or if no one is, their leader. A project review has no introduction, so it starts at once; Edit › Undo takes it back.",
-            "At sign-in, adults can say \"No thanks\" to one kind of board (they are never seated on it), whether today counts toward a Wood Badge ticket item (marked with a small five-colored pentagon next to their name), and which youth they will introduce to their board: usually the youth's Scoutmaster, or a leader standing in, and not a parent unless they are also the Scoutmaster. Proposed boards favour those who came to serve on any board.",
+            "At sign-in, adults can say \"No thanks\" to one kind of board (they are never seated on it), whether today counts toward a Wood Badge ticket item (marked with a small five-colored pentagon next to their name), and which youth they will introduce to their board: usually the youth's Scoutmaster, or a leader standing in, and not a parent unless they are also the Scoutmaster. Proposed boards favor those who came to serve on any board.",
             "If the adult introducing a youth did not say so at sign-in, select the youth and use Link an Adult under With Them in the inspector, which lists the adults from the youth's unit first. Right-click them there to unlink. On the Adults page, with the youth still selected, Adult › Introduces and the youth's name links the selected adult, or unlinks them if it has a check.",
         ]),
         HelpSection("Complete", [

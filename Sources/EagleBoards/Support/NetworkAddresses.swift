@@ -1,5 +1,6 @@
 import Darwin
 import Foundation
+import SystemConfiguration
 
 /// The addresses a sign-in tablet on the same network could use to reach
 /// this Mac.
@@ -45,5 +46,41 @@ enum NetworkAddresses {
             }
             return lhs.interface < rhs.interface
         }
+    }
+
+    /// What System Settings › Network calls each interface ("Wi-Fi",
+    /// "Ethernet"), by BSD name. A VPN or a bridge it does not list is left
+    /// out, to go by its BSD name.
+    static func displayNames() -> [String: String] {
+        var names: [String: String] = [:]
+        for interface in SCNetworkInterfaceCopyAll() as? [SCNetworkInterface] ?? [] {
+            if let bsdName = SCNetworkInterfaceGetBSDName(interface) as String?,
+               let name = SCNetworkInterfaceGetLocalizedDisplayName(interface) as String? {
+                names[bsdName] = name
+            }
+        }
+        return names
+    }
+}
+
+/// One address a sign-in tablet can open, as the Sign-In Code window, the
+/// toolbar popover and the toolbar's summary offer it.
+struct CheckInAddress: Hashable, Identifiable {
+    /// The interface it is on, as System Settings names it, or its BSD name.
+    let network: String
+    let url: URL
+    var id: URL { url }
+    var host: String { url.host() ?? "" }
+
+    /// The Network picker's choice, kept so the projector's window and the
+    /// popover draw the same code.
+    static let chosenHostKey = "signInCodeHost"
+}
+
+extension [CheckInAddress] {
+    /// The address chosen in the Network picker, or the first (the likeliest
+    /// venue network) when none is chosen or the chosen one is gone.
+    func chosen(_ host: String) -> CheckInAddress? {
+        first { $0.host == host } ?? first
     }
 }

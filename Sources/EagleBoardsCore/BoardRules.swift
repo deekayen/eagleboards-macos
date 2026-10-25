@@ -610,7 +610,10 @@ public enum RoomTimer {
     ///               yellow: it is a limit, not a target.
     ///   InProgress  the youth is in the room. Yellow and red per board type.
     ///
-    /// Returns nil when nothing is being timed (other statuses, or a limit of 0).
+    /// A limit of 0 is off, and each is off by itself: with no yellow a
+    /// review is on time until it is overdue, and with no red it runs long
+    /// and never goes overdue. Returns nil when nothing is being timed (other
+    /// statuses, or every limit off).
     public static func state(status: BoardStatus?, boardType: BoardType?, minutes: Int, config: Config) -> State? {
         let yellow: Int
         let red: Int
@@ -629,9 +632,9 @@ public enum RoomTimer {
         default:
             return nil
         }
-        guard yellow > 0 else { return nil }
+        guard yellow > 0 || red > 0 else { return nil }
         if red > 0 && minutes >= red { return .overdue }
-        if minutes >= yellow { return .warning }
+        if yellow > 0 && minutes >= yellow { return .warning }
         return .okay
     }
 }
