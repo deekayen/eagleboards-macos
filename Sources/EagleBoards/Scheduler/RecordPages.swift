@@ -51,7 +51,7 @@ struct PreRegisteredPage: View {
                     BoardTypeText(youth: youth)
                 }
             }
-            .width(min: 68, ideal: 82, max: 140)
+            .width(min: 110, ideal: 130, max: 160)
             TableColumn("Leader", value: \Scout.leader) { youth in
                 EditableText(youth.leader.shownValue, name: "Leader") { value in edit(youth) { $0.leader = value } }
             }

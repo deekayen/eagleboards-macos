@@ -36,22 +36,27 @@ struct AdultList: View {
             Group {
                 TableColumn("Status", value: \Adult.room) { adult in
                     AdultStatusLabel(adult: adult, isOnDraft: draft?.memberIDs.contains(adult.id) == true)
+                        .adultRowStyle(adult)
                 }
                 .width(min: 80, ideal: 110, max: 150)
                 TableColumn("Last Name", value: \Adult.last) { adult in
                     EditableText(adult.last.shownValue, name: "Last name") { value in edit(adult) { $0.last = value } }
+                        .adultRowStyle(adult)
                 }
                 TableColumn("First Name", value: \Adult.first) { adult in
                     EditableText(adult.first.shownValue, name: "First name") { value in edit(adult) { $0.first = value } }
+                        .adultRowStyle(adult)
                 }
                 TableColumn("Unit Type", value: \Adult.unitType) { adult in
                     EditableChoice(adult.unitType, choices: RecordChoices.adultUnitTypes, name: "Unit type") { value in
                         edit(adult) { $0.unitType = value }
                     }
+                    .adultRowStyle(adult)
                 }
                 .width(min: 60, ideal: 80, max: 110)
                 TableColumn("Unit", value: \Adult.unit) { adult in
                     EditableText(adult.unit, name: "Unit number") { value in edit(adult) { $0.unit = value } }
+                        .adultRowStyle(adult)
                 }
                 .width(min: 40, ideal: 50, max: 70)
             }
@@ -60,31 +65,37 @@ struct AdultList: View {
                     RoleChoice(role: adult.finalBoardRoleText, name: "Final Board role") { value in
                         edit(adult) { $0.finalBoardRoleText = value }
                     }
+                    .adultRowStyle(adult)
                 }
                 .width(min: 92, ideal: 106, max: 140)
                 TableColumn("Proposal Review Role", value: \Adult.projectReviewRoleText) { adult in
                     RoleChoice(role: adult.projectReviewRoleText, name: "Proposal Review role") { value in
                         edit(adult) { $0.projectReviewRoleText = value }
                     }
+                    .adultRowStyle(adult)
                 }
                 .width(min: 120, ideal: 132, max: 160)
                 // Volunteering toward a Wood Badge ticket item.
                 TableColumn("Wood Badge", value: \Adult.woodBadge) { adult in
                     WoodBadgeChoice(value: adult.woodBadge) { value in edit(adult) { $0.woodBadge = value } }
+                        .adultRowStyle(adult)
                 }
                 .width(min: 74, ideal: 88, max: 110)
                 // Whom they introduce to their board of review (SPEC.md D-23).
                 TableColumn("Introduces", value: \Adult.supporting) { adult in
                     let names = supportedNames(adult)
                     CellText(names).foregroundStyle(.secondary).help(names)
+                        .adultRowStyle(adult)
                 }
             }
             Group {
                 TableColumn("Email", value: \Adult.email) { adult in
                     EditableText(adult.email, name: "Email") { value in edit(adult) { $0.email = value } }
+                        .adultRowStyle(adult)
                 }
                 TableColumn("Phone", value: \Adult.phone) { adult in
                     EditableText(adult.phone, name: "Phone") { value in edit(adult) { $0.phone = value } }
+                        .adultRowStyle(adult)
                 }
             }
         } rows: {
@@ -150,6 +161,20 @@ struct AdultList: View {
     }
 }
 
+extension View {
+    /// A busy adult's row in secondary text, and a gone-home adult's in
+    /// secondary italics, as Windows sets them apart for scanning; the Status
+    /// column says which in words. A name or note being typed in is upright
+    /// (`EditableText`). Never a conditional modifier, which would rebuild a
+    /// cell, and a cell being edited with it, when the adult is seated or
+    /// freed.
+    func adultRowStyle(_ adult: Adult) -> some View {
+        foregroundStyle(adult.isOnBoard || adult.isDisabledForToday ? .secondary : .primary)
+            .italic(adult.isDisabledForToday)
+            .environment(\.rowIsItalic, adult.isDisabledForToday)
+    }
+}
+
 /// Free, on a board in a room, or gone home: in words and a symbol, not
 /// only a color.
 struct AdultStatusLabel: View {
@@ -160,7 +185,7 @@ struct AdultStatusLabel: View {
         if adult.isDisabledForToday {
             Label("Gone home", systemImage: "moon.zzz")
                 .foregroundStyle(.secondary)
-                .help("Disabled for today. Enable brings them back.")
+                .help("Gone home. Adult › Mark Back brings them back.")
         } else if adult.isOnBoard {
             Label("Room \(adult.room)", systemImage: "person.3.fill")
                 .help("On the board in room \(adult.room)")
@@ -184,8 +209,8 @@ struct AdultStatusLabel: View {
 /// rows. Acting on rows that are not selected selects them first.
 ///
 /// The context menu lists only what applies, in three groups: the selected
-/// youth's board and whether this adult introduces them; Enable or Disable
-/// for Today; and, for one adult, Delete Adult….
+/// youth's board and whether this adult introduces them; Mark Gone Home or
+/// Mark Back; and, for one adult, Delete Adult….
 struct AdultActionButtons: View {
     let model: AppModel
     /// Nil acts on the selected adults.
@@ -202,8 +227,8 @@ struct AdultActionButtons: View {
         let canRemove = draft.map { draft in ids.contains { draft.memberIDs.contains($0) } } ?? false
         let canMakeChair = single.map { model.canMakeChair($0) } ?? false
         let canLink = single != nil && youth != nil
-        let canEnable = adults.contains(where: \.isDisabledForToday)
-        let canDisable = adults.contains(where: \.isAvailable)
+        let canMarkGoneHome = adults.contains(where: \.isAvailable)
+        let canMarkBack = adults.contains(where: \.isDisabledForToday)
         let forYouth = canAdd || canRemove || canMakeChair || canLink
 
         command(youth.map { "Add to \($0.first.shownValue)'s Board" } ?? "Add to Board", applies: canAdd,
@@ -223,13 +248,13 @@ struct AdultActionButtons: View {
             ))
             .disabled(!canLink)
         }
-        if !inContextMenu || (forYouth && (canEnable || canDisable)) {
+        if !inContextMenu || (forYouth && (canMarkGoneHome || canMarkBack)) {
             Divider()
         }
-        command("Enable for Today", applies: canEnable) { model.setAvailable(true) }
-        command("Disable for Today", applies: canDisable) { model.setAvailable(false) }
+        command("Mark Gone Home", applies: canMarkGoneHome) { model.setAvailable(false) }
+        command("Mark Back", applies: canMarkBack) { model.setAvailable(true) }
         if inContextMenu, let single {
-            if forYouth || canEnable || canDisable {
+            if forYouth || canMarkGoneHome || canMarkBack {
                 Divider()
             }
             Button("Delete Adult…", role: .destructive) { model.confirmDeleteAdult(single.id) }
@@ -292,7 +317,8 @@ struct AddAdultSheet: View {
         let matches = known == nil ? model.event?.historyMatches(for: search, limit: Self.matchesShown) ?? [] : []
         SheetLayout(
             title: "Add an Adult",
-            message: "For an adult who would rather not sign in at the tablet. They are signed in for today as if they had."
+            message: "Sign in an adult who would rather not use the tablet. "
+                + "They are signed in for today, as if they had used it."
         ) {
             Section {
                 if let known {
@@ -344,7 +370,7 @@ struct AddAdultSheet: View {
                     ForEach(UnitType.allCases) { Text($0.rawValue).tag($0) }
                 }
                 if unitType.hasUnitNumber {
-                    TextField("Unit #", text: $unit)
+                    TextField("Unit number", text: $unit)
                 }
                 TextField("Email", text: $email)
                 TextField("Phone", text: $phone)
@@ -355,6 +381,9 @@ struct AddAdultSheet: View {
                 Toggle("Counting today toward a Wood Badge ticket item", isOn: $woodBadge)
             } footer: {
                 VStack(alignment: .leading, spacing: 4) {
+                    // Why Add Adult is dimmed until both names are typed.
+                    Text("First and last name are required. Everything else is optional.")
+                        .foregroundStyle(.secondary)
                     Text("As Last Time uses the role in the adult history, or Member for someone new.")
                         .foregroundStyle(.secondary)
                     if let problem {

@@ -14,8 +14,15 @@ writes the same data files, so a district can switch between them.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/event-dark.png">
-  <img src="docs/images/event.png" alt="The Event page mid-event: the youth list with three waiting and four on a board; room cards with Arthur Eldred's final board in room 101 overdue at 49 minutes (an alarm clock on a pink-red fill) and Rob Corddry's proposal review in 200A running long at 28 minutes (a timer clock on an orange tint), each board's members one per line; and the inspector showing Arthur Eldred's board, chaired by Neil Armstrong, ready to complete">
+  <img src="docs/images/event.png" alt="Screenshot of the Event page during an event: one room overdue, another running long, and a board ready to complete in the inspector.">
 </picture>
+
+The youth list has three waiting and four on a board. Arthur Eldred's final
+board in room 101 is overdue at 49 minutes (an alarm clock on a pink-red fill),
+and Rob Corddry's proposal review in 200A is running long at 28 minutes (a
+timer on an orange tint). Each room card lists its board's members one per
+line, and the inspector shows Arthur Eldred's board, chaired by Neil Armstrong,
+ready to complete.
 
 **Running an event? This page is the whole manual.** The same guide is
 in the app under **Help › Eagle Boards Help**, with a search field that
@@ -51,10 +58,10 @@ Open Eagle Boards. It opens today's event and starts the sign-in station at once
 If macOS asks whether Eagle Boards may accept incoming network connections,
 click **Allow**. Otherwise the tablet cannot reach it.
 
-Click the green **Sign-in** address at the top left of the window. Scan the QR
-code with the tablet's camera, or type the address into the tablet's browser.
-If the Mac is on more than one network, choose the tablet's from the
-**Network** menu above the code. For a second display or a projector,
+Click the **Sign-in** status in the toolbar. Scan the QR code with the
+tablet's camera, or type the address into the tablet's browser. If the Mac is
+on more than one network, choose the tablet's from the **Network** menu shown
+with the code. For a second display or a projector,
 **Window › Sign-In Code** shows the same code as large as the window.
 
 Only the sign-in pages are on the network. The scheduler, the records and the
@@ -68,7 +75,8 @@ Choose **Room › Add Room…** (**⇧⌘N**) and add each room, marking it **Fi
 Board** or **Proposal Review** by what it is used for today. After the first
 event, **Room › Copy Rooms From** brings back an earlier event's list.
 
-To hold two proposal reviews in one room, add it twice, e.g. `200A` and `200B`.
+To hold two proposal reviews in one room, add it twice, for example `200A` and
+`200B`.
 
 Right-click a room card to rename it, move its board to another room, or
 change what it is used for.
@@ -105,27 +113,28 @@ is where you work: every youth in one list, stacked **Waiting** (in sign-in
 order), **On a Board** (by room) and **Finished** (the most recent first), each
 with its count, and a card for every room filling the rest of the window, so a
 room's timer is never out of sight. Drag the line between them to widen the
-list. The inspector on the right follows the selected youth on every page.
+list. The inspector follows the selected youth on every page.
 Click a room card, or Tab to the cards, and the arrow keys move from room to
 room; **Return** takes the selected room's next step, as a double-click on its
 card does.
 
 **Find a person's room.** Type part of anyone's name, youth or adult, in the
-search at the top right; **Edit › Find…** (**⌘F**) puts the cursor there. The
+toolbar's search field; **Edit › Find…** (**⌘F**) puts the cursor there. The
 room cards narrow to the rooms holding a match, or a room by that name, and a
-line above them says where anyone found in no room is (*is waiting*, *isn't on
-a board*, *has gone home*, *has finished*, *was postponed*). **Return** opens
-the first room found, or the youth. The other pages are the event's records
-(see [The records](#the-records)).
+note at the top of the room cards says where anyone found in no room is (*is
+waiting*, *isn't on a board*, *has gone home*, *has finished*, *was
+postponed*). **Return** opens the first room found, or the youth. The other
+pages are the event's records (see [The records](#the-records)).
 
 Select a waiting youth. Eagle Boards proposes a board in the inspector: a
 chair, enough members, and a free room of the right kind. It never picks adults
 from the youth's own unit. The member who will chair it reads **Chair**; anyone
 else on it who may chair reads **Can Chair**.
 
-Change the board in the inspector: click an adult in the free list below it
-to add them (**Find an adult** narrows the list, and **Return** adds the first
-one), and **−** takes one off. In the **Adults** page you can also
+Change the board in the inspector: click an adult under **Free for a Final
+Board**, or **Free for a Proposal Review**, to add them (**Find an adult**
+narrows the list, and **Return** adds the first one), and the **Remove** button
+(a minus sign in a circle) takes one off. In the **Adults** page you can also
 Command-click several adults and choose **Adult › Add to Board** (**⌘B**), or
 drag them onto the board. To hand the
 chair to someone who reads **Can Chair**, right-click them and choose **Make
@@ -155,7 +164,12 @@ the inspector) and press **Seat Board**.
 
 The members now have the room and the paperwork. The youth waits outside.
 
-![Selecting Bill Amend, who has waited 53 minutes, proposes Guion Bluford as chair with Steve Fossett in room 200B, each with the Wood Badge mark after their name; the Seat Board sheet confirms it, and room 200B's card shows the board convening](docs/images/seat-board.gif)
+![Animation of seating the board proposed for Bill Amend in room 200B.](docs/images/seat-board.gif)
+
+Bill Amend has waited 53 minutes. Selecting him proposes Guion Bluford as chair
+with Steve Fossett in room 200B, each with the Wood Badge mark after their
+name. The Seat Board sheet confirms it, and room 200B's card shows the board
+convening.
 
 ### 4. Start the review
 
@@ -185,7 +199,10 @@ timer keeps running; it does not restart.
 When the board has finished, press **Complete…** (**⌘↩**), choose the result,
 and add any notes. The room and the members are free for the next board.
 
-![Completing Arthur Eldred's overdue board: the Complete sheet records Approved with a note, then Arthur Eldred is listed under Finished and room 101 is free again](docs/images/complete-board.gif)
+![Animation of completing Arthur Eldred's board.](docs/images/complete-board.gif)
+
+Arthur Eldred's board is overdue. The Complete sheet records Approved with a
+note, then Arthur Eldred is listed under Finished and room 101 is free again.
 
 ## Rules the scheduler keeps
 
@@ -196,8 +213,8 @@ and add any notes. The room and the members are free for the next board.
   may chair it. When the qualified chairs are all busy, promote someone on the
   **Adults** page. Nobody is made chair by accident.
 - **One board at a time.** An adult on a board cannot be put on another.
-  **Disable** takes someone out of the pool for the event, for example when
-  they have gone home. **Enable** brings them back.
+  **Adult › Mark Gone Home** takes someone out of the pool when they leave,
+  and **Adult › Mark Back** brings them back if they return.
 - **Same unit.** This council does not allow adults from the youth's own unit
   on the board. You may override that, but a board must still have at least one
   member from outside the unit (8.0.3.0).
@@ -206,16 +223,16 @@ and add any notes. The room and the members are free for the next board.
 
 The rest of the **View** menu is a page for each table the event keeps, and
 their values are changed in place: click a name, unit or note to type in it,
-or click a value with ⌃⌄ beside it to choose from a menu. A change is saved
-when you press Return or leave the cell. It is not on **Edit › Undo**, which is
-for the Event page's steps; change the cell back instead. Who sits on a board
-and which room someone is in are never typed in: they change on the Event
-page. Nor is a youth's status: it is read-only on every page, and changes only
-through the Event page's steps (**Seat Board**, **Start Review**, **Complete…**,
-**Postpone**, **Reset Board** and **Undo**), which take and free a room and its
-members. There is no separate records window. Click a column heading to sort
-a page by it, or choose **View › Sort By**; **Return** in the search goes to
-the first row found.
+or click a value with up and down arrows beside it to choose from a menu. A
+change is saved when you press Return or leave the cell. It is not on
+**Edit › Undo**, which is for the Event page's steps; change the cell back
+instead. Who sits on a board and which room someone is in are never typed in:
+they change on the Event page. Nor is a youth's status: it is read-only on
+every page, and changes only through the Event page's steps (**Seat Board**,
+**Start Review**, **Complete…**, **Postpone**, **Reset Board** and **Undo**),
+which take and free a room and its members. There is no separate records
+window. Click a column heading to sort a page by it, or choose
+**View › Sort By**; **Return** in the search goes to the first row found.
 
 | Page | What it holds |
 | --- | --- |
@@ -258,8 +275,8 @@ Everything is saved as it happens; there is nothing to save before quitting.
 
 Made a mistake? **Edit › Undo** takes back the last step, whether seating,
 starting, completing, postponing or resetting a board, changing its members,
-disabling an adult, or a change to the rooms from the Event page. It is refused
-once the room or a member has been given to another board.
+marking an adult gone home or back, or a change to the rooms from the Event
+page. It is refused once the room or a member has been given to another board.
 
 The Dock icon shows how many youth are waiting, and a notification tells you
 when a room goes overdue while you are in another app, with the scheduler
@@ -271,7 +288,7 @@ back, and so does the Dock icon's menu (Control-click the icon).
 
 | Problem | What to do |
 | --- | --- |
-| The tablet cannot open the address | Check both are on the same Wi-Fi. Click the sign-in address and choose another network from its **Network** menu. Check that Eagle Boards is allowed in System Settings › Network › Firewall. |
+| The tablet cannot open the address | Check both are on the same Wi-Fi. Click the **Sign-in** status in the toolbar and choose another network from the **Network** menu shown with the code. Check that Eagle Boards is allowed in System Settings › Network › Firewall. |
 | "Port 8080 is already in use" | Quit the other program (the Java Eagle Board Scheduler uses 8080 too) and choose **File › Restart Sign-In Station**, or change the port in Settings › General. |
 | "None of the members can chair a Final Board" | Add a qualified chair, or promote someone: on the **Adults** page, click their **Final Board Role** or **Proposal Review Role** and choose **Chair**. |
 | A board was seated by mistake | Select the youth and choose **Board › Reset Board**, or **Edit › Undo** right after seating. |
@@ -283,7 +300,9 @@ ways to support its development, with a Venmo QR code a phone can scan.
 
 ## For developers
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for building, testing and the rules
-this code keeps. [PROVENANCE.md](PROVENANCE.md) records where it came from.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for building, testing, and the rules
+this code keeps. [SECURITY.md](SECURITY.md) says how to handle participant
+data and report a vulnerability. [PROVENANCE.md](PROVENANCE.md) records where
+it came from.
 Licensed under the Apache License 2.0; see [LICENSE](LICENSE) and
 [NOTICE](NOTICE).

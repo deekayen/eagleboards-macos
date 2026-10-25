@@ -31,8 +31,10 @@ jobs:
           fi
 
       - name: No participant data in the tree
+        # The same patterns as scripts/hooks/pre-commit and .gitignore, for a
+        # file that got in anyway. Change all three together.
         run: |
-          if git ls-files | grep -Ei '\.(csv|xls|xlsx|xlsm|ods|jar)$|Master_AdultHistory|Board_Results|(^|/)20[0-9]{2}-[0-9]{2}-[0-9]{2}/|(^|/)config\.properties$|(^|/)\.env$'; then
+          if git ls-files | grep -Ei '\.(csv|xls|xlsx|xlsm|ods|jar)$|Master_AdultHistory|Board_Results|LOGIN_INFO|(^|/)20[0-9]{2}-[0-9]{2}-[0-9]{2}/|(^|/)config\.properties$|(^|/)\.env$'; then
             echo "::error::data files or secrets are tracked"
             exit 1
           fi

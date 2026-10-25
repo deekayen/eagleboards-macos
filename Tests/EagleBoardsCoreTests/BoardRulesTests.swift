@@ -134,7 +134,7 @@ struct SeatingReviewTests {
         let unavailable = adult("Not", "Today", unitName: "Troop4", final: .unavailable)
         let review = SeatingReview(scout: scout(), members: [chair, gone, busy, unavailable], room: finalRoom)
         #expect(review.blockingProblems == [
-            "Gone Home has gone home. Remove them, or bring them back with Adult › Enable for Today.",
+            "Gone Home has gone home. Remove them, or bring them back with Adult › Mark Back.",
             "Busy Elsewhere is on the board in room 102. Remove them.",
             "Not Today said no thanks to Final Boards. Remove them.",
         ])
@@ -176,7 +176,8 @@ struct SeatingReviewTests {
         #expect(SeatingReview(scout: scout(status: .verified), members: members, room: finalRoom).canSeat)
     }
 
-    /// The refusal names the column by its heading on the Youth page.
+    /// The refusal names the column by its heading on the Youth page, and
+    /// the types as its menu offers them, not the file's Final or Project.
     @Test func noBoardTypeSaysWhichColumnToSetIt() {
         let youth = Scout(fields: [
             "Type": "SCOUT", "ID": "SCOUT:Candidate:Casey", "First": "Casey", "Last": "Candidate",
@@ -184,8 +185,16 @@ struct SeatingReviewTests {
         ])
         let review = SeatingReview(scout: youth, members: [], room: finalRoom)
         #expect(review.blockingProblems.contains {
-            $0 == "Casey Candidate has no board type. Set Final or Project in the Board Type column of the Youth page."
+            $0 == "Casey Candidate has no board type. Set Final Board or Proposal Review in the Board Type column of the Youth page."
         })
+        #expect(SeatingReview.noBoardType("Casey Candidate") == review.blockingProblems.last)
+    }
+
+    /// The seating sheets name the Adults page's role column for the board's
+    /// type, as its heading reads.
+    @Test func whoMayChairNamesTheRoleColumn() {
+        #expect(SeatingReview.whoMayChair(.finalBoard) == "Only members whose Final Board Role is Chair may chair.")
+        #expect(SeatingReview.whoMayChair(.projectReview) == "Only members whose Proposal Review Role is Chair may chair.")
     }
 }
 

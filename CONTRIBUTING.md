@@ -93,8 +93,11 @@ below. Run things locally to debug what CI found, or to iterate.
    seated, run, or torn down. A rule with no test is a rule that comes back.
 2. **Never commit participant data or secrets.** Data folders live outside
    the repository. `.gitignore` and `scripts/hooks/pre-commit` block CSVs,
-   dated folders, `Master_AdultHistory*` and `config.properties`. Install the
-   hook once per clone: `git config core.hooksPath scripts/hooks`.
+   dated folders, `Master_AdultHistory*`, `config.properties`, and
+   `LOGIN_INFO*`. Install the hook once per clone:
+   `git config core.hooksPath scripts/hooks`.
+   [SECURITY.md](SECURITY.md) lists what is sensitive, the checks behind the
+   hook, and how to report a vulnerability.
 3. **Test against synthetic data, never real data.** Tests create throwaway
    folders of made-up people. Never point the app at the real adult history
    while taking screenshots, or let it use the SignUpGenius key (see above).
@@ -119,7 +122,7 @@ below. Run things locally to debug what CI found, or to iterate.
      all busy, the answer is to promote someone on the Adults page, never to
      hand the gavel to a Member.
    - **One board at a time.** An adult with a `Room` is committed to it. `N/A`
-     is the Disable marker for someone gone home.
+     is what Adult › Mark Gone Home leaves for someone gone home.
    - **Same unit.** A same-unit member is an overridable warning (this
      council forbids them; the national rule does not). A board made *entirely*
      of the youth's unit is refused (GTA 8.0.3.0 #2). Deliberately not checked
@@ -145,6 +148,30 @@ below. Run things locally to debug what CI found, or to iterate.
     from an inspector button, it moves to the next step's button or to the
     youth's row (`StepFocus`); a list row that leaves hands it to the row now
     in its place (`ListFocus`).
+12. **Accessibility follows Apple's Human Interface Guidelines.** In this
+    code that means:
+    - An icon beside its words is a SwiftUI `Label`. An icon-only control has
+      an `.accessibilityLabel` that names what it does ("Remove Ann Able")
+      and a `.help` tag.
+    - A value drawn as a mark (the Wood Badge pentagon, a status badge, the
+      value of an `EditableChoice`) has its words in `accessibilityLabel` or
+      `accessibilityValue`. A line joined with " · " is read through
+      `spokenList`, with commas.
+    - Page, sheet, window, and section titles are headings (`.heading(_:)`).
+    - What VoiceOver hears of a step that worked, an arrival, or a count is a
+      sentence built in `EagleBoardsCore` (`StepSpeech` and its neighbors),
+      with a test. `Speech.say` says it, with nothing put on screen (SPEC.md
+      D-14).
+    - A context menu lists only what applies, with no keys (`MenuCommand`,
+      HIG Context menus). With Keyboard navigation on, Tab reaches every
+      control, room cards included. A new shortcut never takes a key macOS
+      uses (HIG Keyboards); Option-Command-8, which Zoom also uses, waits on
+      the owner in `eagleboards-shared`.
+    - Help and messages say click for a button and choose for a menu item.
+      Menu paths read File › Export List…, and keys read Command-Return.
+      Places are named (the toolbar, the inspector, Free for a Final Board)
+      instead of given as directions such as top right or below, and a symbol
+      is spelled out: up and down arrows, a minus sign in a circle.
 
 ## Releases
 

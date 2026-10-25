@@ -186,12 +186,13 @@ private struct YouthRow: View {
     }
 }
 
-/// "Final" or "Project", with the full name on hover.
+/// Final Board or Proposal Review, the words the column's menu offers and
+/// the refusals name, or what the file holds if it is neither.
 struct BoardTypeText: View {
     let youth: Scout
 
     var body: some View {
-        Text(youth.boardType == .projectReview ? "Project" : youth.boardTypeText)
+        Text(youth.boardType?.label ?? youth.boardTypeText)
             .help(youth.boardType?.label ?? "")
     }
 }

@@ -405,7 +405,7 @@ public final class BoardEvent {
             }
             let name = member.shownFullName
             if member.isDisabledForToday {
-                throw EventError("\(name) has gone home. Bring them back with Adult › Enable for Today, or choose someone else.")
+                throw EventError("\(name) has gone home. Bring them back with Adult › Mark Back, or choose someone else.")
             }
             if !member.room.isEmpty && member.room != currentRoom {
                 throw EventError("\(name) is on the board in room \(member.room). Choose someone else.")
@@ -800,7 +800,8 @@ public final class BoardEvent {
 
     // MARK: - Adults
 
-    /// Enable or Disable: stand an adult down for the event, or bring them back.
+    /// Mark Back or Mark Gone Home: bring an adult back, or stand them down
+    /// for the event.
     public func setAvailable(_ available: Bool, adultID: String) throws {
         guard let index = adults.firstIndex(where: { $0.id == adultID }) else {
             throw EventError("There is no adult '\(adultID)'.")

@@ -37,7 +37,7 @@ struct StepSpeechTests {
                 == "The board's members are unchanged.")
     }
 
-    /// One adult by name; several by how many, as Adult › Disable for Today
+    /// One adult by name; several by how many, as Adult › Mark Gone Home
     /// and Sign In for Today act on every one selected.
     @Test func adultsByNameOrByCount() {
         #expect(StepSpeech.markedGoneHome(["Bob Smith"]) == "Bob Smith is marked gone home.")

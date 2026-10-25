@@ -13,6 +13,7 @@ struct EditableText: View {
 
     @State private var text: String
     @FocusState private var isFocused: Bool
+    @Environment(\.rowIsItalic) private var rowIsItalic
 
     /// - Parameter name: what the field holds, for VoiceOver.
     init(_ value: String, name: String, save: @escaping (String) -> Bool) {
@@ -26,6 +27,9 @@ struct EditableText: View {
         TextField("", text: $text)
             .textFieldStyle(.plain)
             .focused($isFocused)
+            // The field editor keeps the row's italic while it is typed in;
+            // typing goes upright, and the rest of the row stays as it was.
+            .italic(rowIsItalic && !isFocused)
             .accessibilityLabel(name)
             .help(value)
             .onSubmit(commit)
@@ -50,6 +54,12 @@ struct EditableText: View {
         }
         if !save(typed) { text = value }
     }
+}
+
+extension EnvironmentValues {
+    /// A table row drawn in italics (a gone-home adult's, `adultRowStyle`),
+    /// which `EditableText` drops while it is being typed in.
+    @Entry var rowIsItalic = false
 }
 
 /// A value chosen from a menu in a table row. The row shows `label`; the menu

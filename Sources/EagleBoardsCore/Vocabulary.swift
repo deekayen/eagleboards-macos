@@ -159,6 +159,6 @@ public enum UnitType: String, CaseIterable, Sendable, Identifiable {
     }
 }
 
-/// The value an adult's `Room` holds when the Disable button has stood them
-/// down for the event. It is a marker, not a room anyone can be sent to.
+/// The value an adult's `Room` holds when Adult › Mark Gone Home has stood
+/// them down for the event. It is a marker, not a room anyone can be sent to.
 public let disabledForTodayMarker = "N/A"

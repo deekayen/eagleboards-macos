@@ -116,7 +116,9 @@ private struct DraftBoardSections: View {
                         remove: { remove(member.id, from: members) })
                 }
                 if members.isEmpty {
-                    Text("Click adults in the list below to add them, or drag them here from the Adults list.")
+                    // The list to add from, by its heading, not by where it is.
+                    Text("No one yet. Click someone under Free for a \(boardType.label), use Fill the Rest, "
+                        + "or drag adults here from the Adults page.")
                         .foregroundStyle(.secondary)
                 }
             } header: {
@@ -183,8 +185,7 @@ private struct DraftBoardSections: View {
                               focus: steps.focus)
         } else if youth.boardType == nil {
             Section {
-                NoticeLabel.warning(
-                    "\(youth.shownFullName) has no board type. Set Final or Project in the Board Type column of the Youth page.")
+                NoticeLabel.warning(SeatingReview.noBoardType(youth.shownFullName))
             }
         } else if youth.status == nil {
             Section {
@@ -637,10 +638,14 @@ private struct WithThemSection: View {
         }
     }
 
-    /// One adult in Link an Adult, with their unit, as Windows lists them.
+    /// One adult in Link an Adult, with their unit, as Windows lists them,
+    /// and read with a comma for the dot.
     private func linkItem(_ adult: Adult) -> some View {
-        Button(adult.unitDisplay.isEmpty ? adult.shownFullName : "\(adult.shownFullName) · \(adult.unitDisplay)") {
+        let shown = adult.unitDisplay.isEmpty ? adult.shownFullName : "\(adult.shownFullName) · \(adult.unitDisplay)"
+        return Button {
             model.setSupporting(true, adultID: adult.id, scoutID: youth.id)
+        } label: {
+            Text(shown).accessibilityLabel(shown.spokenList)
         }
     }
 }

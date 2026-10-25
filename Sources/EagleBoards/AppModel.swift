@@ -872,8 +872,8 @@ final class AppModel {
 
     // MARK: - Adults
 
-    /// Disable stands the selected adults down for the event; Enable brings
-    /// them back. Undo reverses either.
+    /// Mark Gone Home stands the selected adults down for the event; Mark
+    /// Back brings them back. Undo reverses either.
     func setAvailable(_ available: Bool) {
         let ids = selectedAdults.filter { available ? $0.isDisabledForToday : $0.isAvailable }.map(\.id)
         guard let event, !ids.isEmpty else { return }
@@ -882,15 +882,13 @@ final class AppModel {
         let apply: (Bool) -> (BoardEvent) throws -> Void = { value in
             { event in for id in ids { try event.setAvailable(value, adultID: id) } }
         }
-        if change(available ? "Enable" : "Disable", failure: "Could Not \(available ? "Enable" : "Disable") \(names)",
+        if change(available ? "Mark Back" : "Mark Gone Home",
+                  failure: available ? "Could Not Mark \(names) Back" : "Could Not Mark \(names) Gone Home",
                   success: available ? StepSpeech.markedBack(shownNames) : StepSpeech.markedGoneHome(shownNames),
                   apply(available), undo: apply(!available)), !available {
             drafts.takeOff(Set(ids))
         }
     }
-
-    var canEnableSelectedAdults: Bool { selectedAdults.contains(where: \.isDisabledForToday) }
-    var canDisableSelectedAdults: Bool { selectedAdults.contains(where: \.isAvailable) }
 
     /// The one selected adult, for commands that take a single person.
     var singleSelectedAdult: Adult? {

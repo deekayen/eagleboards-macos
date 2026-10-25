@@ -11,9 +11,9 @@ before your first commit.
 | Adult names, emails, phones, board history | `adults.csv`, `Master_AdultHistory.csv` | Personal information, cumulative across years |
 | SignUpGenius API key | the macOS keychain of the Mac running the app | Grants API access to the district's sign-ups |
 
-Eagle Boards no longer asks for, imports or keeps a youth's birthdate or phone
+Eagle Boards no longer asks for, imports, or keeps a youth's birthdate or phone
 number (SPEC.md D-7, D-8). Folders from earlier events may still hold them:
-they are left in place, and never shown, sent to a tablet or exported.
+they are left in place, and never shown, sent to a tablet, or exported.
 
 The data folder is chosen by the operator and lives outside this repository.
 Nothing in the repository or in a built app contains participant data or a key.
@@ -21,7 +21,8 @@ Nothing in the repository or in a built app contains participant data or a key.
 ## Never commit these
 
 `.gitignore` excludes spreadsheets and CSVs, dated folders,
-`Master_AdultHistory*`, `*Board_Results*`, `config.properties` and `.env`.
+`Master_AdultHistory*`, `*Board_Results*`, `config.properties`, `LOGIN_INFO*`,
+and `.env`.
 `scripts/hooks/pre-commit` refuses a commit that stages any of them, or what
 looks like a SignUpGenius key. Install it once per clone:
 
@@ -29,8 +30,11 @@ looks like a SignUpGenius key. Install it once per clone:
 git config core.hooksPath scripts/hooks
 ```
 
-**Do not bypass it with `--no-verify`.** What it stopped cannot be unpublished
-once pushed.
+**Do not bypass it with `--no-verify`.** This repository is public, so what it
+stopped cannot be unpublished once pushed.
+
+CI fails if one of those files is tracked anyway, and the release workflow
+refuses to publish an app that contains a data file or the key.
 
 ## The API key
 
@@ -46,7 +50,7 @@ once pushed.
 The sign-in station is plain HTTP with no authentication, meant for a trusted
 venue network for the length of one event.
 
-- **Only the sign-in pages are served.** The scheduler, records and settings
+- **Only the sign-in pages are served.** The scheduler, records, and settings
   are native windows, not pages, so there is nothing for someone at the door
   to browse to. `CheckInServerTests` asserts the Java app's operator paths
   return 404.

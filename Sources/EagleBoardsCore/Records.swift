@@ -455,7 +455,7 @@ public struct Adult: PersonRecord {
     /// else they came with).
     public var cameForAnyBoard: Bool { woodBadge == "Y" || supporting.isEmpty }
 
-    /// Stood down for the event with the Disable button.
+    /// Stood down for the event with Adult › Mark Gone Home.
     public var isDisabledForToday: Bool { room == disabledForTodayMarker }
     /// Sitting on a board right now.
     public var isOnBoard: Bool { !room.isEmpty && !isDisabledForToday }

@@ -51,6 +51,20 @@ struct WelcomeView: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
+        // Centered while it fits; on a small or scaled screen, or with a long
+        // error under the buttons, it scrolls instead of running off the
+        // bottom of the window.
+        GeometryReader { proxy in
+            ScrollView {
+                content
+                    .padding(40)
+                    .frame(maxWidth: .infinity, minHeight: proxy.size.height)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+        }
+    }
+
+    private var content: some View {
         VStack(spacing: 18) {
             // Decoration above the title, which says it.
             Image(systemName: "person.3.sequence.fill")
@@ -96,7 +110,5 @@ struct WelcomeView: View {
                     .frame(maxWidth: 560)
             }
         }
-        .padding(40)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

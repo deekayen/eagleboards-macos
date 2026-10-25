@@ -231,7 +231,7 @@ struct BoardEventTests {
 
         try event.setAvailable(false, adultID: member(11))
         #expect(seating(chairOfEither, [chairOfEither, member(1), member(11)])
-            == "Percival Pemberton has gone home. Bring them back with Adult › Enable for Today, or choose someone else.")
+            == "Percival Pemberton has gone home. Bring them back with Adult › Mark Back, or choose someone else.")
         let noThanks = adultID(29, unit: 1002)  // Unavailable for Final Boards
         #expect(seating(chairOfEither, [chairOfEither, member(1), noThanks])
             == "Cordelia Crowninshield said no thanks to Final Boards. Choose someone else.")
@@ -284,13 +284,13 @@ struct BoardEventTests {
             try reopened.seatBoard(roomID: "ROOM:101", scoutID: finalYouth(1), chairID: chairOfEither,
                                    memberIDs: [chairOfEither, member(1), junior])
         }
-        #expect(refused == "Lysander Whitmore, Jr. has gone home. Bring them back with Adult › Enable for Today, or choose someone else.")
+        #expect(refused == "Lysander Whitmore, Jr. has gone home. Bring them back with Adult › Mark Back, or choose someone else.")
         #expect(refusal { try reopened.setAvailable(false, adultID: junior) } == "Lysander Whitmore, Jr. is already marked gone home.")
 
         let youth = try #require(reopened.scout(id: finalYouth(1)))
         let members = [chairOfEither, member(1), junior].compactMap(reopened.adult(id:))
         #expect(SeatingReview(scout: youth, members: members, room: reopened.room(named: "101")).blockingProblems
-            == ["Lysander Whitmore, Jr. has gone home. Remove them, or bring them back with Adult › Enable for Today."])
+            == ["Lysander Whitmore, Jr. has gone home. Remove them, or bring them back with Adult › Mark Back."])
     }
 
     /// Marking an adult gone home or back, deleting one, and Undo say the

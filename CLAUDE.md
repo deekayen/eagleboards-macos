@@ -45,11 +45,14 @@ a native window. See `PROVENANCE.md`.
 ## Standing rules
 
 - **Push to `main`. Never open pull requests** on this repository: GitHub keeps
-  `refs/pull/*` forever, beyond the reach of a history rewrite.
+  `refs/pull/*` forever, beyond the reach of a history rewrite. The repository
+  is public, so everything committed, history included, is world-readable.
 - **No AI attribution** in commits, PR text, or anywhere in history.
 - **Commits are GPG-signed** (`commit.gpgsign` is on); expect a pinentry prompt.
 - **Never commit participant data or secrets.** Install the hook:
-  `git config core.hooksPath scripts/hooks`.
+  `git config core.hooksPath scripts/hooks`. CI's "No participant data in the
+  tree" step catches a file that got in anyway; keep its pattern in step with
+  `scripts/hooks/pre-commit` and `.gitignore`.
 - **The data files are the contract** with the Java app. Change their shape
   only with a test in `FileFormatTests` and a reason that survives the Java
   app reading the result.
@@ -115,5 +118,20 @@ a native window. See `PROVENANCE.md`.
   A change the operator makes registers its inverse with Undo (`AppModel`'s
   `change` and `changeBoard`) instead of asking "Are you sure?"; a board step
   is undone with `BoardEvent.restoreBoard`.
+- **Accessibility follows Apple's HIG** (CONTRIBUTING.md rule 12). An icon
+  beside words is a `Label`; an icon-only control has an
+  `.accessibilityLabel` naming what it does and a `.help` tag. A value drawn
+  as a mark (Wood Badge, a status badge, an `EditableChoice`) has its words in
+  `accessibilityLabel` or `accessibilityValue`, and a " · " line is read
+  through `spokenList`. Titles take `.heading(_:)`. What VoiceOver hears of a
+  step, an arrival, or a count is built in `EagleBoardsCore`, with a test;
+  `Speech.say` says it with nothing on screen (D-14). Context menus show only
+  what applies, with no keys (`MenuCommand`). Tab reaches every control, room
+  cards included, and a new shortcut takes no key macOS uses. Help and
+  messages say click for a button and choose for a menu item. They write paths
+  as File › Export List… and keys as Command-Return, and name places (the
+  toolbar, Free for a Final Board) instead of directions or bare symbols. When
+  mirroring Windows, leave out its access keys, F6 between panes, and its
+  select-for-click wording.
 - **No `var##` names**, even to match anything. CI fails on them.
 - **District-neutral branding**, settled: never add a district or council name.

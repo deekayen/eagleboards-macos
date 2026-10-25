@@ -103,7 +103,7 @@ public enum BoardRules {
         for member in members {
             let name = member.shownFullName
             if member.isDisabledForToday {
-                blocking.append("\(name) has gone home. Remove them, or bring them back with Adult › Enable for Today.")
+                blocking.append("\(name) has gone home. Remove them, or bring them back with Adult › Mark Back.")
             } else if member.isOnBoard && member.room != currentRoom {
                 blocking.append("\(name) is on the board in room \(member.room). Remove them.")
             }
@@ -199,7 +199,7 @@ public struct SeatingReview: Sendable {
         }
 
         guard let boardType = scout.boardType else {
-            blockingProblems.append("\(scoutName) has no board type. Set Final or Project in the Board Type column of the Youth page.")
+            blockingProblems.append(Self.noBoardType(scoutName))
             return
         }
 
@@ -225,6 +225,17 @@ public struct SeatingReview: Sendable {
 }
 
 extension SeatingReview {
+    /// A youth with no board type, and where to set one, in the words the
+    /// Board Type column's menu offers rather than the file's Final or Project.
+    public static func noBoardType(_ scoutName: String) -> String {
+        "\(scoutName) has no board type. Set Final Board or Proposal Review in the Board Type column of the Youth page."
+    }
+
+    /// Who the seating sheets let chair, naming the Adults page's role column.
+    public static func whoMayChair(_ boardType: BoardType) -> String {
+        "Only members whose \(boardType.label) Role is Chair may chair."
+    }
+
     /// The inspector's notes as VoiceOver reads them: a symbol and its color
     /// tell a problem that stops the board from a warning, and VoiceOver
     /// hears neither, so each says which it is, in the seating sheet's words.
@@ -418,7 +429,7 @@ public struct BoardSuggestion: Sendable, Equatable {
     }
 
     /// Choose from `adults` (in sign-in order), skipping anyone on a board,
-    /// disabled for today, Unavailable, or from the youth's own unit.
+    /// gone home, Unavailable, or from the youth's own unit.
     /// `freeSince` is from `freeSinceTimes`; an adult missing from it sorts first.
     public init(for scout: Scout, adults: [Adult], rooms: [Room], waiting: [Scout] = [], freeSince: [String: String] = [:]) {
         guard let boardType = scout.boardType else {

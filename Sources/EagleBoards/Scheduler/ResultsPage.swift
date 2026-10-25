@@ -63,7 +63,7 @@ struct ResultsPage: View {
                         BoardTypeText(youth: youth)
                     }
                 }
-                .width(min: 68, ideal: 82, max: 140)
+                .width(min: 110, ideal: 130, max: 160)
                 TableColumn("Status", value: \Scout.statusRank) { youth in
                     StatusBadge(statusText: youth.statusText)
                 }

@@ -66,7 +66,7 @@ struct YouthPage: View {
                         BoardTypeText(youth: youth)
                     }
                 }
-                .width(min: 68, ideal: 82, max: 140)
+                .width(min: 110, ideal: 130, max: 160)
                 // Widens far enough for a room named Fellowship Hall, and
                 // shows the whole name on hover where it is still cut off.
                 TableColumn("Room", value: \Scout.room) { youth in

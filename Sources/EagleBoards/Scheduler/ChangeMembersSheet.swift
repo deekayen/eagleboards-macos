@@ -86,7 +86,7 @@ struct ChangeMembersSheet: View {
                         }
                         .disabled(review.qualifiedChairs.isEmpty)
                     } footer: {
-                        Text("Only members whose \(boardType == .projectReview ? "Project" : "Final") role is Chair may chair.")
+                        Text(SeatingReview.whoMayChair(boardType))
                             .foregroundStyle(.secondary)
                     }
 

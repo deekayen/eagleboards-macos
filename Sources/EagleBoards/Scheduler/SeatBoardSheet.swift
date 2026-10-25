@@ -91,7 +91,7 @@ struct SeatBoardSheet: View {
                         }
                         .disabled(review.qualifiedChairs.isEmpty)
                     } footer: {
-                        Text("Only members whose \(youth.boardType == .projectReview ? "Project" : "Final") role is Chair may chair.")
+                        Text(SeatingReview.whoMayChair(youth.boardType ?? .finalBoard))
                             .foregroundStyle(.secondary)
                     }
 
@@ -187,9 +187,6 @@ struct SeatBoardSheet: View {
 struct SheetLayout<Fields: View, Buttons: View>: View {
     let title: String
     var message: String?
-    /// The message as VoiceOver reads it, where the one shown joins its
-    /// parts with middle dots.
-    var spokenMessage: String?
     var width: CGFloat = 440
     @ViewBuilder var fields: Fields
     @ViewBuilder var buttons: Buttons
@@ -203,7 +200,6 @@ struct SheetLayout<Fields: View, Buttons: View>: View {
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityLabel(spokenMessage ?? message)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -284,13 +280,12 @@ struct CompleteBoardSheet: View {
     var body: some View {
         let youth = event.scout(id: scoutID)
         let message = youth.map {
-            "Room \($0.room) · \($0.boardType?.label ?? $0.boardTypeText) · chaired by \($0.boardChair.shownValue). "
+            "Room \($0.room), \($0.boardType?.label ?? $0.boardTypeText), chaired by \($0.boardChair.shownValue). "
                 + "The room and the members are freed for the next board."
         }
         SheetLayout(
             title: "Complete \(youth.map { "\($0.shownFullName)'s" } ?? "the") Board",
-            message: message,
-            spokenMessage: message?.spokenList
+            message: message
         ) {
             Section {
                 Picker("Result", selection: $result) {
@@ -339,7 +334,7 @@ struct AddRoomSheet: View {
         SheetLayout(
             title: "Add a Room",
             message: "Mark it by what it is used for today, not by what it is called. "
-                + "To hold two proposal reviews in one room, add it twice, e.g. 200A and 200B."
+                + "To hold two proposal reviews in one room, add it twice, for example 200A and 200B."
         ) {
             Section {
                 TextField("Name", text: $name, prompt: Text("101 or 200A"))
