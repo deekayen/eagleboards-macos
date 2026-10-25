@@ -94,7 +94,8 @@ a native window. See `PROVENANCE.md`.
 - **Adult sign-in answers.** "No thanks" to a board type is stored as the
   role `Unavailable` (Seat Board refuses it). `WoodBadge` and `Supporting`
   (youth IDs, `|`-separated) are appended to the adult record, per event,
-  never copied into the history; `/api/scout-choices` feeds the form's list.
+  never copied into the history; `/api/scout-choices` feeds the form's list, which leaves out
+  a youth here for a project proposal, since only a board of review has an introduction (D-23).
   Start Review and the inspector's With Them list name supporting adults
   first. Link an Adult there, and the Adult menu, link or unlink them after
   sign-in (`BoardEvent.setSupporting`).

@@ -110,10 +110,12 @@ struct CheckInServerTests {
     @Test func theAdultFormListsYouthByNameAndUnitOnly() async throws {
         _ = try await send("/register-youth", method: .post,
             form: "First=Jan&Last=Doe&Email=jan%40example.org&Phone=770-555-0100&UnitType=Troop&Unit=1776&BoardType=Final")
+        _ = try await send("/register-youth", method: .post,
+            form: "First=Pia&Last=Proposal&Email=pia%40example.org&UnitType=Troop&Unit=1777&BoardType=Project")
         let reply = try await send("/api/scout-choices")
         #expect(reply.status == .ok)
         let youth = try #require(try JSONSerialization.jsonObject(with: Data(reply.body.utf8)) as? [[String: String]])
-        #expect(youth.count == 1)
+        #expect(youth.count == 1, "a youth here for a project proposal has no introduction, so is not offered (D-23)")
         #expect(Set(youth[0].keys) == ["id", "first", "last", "unitType", "unit"])
         #expect(youth[0]["id"] == "SCOUT:Doe:Jan:1776")
         #expect(!reply.body.contains("jan@example.org"))

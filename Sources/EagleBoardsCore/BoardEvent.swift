@@ -142,7 +142,8 @@ public final class BoardEvent {
 
     /// The youth an adult may say at sign-in they will introduce (SPEC.md D-23): everyone
     /// who RSVP'd, plus the event's walk-ins, leaving out anyone already
-    /// finished (Completed or Postponed). The sign-in's record wins over the
+    /// finished (Completed or Postponed) and anyone here for a project
+    /// proposal, which has no introduction. The sign-in's record wins over the
     /// RSVP with the same ID; sorted by last name, then first.
     public func scoutChoices() -> [Scout] {
         let done = Set(scouts.filter { $0.status == .completed || $0.status == .postponed }.map(\.id))
@@ -150,7 +151,7 @@ public final class BoardEvent {
         for youth in scheduledScouts + scouts where !youth.last.isEmpty && !done.contains(youth.id) {
             byID[youth.id] = youth
         }
-        return byID.values.sorted {
+        return byID.values.filter { $0.boardType != .projectReview }.sorted {
             ($0.last.lowercased(), $0.first.lowercased()) < ($1.last.lowercased(), $1.first.lowercased())
         }
     }

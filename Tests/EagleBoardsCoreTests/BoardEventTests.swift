@@ -1147,16 +1147,25 @@ struct BoardEventTests {
 
         // The sign-in list: RSVPs not yet here, and this event's youth who are
         // not done yet.
-        try CSVFile.write([Scout(fields: [
-            "Type": "SCOUT", "ID": "SCOUT:Rsvp:Only:3999", "Last": "Rsvp", "First": "Only",
-            "UnitType": "Troop", "Unit": "3999", "BoardType": "Final",
-        ])], to: scratch.dataFolder.scheduledYouthURL(event: "2026-09-22"))
+        try CSVFile.write([
+            Scout(fields: [
+                "Type": "SCOUT", "ID": "SCOUT:Rsvp:Only:3999", "Last": "Rsvp", "First": "Only",
+                "UnitType": "Troop", "Unit": "3999", "BoardType": "Final",
+            ]),
+            Scout(fields: [
+                "Type": "SCOUT", "ID": "SCOUT:Rsvp:Proposal:3998", "Last": "Rsvp", "First": "Proposal",
+                "UnitType": "Troop", "Unit": "3998", "BoardType": "Project",
+            ]),
+        ], to: scratch.dataFolder.scheduledYouthURL(event: "2026-09-22"))
         try event.postponeBoard(scoutID: finalYouth(9))
         let reopened = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22")
         let choices = reopened.scoutChoices().map(\.id)
         #expect(choices.contains("SCOUT:Rsvp:Only:3999"), "an RSVP not yet signed in can be chosen")
         #expect(choices.contains(rsvp), "so can someone signed in at this event")
         #expect(!choices.contains(finalYouth(9)), "but not someone done for the event")
+        // SPEC.md D-23: an adult introduces a youth to their board of review.
+        #expect(!choices.contains("SCOUT:Rsvp:Proposal:3998"), "nor an RSVP for a project proposal")
+        #expect(!choices.contains(project), "nor someone signed in for one")
     }
 
     // Java section 19, linking after both have signed in.
