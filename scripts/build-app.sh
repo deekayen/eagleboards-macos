@@ -37,6 +37,10 @@ cp -R "$bin_dir/EagleBoards_CheckInServer.bundle" "$APP/Contents/Resources/"
 # Drawn from Artwork/EagleBoards.svg by scripts/make-icon.sh.
 cp Artwork/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
+# NSUserNotificationAlertStyle asks for Alerts as Eagle Boards' first
+# notification style, so an overdue room's notification stays on screen
+# behind another app. The style chosen in System Settings > Notifications
+# wins, and macOS may ignore the key under the UserNotifications framework.
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -55,6 +59,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>LSApplicationCategoryType</key>    <string>public.app-category.productivity</string>
     <key>NSHighResolutionCapable</key>      <true/>
     <key>NSHumanReadableCopyright</key>     <string>Copyright 2026 David Norman. Apache License 2.0.</string>
+    <key>NSUserNotificationAlertStyle</key> <string>alert</string>
     <key>NSLocalNetworkUsageDescription</key>
     <string>Eagle Boards serves the sign-in page to tablets at the door over your local network.</string>
 </dict>

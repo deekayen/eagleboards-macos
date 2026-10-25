@@ -260,6 +260,12 @@ and lightness and read with color blindness. They are prompts, not limits.
 Change them in **Settings › Timers**. VoiceOver announces a room once as it
 turns running long, and again as it turns overdue.
 
+A notification says when a room goes overdue. With Eagle Boards in front, it
+goes away after 10 seconds. Behind another app, it stays on screen until you
+close it if Eagle Boards is set to **Alerts** in System Settings ›
+Notifications; with **Banners** it goes away on its own. **Settings › Timers**
+shows the style chosen there; to change it, click **Open System Settings**.
+
 ## SignUpGenius
 
 Put the district's SignUpGenius API key in **Settings › SignUpGenius**.
@@ -278,12 +284,11 @@ starting, completing, postponing or resetting a board, changing its members,
 marking an adult gone home or back, or a change to the rooms from the Event
 page. It is refused once the room or a member has been given to another board.
 
-The Dock icon shows how many youth are waiting, and a notification tells you
-when a room goes overdue while you are in another app, with the scheduler
-window open or closed. If you close the scheduler or the sign-in code,
-**Window › Scheduler** or **Window › Sign-In Code** brings it back, and so does
-the Dock icon's menu (Control-click the icon). Choosing a page from the
-**View** menu also brings back the scheduler.
+The Dock icon shows how many youth are waiting; the count and the overdue
+notification keep going with the scheduler window closed. If you close the
+scheduler or the sign-in code, **Window › Scheduler** or **Window › Sign-In
+Code** brings it back, and so does the Dock icon's menu (Control-click the
+icon). Choosing a page from the **View** menu also brings back the scheduler.
 
 ## If something goes wrong
 

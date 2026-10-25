@@ -106,7 +106,8 @@ struct HelpView: View {
             "This council does not allow adults from the youth's own unit on the board. You may override that, but a board must still have at least one member from outside the unit (8.0.3.0).",
         ]),
         HelpSection("Room timers", [
-            "The Dock icon shows how many youth are waiting. If a room goes overdue while you are in another app, a notification says so; macOS asks once whether to allow them, after the first board is seated. Both keep going with the scheduler window closed.",
+            "The Dock icon shows how many youth are waiting, and a notification says when a room goes overdue; macOS asks once whether to allow notifications, after the first board is seated. Both keep going with the scheduler window closed.",
+            "With Eagle Boards in front, the notification goes away after 10 seconds. Behind another app, it stays on screen until you close it if Eagle Boards is set to Alerts in System Settings › Notifications; with Banners it goes away on its own. Settings › Timers shows the style chosen there; to change it, click Open System Settings.",
             "Each busy room shows the minutes since its last step, with a stopwatch. While a board convenes it goes overdue after 30 minutes. Once the review starts, a final board runs long at 30 and is overdue at 45; a proposal review at 25 and 40. Running long is a timer on an orange tint and overdue an alarm clock on a solid pink-red fill, so they differ in shape and lightness, not only color.",
             "They are prompts, not limits. Change them in Settings › Timers.",
             "VoiceOver announces a room once as it turns running long, and again as it turns overdue.",

@@ -750,9 +750,9 @@ final class AppModel {
     }
 
     /// From the time the event opens, look for overdue rooms at the top of
-    /// every minute, when the room timers go up (D-15). Not the moment it
-    /// opens: at launch the app may not be in front yet, and every room
-    /// already overdue would be announced as if it had just gone over.
+    /// every minute, when the room timers go up (D-15). The first of them only
+    /// records the rooms, so one already overdue when the event opens is not
+    /// announced or read out as if it had just gone over.
     private func startCheckingRooms() {
         roomCheck?.cancel()
         roomCheck = Task { [weak self] in

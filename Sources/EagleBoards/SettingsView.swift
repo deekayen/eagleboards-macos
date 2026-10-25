@@ -99,6 +99,8 @@ private struct GeneralSettings: View {
 private struct TimerSettings: View {
     @Environment(AppModel.self) private var model
     @Binding var problem: AppModel.Message?
+    /// Nil until read, and when run without an app bundle.
+    @State private var notificationStyle: OverdueNotification.Style?
 
     var body: some View {
         if let event = model.event {
@@ -134,12 +136,45 @@ private struct TimerSettings: View {
                         .foregroundStyle(.secondary)
                     runningLongNote(\.projectYellowMinutes, \.projectRedMinutes, event)
                 }
+                if let notificationStyle {
+                    notificationSection(notificationStyle)
+                }
             }
             .formStyle(.grouped)
+            .task { await readNotificationStyle() }
+            // Back from System Settings, where the style may have changed.
+            .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+                Task { await readNotificationStyle() }
+            }
         } else {
             ContentUnavailableView("Open an event first", systemImage: "timer")
                 .frame(height: 200)
         }
+    }
+
+    /// Next to the overdue times: whether their notification stays on screen
+    /// behind another app is up to System Settings, so the pane says which
+    /// style is chosen there and how to change it.
+    private func notificationSection(_ style: OverdueNotification.Style) -> some View {
+        Section {
+            LabeledContent("Style in System Settings", value: style.label)
+        } header: {
+            Text("Overdue notifications")
+        } footer: {
+            Text(OverdueNotification.settingsFooter)
+                .foregroundStyle(.secondary)
+            if let note = style.note {
+                NoticeLabel.warning(note)
+                    .foregroundStyle(.secondary)
+            }
+            if style.canChangeInSystemSettings {
+                Button("Open System Settings") { model.attention.openNotificationSettings() }
+            }
+        }
+    }
+
+    private func readNotificationStyle() async {
+        notificationStyle = await model.attention.notificationStyle()
     }
 
     /// Said rather than prevented: a Running long stepper bounded by Overdue
