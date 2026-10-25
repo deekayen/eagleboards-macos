@@ -65,22 +65,95 @@ public enum CheckInServer {
     /// Serve `event` until the surrounding task is cancelled.
     ///
     /// - Parameters:
-    ///   - host: `0.0.0.0` to accept the sign-in tablets, `127.0.0.1` for this Mac only.
+    ///   - host: `0.0.0.0` for every network, `127.0.0.1` for this Mac only,
+    ///     or one network's address, served with 127.0.0.1 beside it.
     ///   - port: `0` picks a free port, reported through `onRunning`.
+    /// - Throws: `PortInUse` when `host` is one address and another program
+    ///   serves every network at `port`.
     public static func run(
         event: BoardEvent,
-        host: String = "0.0.0.0",
+        host: String = SignInListening.anyAddress,
         port: Int,
         onRunning: @escaping @Sendable (Int) async -> Void = { _ in }
     ) async throws {
+        // BSD lets an address bind beside another program on 0.0.0.0 at the
+        // same port, and the more specific bind then takes the connections:
+        // the Java app on 8080 would lose its tablets on this network without
+        // a word. Refuse, as Every Network's own bind does.
+        if host != SignInListening.anyAddress, port != 0, someoneServesEveryNetwork(port: port) {
+            throw PortInUse(port: port)
+        }
+        let responder = router(for: event).buildResponder()
+        guard host != SignInListening.anyAddress, host != SignInListening.loopback else {
+            try await serve(responder, host: host, port: port, onRunning: onRunning)
+            return
+        }
+        // Hummingbird listens on one address per application. A pinned
+        // address leaves out 127.0.0.1, so listen there too, as Windows does,
+        // and on the port the pinned one got: port 0 picks it.
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            let (pinnedPorts, pinnedPort) = AsyncStream<Int>.makeStream()
+            group.addTask {
+                defer { pinnedPort.finish() }
+                try await serve(responder, host: host, port: port) { pinnedPort.yield($0) }
+            }
+            var ports = pinnedPorts.makeAsyncIterator()
+            if let bound = await ports.next() {
+                group.addTask {
+                    try await serve(responder, host: SignInListening.loopback, port: bound) { _ in await onRunning(bound) }
+                }
+            }
+            // One that fails, or stops, takes the other with it.
+            try await group.next()
+            group.cancelAll()
+        }
+    }
+
+    private static func serve(
+        _ responder: RouterResponder<BasicRequestContext>,
+        host: String,
+        port: Int,
+        onRunning: @escaping @Sendable (Int) async -> Void
+    ) async throws {
         let application = Application(
-            router: router(for: event),
+            responder: responder,
             configuration: .init(address: .hostname(host, port: port), serverName: "Eagle Boards"),
             onServerRunning: { channel in
                 await onRunning(channel.localAddress?.port ?? port)
             }
         )
         try await application.runService(gracefulShutdownSignals: [])
+    }
+
+    /// Another program listens on every network at the port the station
+    /// would pin an address to.
+    public struct PortInUse: Error, CustomStringConvertible {
+        public let port: Int
+        public var description: String { "Address already in use: port \(port), on every network" }
+    }
+
+    /// Whether another socket holds 0.0.0.0 (or IPv6's dual-stack `::`) at
+    /// `port`. With SO_REUSEADDR set, as on the server's own sockets, the
+    /// probe's wildcard bind succeeds beside connections in TIME_WAIT and
+    /// beside a specific address held at the port, and fails only on another
+    /// wildcard.
+    static func someoneServesEveryNetwork(port: Int) -> Bool {
+        let probe = socket(AF_INET, SOCK_STREAM, 0)
+        guard probe >= 0 else { return false }
+        defer { close(probe) }
+        var on: Int32 = 1
+        setsockopt(probe, SOL_SOCKET, SO_REUSEADDR, &on, socklen_t(MemoryLayout<Int32>.size))
+        var address = sockaddr_in()
+        address.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+        address.sin_family = sa_family_t(AF_INET)
+        address.sin_port = in_port_t(UInt16(truncatingIfNeeded: port).bigEndian)
+        address.sin_addr = in_addr(s_addr: INADDR_ANY)
+        let bound = withUnsafePointer(to: &address) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                bind(probe, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
+            }
+        }
+        return bound != 0 && errno == EADDRINUSE
     }
 
     // MARK: - What the pages are given

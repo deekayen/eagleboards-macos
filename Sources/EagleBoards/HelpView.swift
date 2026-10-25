@@ -52,7 +52,8 @@ struct HelpView: View {
     static let guide = [
         HelpSection("Before anyone arrives", [
             "Open Eagle Boards on the admin Mac. It opens today's event and starts the sign-in station.",
-            "Click the sign-in status in the toolbar. Scan the QR code with the tablet at the door, or type the address into its browser. The tablet must be on the same Wi-Fi as the Mac. If the Mac is on more than one network, choose the tablet's from the Network menu shown with the code.",
+            "Click the sign-in status in the toolbar. Scan the QR code with the tablet at the door, or type the address into its browser. The tablet must be on the network the sign-in station serves: the Mac's Wi-Fi, unless you choose another.",
+            "If the Mac is on more than one network, choose the tablet's, for example Ethernet, in Settings › General › Network. Every Network also serves any VPN or phone hotspot the Mac is on, and the Network menu shown with the code then picks the code's network. If the network chosen has no address, the station serves another until it has one, Wi-Fi if it can, and the sign-in status says so. Whichever you choose, this Mac can open the sign-in page itself.",
             "For a second display or a projector by the door, choose Window › Sign-In Code and make it as large as you like. It shows the same network's code.",
             "Add today's rooms with Room › Add Room… (Shift-Command-N), marking each Final Board or Proposal Review by what it is used for today. After the first event, Room › Copy Rooms From brings back last month's rooms.",
             "To hold two proposal reviews in one room, add it twice, for example 200A and 200B.",

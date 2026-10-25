@@ -36,7 +36,7 @@ struct SignInCodeWindow: View {
                         .font(.title.monospaced())
                         .textSelection(.enabled)
                     Text("Scan the code with the tablet's camera, or type the address into its browser. "
-                        + "The tablet must be on the same Wi-Fi.")
+                        + "The tablet must be on the same network as this Mac.")
                         .font(.title3)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)

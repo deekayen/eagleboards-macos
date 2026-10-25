@@ -59,6 +59,17 @@ venue network for the length of one event.
   nothing else, and there is no call that lists everyone's email address.
   Lookups are POSTs, so an address never lands in a URL on a shared tablet.
 - Responses carry `Cache-Control: no-store`, so the tablet does not keep them.
+- The station listens on one network and on 127.0.0.1, so this Mac's own
+  browser still reaches it. The network is the Mac's Wi-Fi unless the
+  operator chooses another in **Settings › General › Network**, which lists
+  each interface with its address when the Mac is on more than one. With no
+  Wi-Fi address, the default is the first other network, Ethernet (`en*`)
+  before a VPN or a bridge. The choice is saved by BSD name (`en0`), not by
+  address, and resolved to that interface's address when the station starts
+  and again when the address changes. A chosen network with no address
+  leaves the station on the default, and the sign-in status says so until it
+  is fixed. **Every Network** listens on `0.0.0.0`, which takes in any VPN,
+  virtual machine's bridge, or phone hotspot link the Mac is on.
 - Run it on the venue network, never on a public interface or a port-forward,
   and quit it when the event ends.
 

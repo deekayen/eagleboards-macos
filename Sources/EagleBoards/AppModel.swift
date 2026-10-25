@@ -27,6 +27,7 @@ final class AppModel {
         let launch = LaunchSettings(environment: ProcessInfo.processInfo.environment, defaults: .standard)
         let folderPath = launch.dataFolderPath
         port = launch.port
+        signInNetwork = launch.signInNetwork
         importOnOpen = launch.importOnOpen
         proposeBoards = launch.proposeBoards
         signUpGeniusAllowed = launch.signUpGeniusAllowed
@@ -35,6 +36,7 @@ final class AppModel {
             open(folder: DataFolder(root: URL(filePath: folderPath, directoryHint: .isDirectory)), event: today)
         }
         showWaitingOnTheDock()
+        networkWatcher = NetworkWatcher { [weak self] in self?.networksChanged() }
     }
 
     /// Use `url` as the data folder from now on and open today's event in it.
@@ -117,6 +119,42 @@ final class AppModel {
         }
     }
 
+    /// The network the sign-in station serves, chosen in Settings › General:
+    /// a BSD name, `SignInListening.everyNetwork`, or nil for the default,
+    /// Wi-Fi.
+    var signInNetwork: String? {
+        didSet {
+            UserDefaults.standard.set(signInNetwork, forKey: Keys.signInNetwork)
+            if oldValue != signInNetwork, event != nil { startServer() }
+        }
+    }
+
+    /// This Mac's IPv4 networks, and System Settings' names for its
+    /// interfaces, kept current by `networkWatcher`.
+    private(set) var networks = SignInNetwork.current()
+    private(set) var networkKinds = SignInNetwork.kinds()
+    @ObservationIgnored private var networkWatcher: NetworkWatcher?
+
+    /// Where the sign-in station listens, resolved as it starts. Nil while
+    /// it is stopped.
+    private(set) var listening: SignInListening?
+
+    /// What the station would listen on if it started now.
+    var signInListening: SignInListening {
+        SignInListening(choice: signInNetwork, among: networks, kinds: networkKinds)
+    }
+
+    /// A network came, went or changed its address. A station serving one
+    /// network moves with it: onto the chosen one when it is back, or onto
+    /// the default while it is gone. Joining the venue's Wi-Fi after the
+    /// event is open puts the station on it.
+    private func networksChanged() {
+        networks = SignInNetwork.current()
+        networkKinds = SignInNetwork.kinds()
+        guard let listening, isServing || serverState == .starting else { return }
+        if signInListening != listening { startServer() }
+    }
+
     var importOnOpen: Bool {
         didSet { UserDefaults.standard.set(importOnOpen, forKey: Keys.importOnOpen) }
     }
@@ -130,15 +168,16 @@ final class AppModel {
         }
     }
 
-    /// Addresses the sign-in station can use, venue network first.
+    /// Addresses the sign-in station can use: the chosen network's alone,
+    /// or under Every Network each of them, venue network first.
     var checkInAddresses: [CheckInAddress] {
-        guard case .running(let runningPort) = serverState else { return [] }
-        let names = NetworkAddresses.displayNames()
+        guard case .running(let runningPort) = serverState, let listening else { return [] }
+        let served = listening.isEveryNetwork ? networks : listening.network.map { [$0] } ?? []
         // One item per address: the Network picker tags each by its host.
         var seen: Set<String> = []
-        return NetworkAddresses.current().compactMap { address in
-            URL(string: "http://\(address.ipv4):\(runningPort)/").map {
-                CheckInAddress(network: names[address.interface] ?? address.interface, url: $0)
+        return served.compactMap { network in
+            URL(string: "http://\(network.ipv4):\(runningPort)/").map {
+                CheckInAddress(network: network, url: $0)
             }
         }
         .filter { seen.insert($0.host).inserted }
@@ -171,13 +210,17 @@ final class AppModel {
         guard let event else { return }
         serverState = .starting
         let requestedPort = port
+        networks = SignInNetwork.current()
+        networkKinds = SignInNetwork.kinds()
+        let listening = signInListening
+        self.listening = listening
         // A server just told to stop may still hold the port for a moment.
         // Wait for it to let go, or the new one fails with "address in use".
         let stopping = stoppingServerTask
         serverTask = Task { [weak self] in
             await stopping?.value
             do {
-                try await CheckInServer.run(event: event, host: "0.0.0.0", port: requestedPort) { boundPort in
+                try await CheckInServer.run(event: event, host: listening.host, port: requestedPort) { boundPort in
                     await MainActor.run { self?.serverState = .running(port: boundPort) }
                 }
             } catch is CancellationError {
@@ -200,6 +243,7 @@ final class AppModel {
         }
         serverTask = nil
         serverState = .stopped
+        listening = nil
         if let keepAwake {
             ProcessInfo.processInfo.endActivity(keepAwake)
             self.keepAwake = nil
@@ -208,7 +252,7 @@ final class AppModel {
 
     private static func describe(serverError error: Error, port: Int) -> String {
         let text = String(describing: error)
-        if text.contains("Address already in use") {
+        if error is CheckInServer.PortInUse || text.contains("Address already in use") {
             return LaunchSettings.portInUse(port)
         }
         if text.contains("Permission denied") {

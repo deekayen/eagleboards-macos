@@ -5,6 +5,7 @@ import Foundation
 ///
 ///   EAGLEBOARDS_DATA_FOLDER      open this folder instead of the saved one
 ///   EAGLEBOARDS_PORT             serve sign-in on this port
+///   EAGLEBOARDS_NETWORK          serve sign-in on this interface (`en0`), or `all`
 ///   EAGLEBOARDS_SIGNUPGENIUS=1   with a scratch folder, still use SignUpGenius
 ///   EAGLEBOARDS_APPEARANCE       dark or light, for this run alone
 ///
@@ -21,6 +22,7 @@ public struct LaunchSettings: Equatable, Sendable {
     public enum Keys {
         public static let dataFolderPath = "dataFolderPath"
         public static let port = "checkInPort"
+        public static let signInNetwork = "checkInNetwork"
         public static let importOnOpen = "importSignUpsOnOpen"
         public static let proposeBoards = "proposeBoardOnSelect"
     }
@@ -28,6 +30,7 @@ public struct LaunchSettings: Equatable, Sendable {
     public enum Environment {
         public static let dataFolder = "EAGLEBOARDS_DATA_FOLDER"
         public static let port = "EAGLEBOARDS_PORT"
+        public static let network = "EAGLEBOARDS_NETWORK"
         public static let allowSignUpGenius = "EAGLEBOARDS_SIGNUPGENIUS"
         public static let appearance = "EAGLEBOARDS_APPEARANCE"
     }
@@ -65,6 +68,9 @@ public struct LaunchSettings: Equatable, Sendable {
 
     public let dataFolderPath: String?
     public let port: Int
+    /// The network the sign-in station serves: a BSD name, or
+    /// `SignInListening.everyNetwork`. Nil for the default, Wi-Fi.
+    public let signInNetwork: String?
     public let importOnOpen: Bool
     /// Selecting a waiting youth proposes a whole board. Off, the board
     /// starts empty (with a free room) for the operator to pick by hand.
@@ -87,6 +93,8 @@ public struct LaunchSettings: Equatable, Sendable {
         dataFolderPath = scratchFolder ?? defaults.string(forKey: Keys.dataFolderPath)
         let savedPort = defaults.integer(forKey: Keys.port)
         port = Int(environment[Environment.port] ?? "") ?? (savedPort > 0 ? savedPort : Self.defaultPort)
+        signInNetwork = [environment[Environment.network], defaults.string(forKey: Keys.signInNetwork)]
+            .lazy.compactMap { $0 }.first { !$0.isEmpty }
         importOnOpen = defaults.bool(forKey: Keys.importOnOpen)
         proposeBoards = defaults.bool(forKey: Keys.proposeBoards)
         signUpGeniusAllowed = scratchFolder == nil || environment[Environment.allowSignUpGenius] == "1"

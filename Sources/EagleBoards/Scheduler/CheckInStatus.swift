@@ -16,7 +16,7 @@ struct CheckInStatusButton: View {
                 Circle()
                     .fill(indicatorColor)
                     .frame(width: 9, height: 9)
-                if servedEventNote != nil {
+                if servedEventNote != nil || networkProblem != nil {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange)
                         .accessibilityHidden(true)
@@ -24,8 +24,8 @@ struct CheckInStatusButton: View {
                 Text(summary)
             }
         }
-        .help(servedEventNote.map { "Where the sign-in tablets connect. They sign people in \($0), the open event, not today." }
-            ?? "Where the sign-in tablets connect")
+        .help([servedEventNote.map { "Where the sign-in tablets connect. They sign people in \($0), the open event, not today." }
+            ?? "Where the sign-in tablets connect", networkProblem].compactMap { $0 }.joined(separator: " "))
         .popover(isPresented: $showingDetails, arrowEdge: .bottom) {
             CheckInDetails()
                 .environment(model)
@@ -44,6 +44,10 @@ struct CheckInStatusButton: View {
     /// Said only while serving: a stopped or failed station signs nobody in.
     private var servedEventNote: String? {
         model.isServing ? model.servedEventNote : nil
+    }
+
+    private var networkProblem: String? {
+        model.isServing ? model.listening?.problem : nil
     }
 
     private var summary: String {
@@ -100,6 +104,10 @@ struct CheckInDetails: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .textSelection(.enabled)
                 }
+                if let problem = model.listening?.problem {
+                    NoticeLabel.warning(problem)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 HStack {
                     Button("Open Sign-In Page Here") {
                         if let url = model.localSignInURL { NSWorkspace.shared.open(url) }
@@ -134,9 +142,9 @@ struct CheckInDetails: View {
     }
 }
 
-/// The networks this Mac is on, to choose the one the sign-in tablet is on.
-/// The choice is kept, so the Sign-In Code window and the toolbar popover
-/// draw the same code.
+/// Under Every Network, the networks this Mac is on, to choose the one the
+/// sign-in tablet is on. The choice is kept, so the Sign-In Code window and
+/// the toolbar popover draw the same code.
 struct NetworkPicker: View {
     let addresses: [CheckInAddress]
     @Binding var chosenHost: String
@@ -147,7 +155,7 @@ struct NetworkPicker: View {
             set: { chosenHost = $0 }
         )) {
             ForEach(addresses) { address in
-                Text("\(address.network) (\(address.host))").tag(address.host)
+                Text(address.network.label).tag(address.host)
             }
         }
         .fixedSize()

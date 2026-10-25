@@ -231,6 +231,149 @@ struct CheckInServerTests {
             _ = try await URLSession.shared.data(from: URL(string: "http://127.0.0.1:\(port)/")!)
         }
     }
+
+    /// The network chosen in Settings › General pins the server to its
+    /// address, and 127.0.0.1 answers beside it on the same port, for this
+    /// Mac's own browser and File › Open Sign-In Page in Browser.
+    @Test(.enabled(if: !SignInNetwork.current().isEmpty, "needs an IPv4 network besides loopback"))
+    func aPinnedNetworkStillAnswersOnThisMac() async throws {
+        let pinned = try #require(SignInNetwork.current().first).ipv4
+        let (portStream, portContinuation) = AsyncStream<Int>.makeStream()
+        let event = self.event
+        let server = Task {
+            try await CheckInServer.run(event: event, host: pinned, port: 0) { port in
+                portContinuation.yield(port)
+            }
+        }
+        var ports = portStream.makeAsyncIterator()
+        let port = try #require(await ports.next())
+        #expect(port > 0)
+
+        for host in [pinned, "127.0.0.1"] {
+            let (data, response) = try await URLSession.shared.data(from: URL(string: "http://\(host):\(port)/")!)
+            #expect((response as? HTTPURLResponse)?.statusCode == 200, "on \(host)")
+            #expect(String(decoding: data, as: UTF8.self).contains("Please sign in"), "on \(host)")
+        }
+        // Pinned, it is not on this Mac's other networks. A request to a VPN's
+        // own address can hang rather than be refused, so take the port there
+        // instead: a plain bind fails while anything listens on 0.0.0.0.
+        #expect(!Self.canBind(pinned, port), "the check sees an address in use")
+        if let other = SignInNetwork.current().first(where: { $0.ipv4 != pinned })?.ipv4 {
+            #expect(Self.canBind(other, port), "not on \(other)")
+        }
+
+        server.cancel()
+        _ = await server.result
+        for host in [pinned, "127.0.0.1"] {
+            await #expect(throws: (any Error).self, "\(host) stops too") {
+                _ = try await URLSession.shared.data(from: URL(string: "http://\(host):\(port)/")!)
+            }
+        }
+    }
+
+    /// Another program on every network at the port, as the Java app is on
+    /// 8080, stops a pinned start just as it stops Every Network's. Otherwise
+    /// BSD lets the pinned address bind beside it and take its tablets.
+    @Test(.enabled(if: !SignInNetwork.current().isEmpty, "needs an IPv4 network besides loopback"))
+    func aPinnedNetworkRefusesAPortServedOnEveryNetwork() async throws {
+        let pinned = try #require(SignInNetwork.current().first).ipv4
+        let (other, port) = try #require(Self.listenOnEveryNetwork())
+        #expect(CheckInServer.someoneServesEveryNetwork(port: port))
+
+        for host in [pinned, "127.0.0.1"] {
+            let result = await Self.startBriefly(event, host: host, port: port)
+            #expect(throws: CheckInServer.PortInUse.self, "on \(host)") { try result.get() }
+        }
+
+        close(other)
+        #expect(!CheckInServer.someoneServesEveryNetwork(port: port), "free once the other program lets go")
+    }
+
+    /// The station's own last run, on Every Network or pinned, leaves
+    /// connections in TIME_WAIT at the port. Choosing a network restarts it
+    /// on that port, and that must not read as another program.
+    @Test(.enabled(if: !SignInNetwork.current().isEmpty, "needs an IPv4 network besides loopback"))
+    func aRestartOnTheSamePortIsNotRefused() async throws {
+        let pinned = try #require(SignInNetwork.current().first).ipv4
+        let event = self.event
+        var port = 0
+        for host in ["0.0.0.0", pinned, pinned] {
+            let (ports, running) = AsyncStream<Int>.makeStream()
+            let requested = port
+            let server = Task {
+                // A start that fails ends the stream, so the wait below ends too.
+                defer { running.finish() }
+                try await CheckInServer.run(event: event, host: host, port: requested) { running.yield($0) }
+            }
+            var bound = ports.makeAsyncIterator()
+            let served = await bound.next()
+            #expect(served != nil, "started on \(host) at port \(port)")
+            port = served ?? port
+            // The server closes first, so its side of the connection waits.
+            var request = URLRequest(url: URL(string: "http://127.0.0.1:\(port)/")!)
+            request.setValue("close", forHTTPHeaderField: "Connection")
+            let (_, response) = try await URLSession.shared.data(for: request)
+            #expect((response as? HTTPURLResponse)?.statusCode == 200, "on \(host)")
+            server.cancel()
+            _ = await server.result
+        }
+    }
+
+    /// Start the server and wait for it to stop, cancelling it after 5
+    /// seconds should it start serving.
+    private static func startBriefly(_ event: BoardEvent, host: String, port: Int) async -> Result<Void, any Error> {
+        let server = Task { try await CheckInServer.run(event: event, host: host, port: port) }
+        let deadline = Task {
+            try await Task.sleep(for: .seconds(5))
+            server.cancel()
+        }
+        let result = await server.result
+        deadline.cancel()
+        return result
+    }
+
+    /// A plain listener on 0.0.0.0 at a free port, as another program would
+    /// hold it, with SO_REUSEADDR as the JVM sets it.
+    private static func listenOnEveryNetwork() -> (socket: Int32, port: Int)? {
+        let listener = Darwin.socket(AF_INET, SOCK_STREAM, 0)
+        guard listener >= 0 else { return nil }
+        var on: Int32 = 1
+        setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &on, socklen_t(MemoryLayout<Int32>.size))
+        var address = sockaddr_in()
+        address.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+        address.sin_family = sa_family_t(AF_INET)
+        address.sin_addr = in_addr(s_addr: INADDR_ANY)
+        var length = socklen_t(MemoryLayout<sockaddr_in>.size)
+        let listening = withUnsafeMutablePointer(to: &address) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                bind(listener, $0, length) == 0 && listen(listener, 1) == 0 && getsockname(listener, $0, &length) == 0
+            }
+        }
+        guard listening else {
+            close(listener)
+            return nil
+        }
+        return (listener, Int(UInt16(bigEndian: address.sin_port)))
+    }
+
+    /// Whether a socket without SO_REUSEADDR can bind `host:port`. BSD
+    /// refuses it while another socket holds that address or 0.0.0.0 at the
+    /// port, and allows it beside a different specific address.
+    private static func canBind(_ host: String, _ port: Int) -> Bool {
+        let socket = Darwin.socket(AF_INET, SOCK_STREAM, 0)
+        guard socket >= 0 else { return false }
+        defer { close(socket) }
+        var address = sockaddr_in()
+        address.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+        address.sin_family = sa_family_t(AF_INET)
+        address.sin_port = in_port_t(UInt16(port).bigEndian)
+        guard inet_pton(AF_INET, host, &address.sin_addr) == 1 else { return false }
+        return withUnsafePointer(to: &address) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                bind(socket, $0, socklen_t(MemoryLayout<sockaddr_in>.size)) == 0
+            }
+        }
+    }
 }
 
 @Suite("Form bodies")

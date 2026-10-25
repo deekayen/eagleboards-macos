@@ -62,6 +62,14 @@ private struct GeneralSettings: View {
                 }
             }
             Section {
+                if showsNetworks {
+                    Picker("Network", selection: Binding(get: { model.signInListening.selection },
+                                                         set: { model.signInNetwork = $0 })) {
+                        ForEach(model.signInListening.menu(among: model.networks)) { item in
+                            Text(item.label).tag(item.tag)
+                        }
+                    }
+                }
                 TextField("Port", text: $portText)
                     .onSubmit(applyPort)
                     .frame(maxWidth: 200)
@@ -70,9 +78,19 @@ private struct GeneralSettings: View {
             } header: {
                 Text("Sign-in station")
             } footer: {
+                if showsNetworks {
+                    Text("Tablets reach the sign-in page only on the network chosen here: Wi-Fi, unless you choose another. "
+                        + "Every Network also serves any VPN, virtual machine, or phone hotspot this Mac is on. "
+                        + "This Mac can always open the page itself.")
+                        .foregroundStyle(.secondary)
+                }
                 Text("Tablets connect to this port, a number from \(Self.portRange). 8080 is the usual choice; "
                     + "change it only if another program already uses it.")
                     .foregroundStyle(.secondary)
+                if let problem = model.signInListening.problem {
+                    NoticeLabel.warning(problem)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .formStyle(.grouped)
@@ -80,6 +98,10 @@ private struct GeneralSettings: View {
     }
 
     private static let portRange = "\(LaunchSettings.allowedPorts.lowerBound) to \(LaunchSettings.allowedPorts.upperBound)"
+
+    private var showsNetworks: Bool {
+        model.signInListening.showsMenu(among: model.networks)
+    }
 
     /// A port that will not do is said, and left as typed to correct.
     private func applyPort() {

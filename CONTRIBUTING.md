@@ -29,7 +29,7 @@ without a window or a socket:
 
 | Target | What lives there |
 | --- | --- |
-| `EagleBoardsCore` | `Records.swift` (the record types), `DataFiles.swift` (the CSV and `config.properties` dialects), `BoardRules.swift` (composition rules, board suggestion, locating leaders, room timers), `BoardEvent.swift` (one event's state and every change to it), `BoardDrafts.swift` (the boards drawn up for waiting youth before Seat Board, and when a proposal is made again), `SignUpGenius.swift`, `LaunchSettings.swift` (saved preferences and the development environment variables). No UI, no server. |
+| `EagleBoardsCore` | `Records.swift` (the record types), `DataFiles.swift` (the CSV and `config.properties` dialects), `BoardRules.swift` (composition rules, board suggestion, locating leaders, room timers), `BoardEvent.swift` (one event's state and every change to it), `BoardDrafts.swift` (the boards drawn up for waiting youth before Seat Board, and when a proposal is made again), `SignUpGenius.swift`, `LaunchSettings.swift` (saved preferences and the development environment variables), `SignInNetwork.swift` (the networks the Mac is on, and the one the sign-in station serves). No UI, no server. |
 | `CheckInServer` | The web server for the tablets, and the sign-in pages in `Resources/CheckIn`. It serves those pages and the five calls they make, and nothing else. |
 | `EagleBoards` | The SwiftUI app. `AppModel` holds which event is open, runs the server, and keeps the operator's work in progress. |
 
@@ -75,6 +75,9 @@ import the district's real sign-ups into the scratch folder or put an "Imported"
 notice in a screenshot. Set `EAGLEBOARDS_SIGNUPGENIUS=1` as well only when you mean to
 test the import itself, and never screenshot the result. Preferences given on
 the command line (`-importSignUpsOnOpen NO`, `-checkInPort 18123`) work too.
+`EAGLEBOARDS_NETWORK=en0` (or `all`) picks the network the sign-in station
+serves for that run, over the one chosen in Settings › General; 127.0.0.1
+answers whichever it is.
 
 `EAGLEBOARDS_APPEARANCE=dark` (or `light`) sets the app's appearance for that
 run alone, whatever the system's, so a screenshot in each needs no change to

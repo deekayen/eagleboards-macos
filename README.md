@@ -59,10 +59,18 @@ If macOS asks whether Eagle Boards may accept incoming network connections,
 click **Allow**. Otherwise the tablet cannot reach it.
 
 Click the **Sign-in** status in the toolbar. Scan the QR code with the
-tablet's camera, or type the address into the tablet's browser. If the Mac is
-on more than one network, choose the tablet's from the **Network** menu shown
-with the code. For a second display or a projector,
-**Window › Sign-In Code** shows the same code as large as the window.
+tablet's camera, or type the address into the tablet's browser. For a second
+display or a projector, **Window › Sign-In Code** shows the same code as large
+as the window.
+
+The sign-in station serves one network: the Mac's Wi-Fi, unless you choose
+another. If the Mac is on more than one network, for example Wi-Fi and
+Ethernet, choose the tablet's in **Settings › General › Network**.
+**Every Network** also serves any VPN or phone hotspot the Mac is on, and the
+**Network** menu shown with the code then picks which network the code is
+for. If the network chosen has no address, the station serves another until
+it has one, Wi-Fi if it can, and the **Sign-in** status says so. This Mac can
+always open the sign-in page itself.
 
 Only the sign-in pages are on the network. The scheduler, the records and the
 settings stay on the Mac, so nobody at the door can look up anyone's details.
@@ -294,7 +302,7 @@ icon). Choosing a page from the **View** menu also brings back the scheduler.
 
 | Problem | What to do |
 | --- | --- |
-| The tablet cannot open the address | Check both are on the same Wi-Fi. Click the **Sign-in** status in the toolbar and choose another network from the **Network** menu shown with the code. Check that Eagle Boards is allowed in System Settings › Network › Firewall. |
+| The tablet cannot open the address | Check both are on the same network. If the Mac is on more than one, choose the tablet's in **Settings › General › Network**. Check that Eagle Boards is allowed in System Settings › Network › Firewall. |
 | "Port 8080 is already in use" | Quit the other program (the Java Eagle Board Scheduler uses 8080 too) and choose **File › Restart Sign-In Station**, or change the port in Settings › General. |
 | "None of the members can chair a Final Board" | Add a qualified chair, or promote someone: on the **Adults** page, click their **Final Board Role** or **Proposal Review Role** and choose **Chair**. |
 | A board was seated by mistake | Select the youth and choose **Board › Reset Board**, or **Edit › Undo** right after seating. |
