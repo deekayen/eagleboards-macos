@@ -54,6 +54,15 @@ final class AppModel {
             attention.forgetEvent()
             clearSchedulerSelection()
             startServer()
+            // SPEC.md D-9, said only on the open that made it, so someone who
+            // picked the wrong folder learns it before the event starts.
+            if opened.createdAdultHistory {
+                message = Message(
+                    title: "Started a New Adult History",
+                    text: "This data folder had no adult history, so Eagle Boards started a new, empty one:\n\n"
+                        + "\(folder.adultHistoryURL.path)\n\n"
+                        + "If you meant a folder that already has one, choose it with File › Choose Data Folder… instead.")
+            }
             if signUpGeniusAllowed, importOnOpen, name == today, hasSignUpGeniusKey {
                 Task { await importSignUps() }
             }
@@ -492,13 +501,13 @@ final class AppModel {
     func seat(scoutID: Scout.ID, inRoom roomID: Room.ID) {
         guard let event, let youth = event.scout(id: scoutID), let room = event.room(id: roomID) else { return }
         guard youth.status?.isWaitingForBoard == true else {
-            message = Message(title: "\(youth.fullName) is not waiting",
+            message = Message(title: "\(youth.shownFullName) is not waiting",
                               text: "Only a youth who is waiting for a board can be seated in a room.")
             return
         }
         guard room.isFree else {
             message = Message(title: "Room \(room.name) is in use",
-                              text: "\(room.scoutName)'s board is in room \(room.name). Choose a free room.")
+                              text: "\(room.scoutName.shownValue)'s board is in room \(room.name). Choose a free room.")
             return
         }
         selectYouth(scoutID)
@@ -542,7 +551,7 @@ final class AppModel {
         let fetch = AdultLocator.introductionText(for: youth, among: event.adults)
         confirmation = Confirmation(
             title: "Start the review?",
-            message: "Bring \(youth.fullName) into room \(youth.room) and start the review. Do this once the board has "
+            message: "Bring \(youth.shownFullName) into room \(youth.room) and start the review. Do this once the board has "
                 + "finished reading the application, references and project workbook.\(fetch)",
             actionTitle: "Start Review"
         ) { [weak self] in
@@ -677,7 +686,7 @@ final class AppModel {
     func setAvailable(_ available: Bool) {
         let ids = selectedAdults.filter { available ? $0.isDisabledForToday : $0.isAvailable }.map(\.id)
         guard let event, !ids.isEmpty else { return }
-        let names = ids.compactMap { event.adult(id: $0)?.fullName }.joined(separator: ", ")
+        let names = ids.compactMap { event.adult(id: $0)?.shownFullName }.joined(separator: ", ")
         let apply: (Bool) -> (BoardEvent) throws -> Void = { value in
             { event in for id in ids { try event.setAvailable(value, adultID: id) } }
         }
@@ -722,12 +731,31 @@ final class AppModel {
                      redo: { try $0.addRoom(named: name, boardType: boardType) })
     }
 
+    /// Add an earlier event's rooms, empty. Undo removes the rooms it added.
+    func copyRooms(from earlier: String) {
+        guard let event else { return }
+        var copied: [Room.ID] = []
+        guard attempt("Could not copy the rooms", { copied = try event.copyRooms(fromEvent: earlier) }), !copied.isEmpty
+        else { return }
+        let added = copied
+        registerUndo("Copy Rooms", on: event,
+                     undo: { event in
+                         // Rooms in use first: one given a board since refuses
+                         // before any room is removed.
+                         let rooms = added.compactMap { event.room(id: $0) }
+                         for room in rooms.filter({ !$0.isFree }) + rooms.filter(\.isFree) {
+                             try event.removeRoom(id: room.id)
+                         }
+                     },
+                     redo: { _ = try $0.copyRooms(fromEvent: earlier) })
+    }
+
     /// Remove the selected room. It must be free. Undo adds it back.
     func removeSelectedRoom() {
         guard let room = selectedRoom else { return }
         guard room.isFree else {
             message = Message(title: "Room \(room.name) is in use",
-                              text: "\(room.scoutName)'s board is in room \(room.name). A room in use cannot be removed.")
+                              text: "\(room.scoutName.shownValue)'s board is in room \(room.name). A room in use cannot be removed.")
             return
         }
         let boardType = room.boardType ?? .finalBoard
@@ -817,10 +845,21 @@ final class AppModel {
             if summary.skippedDuplicateAdults > 0 {
                 lines.append("\(summary.skippedDuplicateAdults) skipped: their email is on more than one history record.")
             }
-            message = Message(title: "Imported \(signup.title)", text: lines.joined(separator: "\n"))
+            showImportReport(Message(title: "Imported \(signup.title)", text: lines.joined(separator: "\n")))
         } catch {
-            message = Message(title: "Could not import sign-ups", text: error.localizedDescription)
+            showImportReport(Message(title: "Could not import sign-ups", text: error.localizedDescription))
         }
+    }
+
+    /// The import reports whenever SignUpGenius answers. A message still
+    /// unread then, such as the new adult history on the open that started
+    /// the import, keeps its place, with the report below it.
+    private func showImportReport(_ report: Message) {
+        guard let earlier = message else {
+            message = report
+            return
+        }
+        message = Message(title: earlier.title, text: "\(earlier.text)\n\n\(report.title)\n\(report.text)")
     }
 
     // MARK: - Records, edited in place
@@ -839,7 +878,7 @@ final class AppModel {
     func signInFromHistory(_ ids: Set<Adult.ID>) {
         guard let event else { return }
         for known in event.adultHistory where ids.contains(known.id) {
-            attempt("Could not sign in \(known.fullName)") {
+            attempt("Could not sign in \(known.shownFullName)") {
                 _ = try event.registerAdult(Adult.handSignInForm(
                     historyID: known.id, first: known.first, last: known.last, email: known.email, phone: known.phone,
                     unitType: known.unitType, unit: known.unit, finalBoard: nil, projectReview: nil, woodBadge: false
@@ -856,7 +895,7 @@ final class AppModel {
         guard let event, var record = (scheduled ? event.scheduledScouts : event.scouts).first(where: { $0.id == id }) else {
             return false
         }
-        let name = record.fullName
+        let name = record.shownFullName
         edit(&record)
         return attempt("Could not change \(name)") { try event.updateYouth(record, scheduled: scheduled) }
     }
@@ -866,7 +905,7 @@ final class AppModel {
     @discardableResult
     func editAdult(_ id: Adult.ID, _ edit: (inout Adult) -> Void) -> Bool {
         guard let event, var record = event.adult(id: id) else { return false }
-        let name = record.fullName
+        let name = record.shownFullName
         edit(&record)
         return attempt("Could not change \(name)") { try event.updateAdult(record) }
     }
@@ -886,12 +925,12 @@ final class AppModel {
             return
         }
         confirmation = Confirmation(
-            title: "Delete \(youth.fullName)?",
+            title: "Delete \(youth.shownFullName)?",
             message: "The record is removed from the file. This cannot be undone.",
             actionTitle: "Delete",
             isDestructive: true
         ) { [weak self] in
-            guard let self, attempt("Could not delete \(youth.fullName)", { try event.deleteYouth(id: id, scheduled: scheduled) })
+            guard let self, attempt("Could not delete \(youth.shownFullName)", { try event.deleteYouth(id: id, scheduled: scheduled) })
             else { return }
             if !scheduled && selectedYouthID == id { selectYouth(nil) }
         }
@@ -900,12 +939,12 @@ final class AppModel {
     func confirmDeleteAdult(_ id: Adult.ID) {
         guard let event, let adult = event.adult(id: id) else { return }
         confirmation = Confirmation(
-            title: "Delete \(adult.fullName)?",
+            title: "Delete \(adult.shownFullName)?",
             message: "They are taken off today's list; the adult history keeps them. This cannot be undone.",
             actionTitle: "Delete",
             isDestructive: true
         ) { [weak self] in
-            guard let self, attempt("Could not delete \(adult.fullName)", { try event.deleteAdult(id: id) }) else { return }
+            guard let self, attempt("Could not delete \(adult.shownFullName)", { try event.deleteAdult(id: id) }) else { return }
             selectedAdultIDs.remove(id)
             for scoutID in drafts.keys { drafts[scoutID]?.memberIDs.removeAll { $0 == id } }
         }

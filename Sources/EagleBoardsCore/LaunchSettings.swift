@@ -40,6 +40,16 @@ public struct LaunchSettings: Equatable, Sendable {
 
     public static let defaultPort = 8080
 
+    /// The ports Settings lets the sign-in station listen on.
+    public static let allowedPorts = 1024...65535
+
+    /// The port typed in Settings, or nil when it is not a whole number in
+    /// `allowedPorts`. Spaces around it are ignored.
+    public static func port(from text: String) -> Int? {
+        guard let port = Int(text.trimmingCharacters(in: .whitespaces)), allowedPorts.contains(port) else { return nil }
+        return port
+    }
+
     public let dataFolderPath: String?
     public let port: Int
     public let importOnOpen: Bool

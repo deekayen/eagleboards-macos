@@ -19,16 +19,16 @@ public struct ApprovedProposal: Identifiable, Equatable, Sendable {
 
     init(_ youth: Scout, event: String) {
         youthID = youth.id
-        first = youth.first
-        last = youth.last
+        first = youth.first.shownValue
+        last = youth.last.shownValue
         unit = youth.unitDisplay
         self.event = event
-        chair = youth.boardChair
+        chair = youth.boardChair.shownValue
         otherMembers = youth.boardMembers
             .split(whereSeparator: { $0 == "," || $0 == "~" })
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty && $0 != youth.boardChair }
-        notes = youth.notes.replacingOccurrences(of: "~", with: ",")
+        notes = youth.notes.shownValue
     }
 }
 

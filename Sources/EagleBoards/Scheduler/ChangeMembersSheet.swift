@@ -25,7 +25,7 @@ struct ChangeMembersSheet: View {
 
             VStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Change \(youth.fullName)'s Board Members").font(.headline)
+                    Text("Change \(youth.shownFullName)'s Board Members").font(.headline)
                     Text("Room \(youth.room) keeps its timer; this does not restart it.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
@@ -41,7 +41,7 @@ struct ChangeMembersSheet: View {
                         }
                         ForEach(members) { member in
                             HStack {
-                                Text(member.fullName)
+                                Text(member.shownFullName)
                                 AdultMarks(adult: member, youth: youth)
                                 Spacer()
                                 Text(member.unitLabel).foregroundStyle(.secondary)
@@ -53,8 +53,8 @@ struct ChangeMembersSheet: View {
                                     Image(systemName: "minus.circle")
                                 }
                                 .buttonStyle(.borderless)
-                                .help("Take \(member.fullName) off this board")
-                                .accessibilityLabel("Remove \(member.fullName)")
+                                .help("Take \(member.shownFullName) off this board")
+                                .accessibilityLabel("Remove \(member.shownFullName)")
                             }
                         }
                     } header: {
@@ -67,7 +67,7 @@ struct ChangeMembersSheet: View {
                                 Text("No qualified chair selected").tag(String?.none)
                             }
                             ForEach(review.qualifiedChairs) { chair in
-                                Text(chair.fullName).tag(Optional(chair.id))
+                                Text(chair.shownFullName).tag(Optional(chair.id))
                             }
                         }
                         .disabled(review.qualifiedChairs.isEmpty)
@@ -127,7 +127,7 @@ struct ChangeMembersSheet: View {
             }
             .frame(width: 560, height: 640)
             .onAppear {
-                memberIDs = youth.boardMemberIDs.split(separator: ",").map(String.init)
+                memberIDs = youth.boardMembers(among: event.adults).members.map(\.id)
                 chairID = youth.boardChairID.isEmpty ? nil : youth.boardChairID
             }
             .onChange(of: review.qualifiedChairs.map(\.id)) { _, chairs in
@@ -155,7 +155,7 @@ private struct FreeAdultsToAddSection: View {
         let query = search.trimmingCharacters(in: .whitespaces)
         let candidates = event.adults
             .filter { ($0.canJoin(boardType) || $0.room == youth.room) && !memberIDs.contains($0.id) }
-            .filter { query.isEmpty || $0.fullName.localizedCaseInsensitiveContains(query)
+            .filter { query.isEmpty || $0.shownFullName.localizedCaseInsensitiveContains(query)
                 || $0.unitName.localizedCaseInsensitiveContains(query) || $0.unitLabel.localizedCaseInsensitiveContains(query) }
             .sorted { lhs, rhs in
                 let lhsChairs = lhs.canChair(boardType), rhsChairs = rhs.canChair(boardType)
@@ -172,7 +172,7 @@ private struct FreeAdultsToAddSection: View {
             }
             ForEach(candidates) { adult in
                 HStack(spacing: 6) {
-                    Text(adult.fullName)
+                    Text(adult.shownFullName)
                     AdultMarks(adult: adult, youth: youth)
                     Spacer()
                     Text(adult.unitLabel).font(.caption).foregroundStyle(.secondary)
@@ -183,8 +183,8 @@ private struct FreeAdultsToAddSection: View {
                         Image(systemName: "plus.circle")
                     }
                     .buttonStyle(.borderless)
-                    .help("Put \(adult.fullName) on this board")
-                    .accessibilityLabel("Add \(adult.fullName)")
+                    .help("Put \(adult.shownFullName) on this board")
+                    .accessibilityLabel("Add \(adult.shownFullName)")
                 }
                 .contentShape(Rectangle())
                 .onTapGesture { add(adult) }

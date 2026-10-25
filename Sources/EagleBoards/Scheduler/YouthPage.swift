@@ -26,10 +26,10 @@ struct YouthPage: View {
                 }
                 .width(min: 30, ideal: 36, max: 50)
                 TableColumn("Last", value: \Scout.last) { youth in
-                    EditableText(youth.last, name: "Last name") { value in edit(youth) { $0.last = value } }
+                    EditableText(youth.last.shownValue, name: "Last name") { value in edit(youth) { $0.last = value } }
                 }
                 TableColumn("First", value: \Scout.first) { youth in
-                    EditableText(youth.first, name: "First name") { value in edit(youth) { $0.first = value } }
+                    EditableText(youth.first.shownValue, name: "First name") { value in edit(youth) { $0.first = value } }
                 }
                 TableColumn("Type", value: \Scout.unitType) { youth in
                     EditableChoice(youth.unitType, choices: RecordChoices.youthUnitTypes, name: "Unit type") { value in
@@ -44,7 +44,7 @@ struct YouthPage: View {
             }
             Group {
                 TableColumn("Leader", value: \Scout.leader) { youth in
-                    EditableText(youth.leader, name: "Leader") { value in edit(youth) { $0.leader = value } }
+                    EditableText(youth.leader.shownValue, name: "Leader") { value in edit(youth) { $0.leader = value } }
                 }
                 TableColumn("Email", value: \Scout.email) { youth in
                     EditableText(youth.email, name: "Email") { value in edit(youth) { $0.email = value } }
@@ -103,7 +103,7 @@ struct YouthPage: View {
     private func matches(_ search: String, _ youth: Scout) -> Bool {
         let query = search.trimmingCharacters(in: .whitespaces)
         guard !query.isEmpty else { return true }
-        return [youth.fullName, youth.unitName, youth.unitLabel, youth.leader, youth.room, youth.regNum, youth.email]
+        return [youth.shownFullName, youth.unitName, youth.unitLabel, youth.leader.shownValue, youth.room, youth.regNum, youth.email]
             .contains { $0.localizedCaseInsensitiveContains(query) }
     }
 }

@@ -59,9 +59,13 @@ struct CheckInServerTests {
     /// app's operator pages or record endpoints exist here, so nobody at the
     /// door can read the adult history or move a board. Nothing here reads a
     /// query string either, so there is no filter that could match a youth's
-    /// phone number or birthdate and say whose it is (SPEC.md D-7, D-8).
+    /// phone number or birthdate and say whose it is (SPEC.md D-7, D-8). Nor
+    /// are the Java Event page's change stream, check-in address and QR code
+    /// (its event test section 22): the Mac's windows observe the event and
+    /// show the address themselves.
     @Test(arguments: [
         "/scheduler", "/admin", "/configure", "/help",
+        "/events", "/checkin-address", "/checkin-qr?url=http%3A%2F%2F127.0.0.1%3A8080%2F",
         "/youth-cells?cols=Email,Phone,DOB", "/adult-cells", "/adult-history-cells", "/room-cells",
         "/youth-cells?cols=Last&filter=Phone~555-0101", "/youth-cells?cols=Last&filter=DOB~2011-02-03",
         "/youth-scheduled-cells?cols=Last,Phone", "/youth-scheduled-cells?cols=Last,Phone&fmt=csv&filename=Youth.csv",

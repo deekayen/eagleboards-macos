@@ -140,7 +140,19 @@ struct BoardEventTests {
         #expect(event.adults.filter { $0.canChair(.finalBoard) || $0.canChair(.projectReview) }.count == 5)
     }
 
-    @Test func compositionRulesHoldWithoutTheSeatBoardSheet() {
+    /// Three adults in finalYouth(1)'s unit, Troop 1001, who may sit on a
+    /// Final board: a chair and two members.
+    private func ownUnitAdults() throws -> [String] {
+        try [("Kettleborough", "Philippa", "Chair"), ("Lanchester", "Rosamund", "Member"), ("Marchbanks", "Tiberius", "Member")]
+            .map { last, first, role in
+                try event.registerAdult([
+                    "Last": last, "First": first, "Email": "\(first.lowercased())@example.org", "UnitType": "Troop", "Unit": "1001",
+                    "ProjectReview": "Member", "FinalBoard": role,
+                ]).id
+            }
+    }
+
+    @Test func compositionRulesHoldWithoutTheSeatBoardSheet() throws {
         refused("a Final board of 2 (GTA 8.0.0.3 floor)") { try seat("101", finalYouth(1), chair: chairOfEither, member(1)) }
         refused("a Final board of 7 (GTA 8.0.0.3 ceiling)") { try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2), member(3), member(4), member(5), member(6)) }
         refused("a project review of 1") { try seat("200A", projectYouth(1), chair: projectChair1) }
@@ -160,6 +172,18 @@ struct BoardEventTests {
         }
         refused("the same member listed twice does not make a board of three") {
             try event.seatBoard(roomID: "ROOM:101", scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [chairOfEither, member(1), member(1)])
+        }
+
+        // SPEC.md D-4: the council's same-unit rule can be overridden, but
+        // not past the national floor of one member from outside the unit.
+        let own = try ownUnitAdults()
+        do {
+            try seat("101", finalYouth(1), chair: own[0], own[1], own[2])
+            Issue.record("a board all from the youth's own unit is refused (GTA 8.0.3.0)")
+        } catch let refusal as EventError {
+            let youth = try #require(event.scout(id: finalYouth(1)))
+            let review = SeatingReview(scout: youth, members: own.compactMap(event.adult(id:)), room: event.room(named: "101"))
+            #expect(review.blockingProblems.contains(refusal.message), "in the words the Seat Board sheet uses")
         }
 
         #expect(count(.seated) == 0, "none of that seated anyone")
@@ -287,6 +311,55 @@ struct BoardEventTests {
         #expect(adultRoom(finalChair3) == "" && adultRoom(member(1)) == "" && adultRoom(member(3)) == "",
                 "completing releases the board as changed")
         #expect(busyAdults == 0)
+    }
+
+    /// SPEC.md D-4, for a board already sitting: changing its members may
+    /// not take off its last member from outside the youth's unit.
+    @Test func changeMembersKeepsAMemberFromOutsideTheYouthsUnit() throws {
+        let own = try ownUnitAdults()
+        try seat("101", finalYouth(1), chair: own[0], own[1], member(1))  // overridden down to the national floor
+
+        refused("a board all from the youth's own unit (GTA 8.0.3.0)") {
+            try event.changeMembers(scoutID: finalYouth(1), chairID: own[0], memberIDs: own)
+        }
+        #expect(adultRoom(member(1)) == "101" && adultRoom(own[2]) == "", "the refusal changed nothing")
+
+        try event.changeMembers(scoutID: finalYouth(1), chairID: own[0], memberIDs: [own[0], own[2], member(2)])
+        #expect(adultRoom(member(1)) == "" && adultRoom(member(2)) == "101", "one outside member for another is fine")
+    }
+
+    /// In memory a board's member IDs are joined with ","; read back from the
+    /// files they are joined with "~" (SPEC.md D-1), and the ID of an adult
+    /// whose name has a comma holds "~" itself. After a restart, Change
+    /// Members starts from every member, frees whoever it takes off, and
+    /// Undo puts the board back.
+    @Test func changeMembersAfterTheEventIsReopened() throws {
+        try event.registerAdult([
+            "Last": "Whitmore, Jr.", "First": "Lysander", "Email": "a31@example.org",
+            "UnitType": "Troop", "Unit": "2031", "ProjectReview": "Member", "FinalBoard": "Member",
+        ])
+        let junior = "ADULT:Whitmore~ Jr.:Lysander:2031"
+        try seat("101", finalYouth(1), chair: chairOfEither, member(1), junior)
+
+        let reopened = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22")
+        let before = try #require(reopened.scout(id: finalYouth(1)))
+        #expect(!before.boardMemberIDs.contains(","), "the file joined the list with ~")
+        let listed = before.boardMembers(among: reopened.adults)
+        #expect(listed.members.map(\.id) == [chairOfEither, member(1), junior],
+                "Change Members starts from every member, in the board's order")
+        #expect(listed.unknown.isEmpty)
+
+        try reopened.changeMembers(scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [chairOfEither, member(1), member(2)])
+        #expect(reopened.adult(id: junior)?.room == "", "the member taken off is free again")
+        #expect(reopened.adult(id: member(2))?.room == "101")
+
+        try reopened.restoreBoard(before)
+        #expect(reopened.adult(id: junior)?.room == "101", "Undo puts them back")
+        #expect(reopened.adult(id: member(2))?.room == "", "and frees the one who took their place")
+
+        var gone = before
+        gone.boardMemberIDs = before.boardMemberIDs + "~ADULT:Nobody:Here:0"
+        #expect(gone.boardMembers(among: reopened.adults).unknown == "ADULT:Nobody:Here:0", "and names who it cannot find")
     }
 
     @Test func postponeAndReset() throws {
@@ -492,6 +565,8 @@ struct BoardEventTests {
         #expect(event.room(named: "104") == nil)
     }
 
+    // Java section 23, these three: a room renamed from its card, empty or
+    // with a board in it, and the names a room cannot take.
     @Test func anEmptyRoomIsRenamed() throws {
         let newID = try event.renameRoom(id: "ROOM:104", to: "  104 Annex ")
         #expect(newID == "ROOM:104 Annex", "the ID follows the name, trimmed")
@@ -787,9 +862,12 @@ struct BoardEventTests {
         #expect(!shown.contains("@example.org") && !shown.contains("555-0199") && !shown.contains("1/2/2010"),
                 "never an email, a phone number or a birthdate (D-7, D-8)")
 
-        try scratch.write(header + row("Brook", "Ben", 3702, "Project", "Approved") + row("Cove", "Cal", 3707, "Project", "Approved"),
+        try scratch.write(header + row("Brook", "Ben", 3702, "Project", "Approved")
+                          + row("Cove~ Jr.", "Cal", 3707, "Project", "Approved", chair: "Chris Chair~ Sr."),
                           to: "2026-08-25/scouts.csv")
-        #expect(event.approvedProposals().approvals.map(\.last) == ["Brook", "Cove", "Quill"], "read afresh each time")
+        let reread = event.approvedProposals().approvals
+        #expect(reread.map(\.last) == ["Brook", "Cove, Jr.", "Quill"], "read afresh each time")
+        #expect(reread[1].chair == "Chris Chair, Sr.", "and shown with the commas the file kept as ~ (D-1)")
         #expect(try scratch.text("2019-05-28/scouts.csv").contains("555-0199"), "and nothing in an earlier folder is written")
         #expect(!FileManager.default.fileExists(atPath: scratch.url.appending(path: "2020-01-01/scouts.csv").path),
                 "not even a youth file where there was none")
@@ -862,7 +940,9 @@ struct BoardEventTests {
         try event.setSupporting(false, adultID: member(1), scoutID: "SCOUT:Nobody:Here:0")  // clearing a stale link is fine
     }
 
-    @Test func startReviewNamesWhoCameToSupportTheYouthAndWhereTheyAre() throws {
+    // SPEC.md D-23. Start Review on a board of review names whoever
+    // introduces the youth, and where they are now.
+    @Test func startReviewNamesWhoIntroducesTheYouthAndWhereTheyAre() throws {
         try event.registerAdult([
             "Last": "Scoutmaster", "First": "Sam", "Email": "sm@example.org", "UnitType": "Troop", "Unit": "1001",
             "ProjectReview": "Member", "FinalBoard": "Member", "Supporting": finalYouth(1),
@@ -871,9 +951,17 @@ struct BoardEventTests {
         try seat("102", finalYouth(2), chair: finalChair2, member(3), scoutmaster)  // sitting on another board
         try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
         let youth = try #require(event.scout(id: finalYouth(1)))
-        let first = try #require(AdultLocator.locate(for: youth, among: event.adults).first)
-        #expect(first.adult.id == scoutmaster && first.relation == .supporting)
-        #expect(first.whereabouts == "Room 102", "so someone can fetch them from their board")
+        let introducers = try #require(AdultLocator.introduction(for: youth, among: event.adults))
+        #expect(introducers.map(\.adult.id) == [scoutmaster] && introducers.map(\.relation) == [.supporting])
+        #expect(AdultLocator.introductionText(for: youth, among: event.adults)
+            == "\n\nFirst fetch whoever introduces them to the board:\nSam Scoutmaster (Room 102)",
+            "so someone can fetch them from their board")
+
+        try runBoard(finalYouth(2))
+        #expect(AdultLocator.introduction(for: youth, among: event.adults)?.first?.whereabouts == "Main room",
+                "off a board, they are in the main room")
+        try event.setAvailable(false, adultID: scoutmaster)
+        #expect(AdultLocator.introduction(for: youth, among: event.adults)?.first?.whereabouts == "marked as gone home")
     }
 
     // Java section 24, the youth phone number (SPEC.md D-8), which goes the
@@ -952,6 +1040,19 @@ struct BoardEventTests {
     }
 
     // MARK: - Undo
+    //
+    // Java section 20, these two. Its refusal after an Admin-page edit to the
+    // same field has no counterpart here: no table edits a board's chair or
+    // members (SPEC.md P-6), and restoreBoard refuses on the room and the
+    // members instead. Its undo of a Disable is section 4's
+    // anAdultWhoLeavesIsOutUntilReEnabled: Undo applies the inverse
+    // setAvailable, which that test runs both ways.
+    //
+    // Java section 22 (the browser Event page told of changes over /events,
+    // and the check-in address and QR code it shows) is Java's alone: the
+    // Mac's operator screen is native and observes BoardEvent directly
+    // (D-15), and operatorPagesAndRecordsAreNotReachable checks that those
+    // paths are not served.
 
     /// Undo of each step is restoreBoard with the record from before it.
     @Test func eachStepIsUndoneAndRedone() throws {
@@ -1021,6 +1122,32 @@ struct BoardEventTests {
         try event.setAvailable(true, adultID: member(2))
         try event.restoreBoard(seated)
         #expect(status(finalYouth(1)) == .seated)
+    }
+
+    /// Room › Copy Rooms From says which rooms it added, which are what its
+    /// Undo removes, so a second copy adding none has nothing to undo.
+    @Test func copyRoomsSaysWhichRoomsItAdded() throws {
+        try scratch.write("""
+            Type,ID,Room,BoardType,Scout,Leaders,RegTime
+            ROOM,ROOM:101,101,Final,,,
+            ROOM,ROOM:301,301,Final,Old Youth,Old Adults,
+            ROOM,ROOM:302,302,Project,,,
+
+            """, to: "2026-08-25/rooms.csv")
+        #expect(try event.copyRooms(fromEvent: "2026-08-25") == ["ROOM:301", "ROOM:302"], "101 is here already")
+        #expect(event.room(id: "ROOM:301")?.isFree == true, "copied empty")
+        #expect(try event.copyRooms(fromEvent: "2026-08-25").isEmpty, "a second copy skips the rooms that exist")
+        #expect(event.rooms.count == 14)
+    }
+
+    // MARK: - Opening the event
+
+    /// SPEC.md D-9: a data folder with no adult history gets a new, empty
+    /// one, and the open that made it says so, for the app to name the path.
+    @Test func onlyTheOpenThatStartsTheAdultHistorySaysSo() throws {
+        #expect(event.createdAdultHistory, "this scratch folder had none")
+        #expect(try !BoardEvent(folder: scratch.dataFolder, date: "2026-09-22").createdAdultHistory, "the next open found it")
+        #expect(try !BoardEvent(folder: scratch.dataFolder, date: "2026-10-27").createdAdultHistory, "so does another event's")
     }
 
     private func seatFiveBoards() throws {

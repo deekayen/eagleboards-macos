@@ -120,7 +120,7 @@ private struct YouthRow: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(youth.fullName)
+                Text(youth.shownFullName)
                     .fontWeight(.medium)
                     .lineLimit(1)
                 Text(detail)

@@ -68,6 +68,14 @@ public enum BoardRules {
         return members.contains { $0.unitName.isEmpty || $0.unitName != scoutUnitName }
     }
 
+    /// The refusal when `hasMemberFromOutsideUnit` is false, worded the same
+    /// in the sheets' review and in `BoardEvent`'s refusal.
+    static func noMemberFromOutsideUnit(scoutName: String, scoutUnitName: String) -> String {
+        "Every selected member is in \(scoutUnitName), \(scoutName)'s own unit. "
+            + "A board must include at least one member from outside the unit "
+            + "(Guide to Advancement 8.0.3.0)."
+    }
+
     /// Who may sit on this board and who must chair it, shared by seating a
     /// new board (`SeatingReview`) and changing an already-seated one's
     /// members (`ChangeMembersReview`). `sittingIn` is the room the board
@@ -99,17 +107,13 @@ public enum BoardRules {
         if !conflicts.isEmpty {
             let names = conflicts.map(\.fullName).joined(separator: ", ")
             if !hasMemberFromOutsideUnit(scoutUnitName: scoutUnitName, members: members) {
-                blocking.append(
-                    "Every selected member is in \(scoutUnitName), \(scoutName)'s own unit. "
-                        + "A board must include at least one member from outside the unit "
-                        + "(Guide to Advancement 8.0.3.0)."
-                )
+                blocking.append(noMemberFromOutsideUnit(scoutName: scoutName, scoutUnitName: scoutUnitName))
             } else {
                 let count = conflicts.count
                 warnings.append(SeatingReview.Warning(
                     title: "\(count) member\(count == 1 ? " is" : "s are") from \(scoutName)'s unit",
                     detail: "\(names) \(count == 1 ? "is" : "are") in \(scoutUnitName). This council does not "
-                        + "permit adults from the scout's own unit on a board. Seating anyway falls back to the "
+                        + "permit adults from the youth's own unit on a board. Seating anyway falls back to the "
                         + "national rule, which this board still meets: at least one member is from outside the unit."
                 ))
             }
@@ -570,14 +574,14 @@ public enum AdultLocator {
     /// for a project review.
     public static func introductionText(for scout: Scout, among adults: [Adult]) -> String {
         guard let people = introduction(for: scout, among: adults) else { return "" }
-        let lines = people.map { "\($0.adult.fullName) (\($0.whereabouts))" }.joined(separator: "\n")
+        let lines = people.map { "\($0.adult.shownFullName) (\($0.whereabouts))" }.joined(separator: "\n")
         if people.first?.relation == .supporting {
             return "\n\nFirst fetch whoever introduces them to the board:\n" + lines
         }
         if !people.isEmpty {
             return "\n\nNo one has said they'll introduce them. Their leader:\n" + lines
         }
-        return "\n\nNo one has said they'll introduce them, and their leader hasn't signed in. Ask \(scout.first) who will."
+        return "\n\nNo one has said they'll introduce them, and their leader hasn't signed in. Ask \(scout.first.shownValue) who will."
     }
 }
 

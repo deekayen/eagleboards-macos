@@ -74,7 +74,7 @@ struct HelpView: View {
 
                 section("Menus") {
                     bullet("Every action is in the Board, Adult and Room menus, and on the right-click menu of a youth, an adult or a room.")
-                    bullet("Edit › Undo (Command-Z) takes back the last step: seating, starting, completing, postponing or resetting a board, changing its members, disabling or enabling an adult, linking, and adding, removing, renaming or swapping rooms. It is refused if the room or a member has been given to another board since.")
+                    bullet("Edit › Undo (Command-Z) takes back the last step: seating, starting, completing, postponing or resetting a board, changing its members, disabling or enabling an adult, linking, and adding, copying, removing, renaming or swapping rooms. It is refused if the room or a member has been given to another board since.")
                     bullet("Board › Locate Leader and Parents (Command-L) shows who came with the selected youth, and where they are, in the inspector.")
                     bullet("Board › Reset Board undoes seating: the youth waits again and the room and members are freed.")
                     bullet("Adult › Disable for Today takes adults out of the pool, for example when they have gone home. Enable for Today brings them back.")
@@ -85,6 +85,7 @@ struct HelpView: View {
 
                 section("The data") {
                     bullet("Everything is saved the moment it changes, in the data folder you chose. Each event has its own dated folder; the adult history is kept across events.")
+                    bullet("A data folder with no adult history gets a new, empty one, and Eagle Boards says where it put it. If you meant another folder, File › Choose Data Folder… switches to it.")
                     bullet("The files are the same ones the Java Eagle Board Scheduler used, so either program can open the folder.")
                     bullet("They hold personal information, some of it about minors. Keep the folder private and do not email the files around.")
                     bullet("Only the sign-in pages are on the network. The scheduler, the records and the settings are on this Mac alone.")

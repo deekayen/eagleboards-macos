@@ -42,7 +42,7 @@ private struct YouthHeader: View {
         Section {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text(youth.fullName).font(.title2.bold())
+                    Text(youth.shownFullName).font(.title2.bold())
                     Spacer()
                     StatusBadge(statusText: youth.statusText)
                 }
@@ -55,7 +55,7 @@ private struct YouthHeader: View {
                 }
             }
             if !youth.leader.isEmpty {
-                LabeledContent("Leader", value: youth.leader)
+                LabeledContent("Leader", value: youth.leader.shownValue)
             }
         }
     }
@@ -142,7 +142,7 @@ private struct DraftBoardSections: View {
             FreeAdultsSection(youth: youth, event: event, boardType: boardType, draftIDs: Set(draft.memberIDs))
         } else if youth.boardType == nil {
             Section {
-                Label("\(youth.fullName) has no board type. Set Final or Project in the Board column of the Youth page.",
+                Label("\(youth.shownFullName) has no board type. Set Final or Project in the Board column of the Youth page.",
                       systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
             }
@@ -181,7 +181,7 @@ private struct MemberRow: View {
         HStack(spacing: 6) {
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 4) {
-                    Text(member.fullName)
+                    Text(member.shownFullName)
                     AdultMarks(adult: member, youth: youth)
                 }
                 if let busy {
@@ -196,8 +196,8 @@ private struct MemberRow: View {
                 Image(systemName: "minus.circle")
             }
             .buttonStyle(.borderless)
-            .help("Take \(member.fullName) off this board")
-            .accessibilityLabel("Remove \(member.fullName)")
+            .help("Take \(member.shownFullName) off this board")
+            .accessibilityLabel("Remove \(member.shownFullName)")
         }
     }
 
@@ -248,7 +248,7 @@ private struct FreeAdultsSection: View {
         let query = search.trimmingCharacters(in: .whitespaces)
         let free = event.adults
             .filter { $0.canJoin(boardType) && !draftIDs.contains($0.id) }
-            .filter { query.isEmpty || $0.fullName.localizedCaseInsensitiveContains(query)
+            .filter { query.isEmpty || $0.shownFullName.localizedCaseInsensitiveContains(query)
                 || $0.unitName.localizedCaseInsensitiveContains(query) || $0.unitLabel.localizedCaseInsensitiveContains(query) }
             .sorted { lhs, rhs in
                 let lhsChairs = lhs.canChair(boardType), rhsChairs = rhs.canChair(boardType)
@@ -265,7 +265,7 @@ private struct FreeAdultsSection: View {
             }
             ForEach(free) { adult in
                 HStack(spacing: 6) {
-                    Text(adult.fullName)
+                    Text(adult.shownFullName)
                     AdultMarks(adult: adult, youth: youth)
                     Spacer()
                     Text(adult.unitLabel).font(.caption).foregroundStyle(.secondary)
@@ -276,8 +276,8 @@ private struct FreeAdultsSection: View {
                         Image(systemName: "plus.circle")
                     }
                     .buttonStyle(.borderless)
-                    .help("Put \(adult.fullName) on this board")
-                    .accessibilityLabel("Add \(adult.fullName)")
+                    .help("Put \(adult.shownFullName) on this board")
+                    .accessibilityLabel("Add \(adult.shownFullName)")
                 }
                 .contentShape(Rectangle())
                 .onTapGesture { add(adult) }
@@ -312,7 +312,7 @@ private struct SittingBoardSection: View {
                     }
                 }
             }
-            LabeledContent("Chair", value: youth.boardChair)
+            LabeledContent("Chair", value: youth.boardChair.shownValue)
             LabeledContent("Members") {
                 Text(youth.boardMembers.withListSeparators).multilineTextAlignment(.trailing)
             }
@@ -353,7 +353,7 @@ private struct ResultSection: View {
                 LabeledContent("Result", value: BoardResult(rawValue: youth.result)?.label ?? youth.result)
             }
             if !youth.boardChair.isEmpty {
-                LabeledContent("Chair", value: youth.boardChair)
+                LabeledContent("Chair", value: youth.boardChair.shownValue)
             }
             if !youth.boardMembers.isEmpty {
                 LabeledContent("Members") {
@@ -361,7 +361,7 @@ private struct ResultSection: View {
                 }
             }
             if !youth.notes.isEmpty {
-                Text(youth.notes.withCommasRestored)
+                Text(youth.notes.shownMultilineValue)
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -387,20 +387,20 @@ private struct WithThemSection: View {
         Section {
             if people.isEmpty {
                 Text(youth.leader.isEmpty
-                    ? "No one who came with \(youth.first) has signed in."
-                    : "\(youth.first)'s leader, \(youth.leader), has not signed in.")
+                    ? "No one who came with \(youth.first.shownValue) has signed in."
+                    : "\(youth.first.shownValue)'s leader, \(youth.leader.shownValue), has not signed in.")
                     .foregroundStyle(.secondary)
             }
             ForEach(people) { match in
                 LabeledContent {
                     Text(match.whereabouts)
                 } label: {
-                    Text(match.adult.fullName)
+                    Text(match.adult.shownFullName)
                     Text(match.relation.rawValue)
                 }
                 .contextMenu {
                     if match.relation == .supporting {
-                        Button("Unlink from \(youth.fullName)") {
+                        Button("Unlink from \(youth.shownFullName)") {
                             model.setSupporting(false, adultID: match.adult.id, scoutID: youth.id)
                         }
                     }
@@ -412,7 +412,7 @@ private struct WithThemSection: View {
                 Spacer()
                 Menu {
                     ForEach(others) { adult in
-                        Button(adult.fullName) {
+                        Button(adult.shownFullName) {
                             model.setSupporting(true, adultID: adult.id, scoutID: youth.id)
                         }
                     }
@@ -422,7 +422,7 @@ private struct WithThemSection: View {
                 .menuStyle(.borderlessButton)
                 .fixedSize()
                 .disabled(others.isEmpty)
-                .help("Link the adult who will introduce \(youth.fullName) to their board, if they did not say so at sign-in")
+                .help("Link the adult who will introduce \(youth.shownFullName) to their board, if they did not say so at sign-in")
             }
         }
     }

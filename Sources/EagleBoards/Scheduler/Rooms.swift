@@ -136,7 +136,7 @@ struct RoomCard: View {
                 Text("Free").foregroundStyle(.secondary)
             } else {
                 HStack(spacing: 6) {
-                    Text(room.scoutName).fontWeight(.semibold)
+                    Text(room.scoutName.shownValue).fontWeight(.semibold)
                     if let occupant {
                         StatusBadge(statusText: occupant.statusText)
                     }
@@ -278,9 +278,7 @@ struct CopyRoomsItems: View {
         let earlierEvents = event.folder.events().filter { $0 < event.date }
         Menu("Copy Rooms From") {
             ForEach(earlierEvents.prefix(12), id: \.self) { earlier in
-                Button(earlier) {
-                    model.attempt("Could not copy the rooms") { _ = try event.copyRooms(fromEvent: earlier) }
-                }
+                Button(earlier) { model.copyRooms(from: earlier) }
             }
         }
         .fixedSize()

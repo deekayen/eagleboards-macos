@@ -41,8 +41,8 @@ final class Attention {
             let content = UNMutableNotificationContent()
             content.title = "Room \(youth.room) is overdue"
             content.body = youth.status == .seated
-                ? "\(youth.fullName)'s board has been convening for \(minutes) minutes."
-                : "\(youth.fullName)'s review has run \(minutes) minutes."
+                ? "\(youth.shownFullName)'s board has been convening for \(minutes) minutes."
+                : "\(youth.shownFullName)'s review has run \(minutes) minutes."
             content.sound = .default
             UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: key, content: content, trigger: nil))
         }

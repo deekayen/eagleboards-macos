@@ -69,6 +69,16 @@ struct LaunchSettingsTests {
         #expect(LaunchSettings(environment: [:], defaults: defaults).port == 9090)
     }
 
+    /// What Settings accepts as the sign-in station's port.
+    @Test func aPortIsAWholeNumberFrom1024To65535() {
+        #expect(LaunchSettings.port(from: "8080") == 8080)
+        #expect(LaunchSettings.port(from: " 18123 ") == 18123, "spaces around it are ignored")
+        #expect(LaunchSettings.port(from: "1024") == 1024 && LaunchSettings.port(from: "65535") == 65535, "both ends are in")
+        for refused in ["1023", "65536", "0", "-8080", "80.5", "8080a", "eighty", ""] {
+            #expect(LaunchSettings.port(from: refused) == nil, "\(refused) is not a port")
+        }
+    }
+
     // A screenshot run shows dark or light without changing the Mac's setting.
     @Test func theAppearanceVariableIsForOneRunOnly() {
         let (defaults, suite) = scratchDefaults()

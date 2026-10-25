@@ -66,6 +66,22 @@ public enum CSVFile {
     }
 }
 
+extension String {
+    /// A value as the screen shows it (SPEC.md D-1): a comma the files
+    /// stored as `~` is a comma again. It is for showing only; the record
+    /// keeps the value as read, which IDs and the board columns are built
+    /// from and compared with.
+    public var shownValue: String {
+        replacingOccurrences(of: "~", with: ",")
+    }
+
+    /// `shownValue` for a field that can hold a line break, a board's notes:
+    /// the `+` the files stored for one is a line break again too.
+    public var shownMultilineValue: String {
+        shownValue.replacingOccurrences(of: "+", with: "\n")
+    }
+}
+
 /// `config.properties`: one `key=value` per line, `#` comments.
 ///
 /// Reading follows `java.util.Properties` closely enough for the values this

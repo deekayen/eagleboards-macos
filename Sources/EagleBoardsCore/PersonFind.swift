@@ -29,11 +29,11 @@ public enum PersonFind {
             return order == .orderedSame ? firstA.localizedCaseInsensitiveCompare(firstB) == .orderedAscending : order == .orderedAscending
         }
 
-        let foundYouth = youth.filter { $0.fullName.localizedCaseInsensitiveContains(query) }
+        let foundYouth = youth.filter { $0.shownFullName.localizedCaseInsensitiveContains(query) }
             .sorted { byName($0.last, $0.first, $1.last, $1.first) }
             .map { youth -> PersonPlace in
                 if youth.status?.holdsRoom == true, !youth.room.isEmpty {
-                    return PersonPlace(id: youth.id, name: youth.fullName, isYouth: true, room: youth.room,
+                    return PersonPlace(id: youth.id, name: youth.shownFullName, isYouth: true, room: youth.room,
                                        whereabouts: "is in room \(youth.room)")
                 }
                 let whereabouts = switch youth.status {
@@ -41,19 +41,19 @@ public enum PersonFind {
                 case .postponed: "was postponed"
                 default: "is waiting"
                 }
-                return PersonPlace(id: youth.id, name: youth.fullName, isYouth: true, room: nil, whereabouts: whereabouts)
+                return PersonPlace(id: youth.id, name: youth.shownFullName, isYouth: true, room: nil, whereabouts: whereabouts)
             }
-        let foundAdults = adults.filter { $0.fullName.localizedCaseInsensitiveContains(query) }
+        let foundAdults = adults.filter { $0.shownFullName.localizedCaseInsensitiveContains(query) }
             .sorted { byName($0.last, $0.first, $1.last, $1.first) }
             .map { adult -> PersonPlace in
                 if adult.isDisabledForToday {
-                    return PersonPlace(id: adult.id, name: adult.fullName, isYouth: false, room: nil, whereabouts: "has gone home")
+                    return PersonPlace(id: adult.id, name: adult.shownFullName, isYouth: false, room: nil, whereabouts: "has gone home")
                 }
                 if adult.isOnBoard {
-                    return PersonPlace(id: adult.id, name: adult.fullName, isYouth: false, room: adult.room,
+                    return PersonPlace(id: adult.id, name: adult.shownFullName, isYouth: false, room: adult.room,
                                        whereabouts: "is in room \(adult.room)")
                 }
-                return PersonPlace(id: adult.id, name: adult.fullName, isYouth: false, room: nil, whereabouts: "isn't on a board")
+                return PersonPlace(id: adult.id, name: adult.shownFullName, isYouth: false, room: nil, whereabouts: "isn't on a board")
             }
         return foundYouth + foundAdults
     }

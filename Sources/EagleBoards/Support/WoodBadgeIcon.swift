@@ -88,7 +88,7 @@ struct AdultMarks: View {
         if let youth, !BoardRules.unitConflicts(scoutUnitName: youth.unitName, members: [adult]).isEmpty {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(.orange)
-                .help("Same unit as \(youth.fullName)")
+                .help("Same unit as \(youth.shownFullName)")
                 .accessibilityLabel("Same unit")
         }
     }

@@ -69,6 +69,47 @@ struct FileFormatTests {
         #expect(rendered.contains("Strong answers~ good eye contact+Adjourn? No."))
     }
 
+    /// SPEC.md D-1: the file keeps a comma as "~" and a line break as "+",
+    /// and the screen shows them as they were typed.
+    @Test func aNameWithACommaReadsBackStoredAndIsShownWithIt() throws {
+        var youth = Scout.blank(at: Date())
+        youth.first = "Lysander"
+        youth.last = "Whitmore, Jr."
+        youth.leader = "Lee Leader, Scoutmaster"
+        youth.boardChair = "Chris Chair, Sr."
+        youth.notes = "Calm, prepared\nCome back in May"
+        youth.assignIDIfNeeded()
+
+        let reread = try #require(CSVFile.parse(Scout.self, text: CSVFile.render([youth])).first)
+        #expect(reread.last == "Whitmore~ Jr.", "the record keeps the stored form")
+        #expect(reread.fullName == "Lysander Whitmore~ Jr.", "which is what the board columns are written from")
+        #expect(reread.id == youth.id)
+        #expect(reread.shownFullName == "Lysander Whitmore, Jr.")
+        #expect(reread.last.shownValue == "Whitmore, Jr.")
+        #expect(reread.leader.shownValue == "Lee Leader, Scoutmaster")
+        #expect(reread.boardChair.shownValue == "Chris Chair, Sr.")
+        #expect(reread.notes.shownMultilineValue == "Calm, prepared\nCome back in May", "notes get their line break back")
+        #expect(reread.notes.shownValue == "Calm, prepared+Come back in May", "a one-line value does not")
+    }
+
+    /// A board's member list read back from the files is "~"-joined, and "~"
+    /// is also a comma inside an ID, so the members are found by whole ID.
+    @Test func aBoardMemberListIsReadByWholeIDs() {
+        let pat = Adult(fields: ["ID": "ADULT:Smith:Pat:12"])
+        let patOfTwoUnits = Adult(fields: ["ID": "ADULT:Smith:Pat:12~ 13"])  // a unit typed "12, 13"
+        let chris = Adult(fields: ["ID": "ADULT:Chair:Chris:7"])
+        var youth = Scout.blank(at: Date())
+        youth.boardMemberIDs = "ADULT:Chair:Chris:7~ADULT:Smith:Pat:12~ 13~ADULT:Gone:Away:9"
+        let listed = youth.boardMembers(among: [pat, patOfTwoUnits, chris])
+        #expect(listed.members.map(\.id) == [chris.id, patOfTwoUnits.id], "in the board's order, and not Pat of unit 12")
+        #expect(listed.unknown == "ADULT:Gone:Away:9")
+        youth.boardMemberIDs = "ADULT:Smith:Pat:12,ADULT:Chair:Chris:7"
+        #expect(youth.boardMembers(among: [chris, pat]).members.map(\.id) == [pat.id, chris.id], "as joined in memory too")
+        youth.boardMemberIDs = "ADULT:Chair:Chris:7~ADULT:Smith:Pat:12~ADULT:Chair:Chris:7"
+        let twice = youth.boardMembers(among: [chris, pat])
+        #expect(twice.members.map(\.id) == [chris.id, pat.id] && twice.unknown.isEmpty, "someone listed twice is one member")
+    }
+
     @Test func windowsLineEndingsBlankLinesAndUnknownColumnsAreTolerated() {
         let text = "Type,ID,Room,BoardType,Mystery,Scout\r\nROOM,ROOM:101,101,Final,xyz,\r\n\r\nROOM,ROOM:200A,200A,Project,,Someone\r\n"
         let rooms = CSVFile.parse(Room.self, text: text)

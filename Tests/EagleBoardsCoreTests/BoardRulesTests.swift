@@ -79,7 +79,10 @@ struct SeatingReviewTests {
         let review = SeatingReview(scout: scout(), members: members, room: finalRoom)
         #expect(review.canSeat)
         #expect(review.warnings.count == 1)
-        #expect(review.warnings[0].detail.contains("Robin Sameunit"))
+        // SPEC.md O-1: the screen says youth.
+        #expect(review.warnings[0].detail == "Robin Sameunit is in Troop1234. This council does not permit adults from "
+            + "the youth's own unit on a board. Seating anyway falls back to the national rule, which this board "
+            + "still meets: at least one member is from outside the unit.")
     }
 
     @Test func anAllSameUnitBoardIsRefusedOutright() {
@@ -222,6 +225,8 @@ struct AdultLocatorTests {
         let unlinked = try #require(AdultLocator.introduction(for: youth, among: [leader, parent]))
         #expect(unlinked.map(\.adult.fullName) == ["Lee Leader"])
         #expect(unlinked.map(\.relation) == [.leader])
+        #expect(AdultLocator.introductionText(for: youth, among: [leader, parent])
+            == "\n\nNo one has said they'll introduce them. Their leader:\nLee Leader (Main room)")
 
         // Only a parent here: no one to name, but still a reminder.
         let parentOnly = try #require(AdultLocator.introduction(for: youth, among: [parent]))
@@ -344,6 +349,14 @@ struct PersonFindTests {
         #expect(say("lovell") == "Jim Lovell isn't on a board")
         #expect(say("Duke") == "Charles Duke has gone home")
         #expect(say("  ").isEmpty && say("Spielberg").isEmpty)
+    }
+
+    /// SPEC.md D-1: a name the files read back with "~" for its comma is
+    /// found, and said, as the screen shows it.
+    @Test func aNameWithACommaIsFoundAsShown() {
+        let junior = youth("Lysander", "Whitmore~ Jr.", .registered)
+        let found = PersonFind.people("whitmore, jr", youth: [junior], adults: [])
+        #expect(found.map(\.sentence) == ["Lysander Whitmore, Jr. is waiting."])
     }
 
     @Test func theFindNarrowsTheRoomsAndSaysWhereTheRestAre() {

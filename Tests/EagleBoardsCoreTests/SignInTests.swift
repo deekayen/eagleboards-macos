@@ -301,7 +301,7 @@ struct RoomTests {
             to: "2026-08-25/rooms.csv"
         )
         try event.addRoom(named: "101", boardType: .finalBoard)
-        #expect(try event.copyRooms(fromEvent: "2026-08-25") == 1)
+        #expect(try event.copyRooms(fromEvent: "2026-08-25") == ["ROOM:200A"])
         #expect(event.rooms.map(\.name) == ["101", "200A"])
         #expect(event.rooms.allSatisfy { $0.isFree })
         #expect(scratch.dataFolder.events() == ["2026-09-22", "2026-08-25"])

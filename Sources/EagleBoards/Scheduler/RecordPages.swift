@@ -17,15 +17,15 @@ struct PreRegisteredPage: View {
 
     var body: some View {
         let rows = event.scheduledScouts
-            .filter { matches(model.searchText, $0.fullName, $0.email, $0.unitName, $0.leader) }
+            .filter { matches(model.searchText, $0.shownFullName, $0.email, $0.unitName, $0.leader.shownValue) }
             .sorted(using: sortOrder)
 
         Table(of: Scout.self, selection: $selection, sortOrder: $sortOrder) {
             TableColumn("Last", value: \Scout.last) { youth in
-                EditableText(youth.last, name: "Last name") { value in edit(youth) { $0.last = value } }
+                EditableText(youth.last.shownValue, name: "Last name") { value in edit(youth) { $0.last = value } }
             }
             TableColumn("First", value: \Scout.first) { youth in
-                EditableText(youth.first, name: "First name") { value in edit(youth) { $0.first = value } }
+                EditableText(youth.first.shownValue, name: "First name") { value in edit(youth) { $0.first = value } }
             }
             TableColumn("Type", value: \Scout.unitType) { youth in
                 EditableChoice(youth.unitType, choices: RecordChoices.youthUnitTypes, name: "Unit type") { value in
@@ -46,7 +46,7 @@ struct PreRegisteredPage: View {
             }
             .width(min: 50, ideal: 70, max: 90)
             TableColumn("Leader", value: \Scout.leader) { youth in
-                EditableText(youth.leader, name: "Leader") { value in edit(youth) { $0.leader = value } }
+                EditableText(youth.leader.shownValue, name: "Leader") { value in edit(youth) { $0.leader = value } }
             }
             TableColumn("Email", value: \Scout.email) { youth in
                 EditableText(youth.email, name: "Email") { value in edit(youth) { $0.email = value } }
@@ -97,7 +97,7 @@ struct AdultHistoryPage: View {
     var body: some View {
         let signedIn = Set(event.adults.map(\.id))
         let rows = event.adultHistory
-            .filter { matches(model.searchText, $0.fullName, $0.email, $0.unitName) }
+            .filter { matches(model.searchText, $0.shownFullName, $0.email, $0.unitName) }
             .map { Row(adult: $0, signedIn: signedIn.contains($0.id)) }
         // AppKit, not a SwiftUI Table: see PlainTable.
         PlainTable(
@@ -105,8 +105,8 @@ struct AdultHistoryPage: View {
             columns: [
                 PlainColumn(id: "lastEvent", title: "Last Event", width: 110, style: .digits, ascendingFirst: false,
                             text: { $0.adult.lastEvent }, checked: \.signedIn),
-                PlainColumn(id: "last", title: "Last", width: 130, text: { $0.adult.last }),
-                PlainColumn(id: "first", title: "First", width: 130, text: { $0.adult.first }),
+                PlainColumn(id: "last", title: "Last", width: 130, text: { $0.adult.last.shownValue }),
+                PlainColumn(id: "first", title: "First", width: 130, text: { $0.adult.first.shownValue }),
                 PlainColumn(id: "unit", title: "Unit", width: 90, text: { $0.adult.unitDisplay }),
                 PlainColumn(id: "final", title: "Final", width: 70, style: .role, text: { $0.adult.finalBoardRoleText }),
                 PlainColumn(id: "project", title: "Project", width: 70, style: .role, text: { $0.adult.projectReviewRoleText }),
@@ -210,7 +210,7 @@ struct RoomsPage: View {
     var body: some View {
         @Bindable var model = model
         let rows = event.rooms
-            .filter { matches(model.searchText, $0.name, $0.scoutName, $0.leaderNames) }
+            .filter { matches(model.searchText, $0.name, $0.scoutName.shownValue, $0.leaderNames.shownValue) }
             .sorted(using: sortOrder)
 
         Table(of: Room.self, selection: $model.selectedRoomID, sortOrder: $sortOrder) {
@@ -223,7 +223,9 @@ struct RoomsPage: View {
                 }
             }
             .width(min: 110, ideal: 130, max: 160)
-            TableColumn("Youth", value: \Room.scoutName)
+            TableColumn("Youth", value: \Room.scoutName) { room in
+                Text(room.scoutName.shownValue)
+            }
             TableColumn("Members", value: \Room.leaderNames) { room in
                 Text(room.leaderNames.withListSeparators).help(room.leaderNames.withListSeparators)
             }

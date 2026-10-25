@@ -102,7 +102,13 @@ extension PersonRecord {
         set { self["Flags"] = newValue }
     }
 
+    /// As stored, with the files' `~` for a comma: BoardEvent writes it into
+    /// a room's Scout and Leaders columns and a youth's BoardChair and
+    /// BoardMembers.
     public var fullName: String { "\(first) \(last)" }
+
+    /// The name as the screen shows it, with its commas (SPEC.md D-1).
+    public var shownFullName: String { fullName.shownValue }
 
     /// `Troop1776` shortened to `T1776` for narrow columns. Unit types with no
     /// number keep the whole word, so District, Council and Community stay
@@ -239,10 +245,41 @@ public struct Scout: PersonRecord {
     }
     /// Comma-separated adult IDs. The column is spelled `BoardMembersIDs` on
     /// disk; the spelling is kept so the Java app can still read the file.
+    /// Read the members with `boardMembers(among:)`, never by splitting it.
     public var boardMemberIDs: String {
         get { self["BoardMembersIDs"] }
         set { self["BoardMembersIDs"] = newValue }
     }
+
+    /// The adults `boardMemberIDs` names, in the board's order, and whatever
+    /// in it names none of `adults` (empty when every member was found).
+    ///
+    /// The list is joined with "," in memory but reads back from the files
+    /// joined with "~" (SPEC.md D-1), and an ID made from a name with a comma
+    /// holds a "~" itself, so it cannot be split. Each adult's whole ID is
+    /// looked for between separators instead, as
+    /// `BoardSuggestion.freeSinceTimes` does. Longer IDs are looked for first
+    /// and blanked once found, so a shorter ID that starts a longer one is not
+    /// found inside it. An ID listed twice is one member.
+    public func boardMembers(among adults: [Adult]) -> (members: [Adult], unknown: String) {
+        let blank: Character = "\u{0}"
+        var list = "~" + boardMemberIDs.replacingOccurrences(of: ",", with: "~") + "~"
+        var found: [(position: Int, adult: Adult)] = []
+        for adult in adults.sorted(by: { $0.id.count > $1.id.count }) where !adult.id.isEmpty {
+            let needle = "~" + adult.id + "~"
+            guard let first = list.range(of: needle) else { continue }
+            found.append((list.distance(from: list.startIndex, to: first.lowerBound), adult))
+            while let match = list.range(of: needle) {
+                let id = list.index(after: match.lowerBound)..<list.index(before: match.upperBound)
+                list.replaceSubrange(id, with: String(repeating: blank, count: list[id].count))
+            }
+        }
+        let unknown = list.split(separator: "~")
+            .filter { !$0.allSatisfy { $0 == blank || $0.isWhitespace } }
+            .joined(separator: "~")
+        return (found.sorted { $0.position < $1.position }.map(\.adult), unknown)
+    }
+
     public var notes: String {
         get { self["Notes"] }
         set { self["Notes"] = newValue }

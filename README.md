@@ -35,7 +35,9 @@ The first time Eagle Boards opens, it asks where to keep its data. Choose
 **Use Documents › Eagle Boards**, or a folder of your own. If you used the
 Java Eagle Board Scheduler, choose the folder it ran in, the one holding
 `Master_AdultHistory.csv` and the dated folders. Both programs read the same
-files.
+files. A folder with no `Master_AdultHistory.csv` gets a new, empty one, and
+Eagle Boards says where it put it. If you meant another folder, **File › Choose
+Data Folder…** switches to it.
 
 That folder holds personal information, some of it about minors. Keep it
 private.

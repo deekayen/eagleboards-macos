@@ -36,6 +36,10 @@ public final class BoardEvent {
     public private(set) var adultHistory: [Adult] = []
     public private(set) var rooms: [Room] = []
     public private(set) var config: Config = .standard
+    /// This open found no adult history in the data folder and started a new,
+    /// empty one (SPEC.md D-9), which the app says, naming where. False on
+    /// every later open.
+    public let createdAdultHistory: Bool
 
     @ObservationIgnored private let clock: @Sendable () -> Date
 
@@ -44,6 +48,7 @@ public final class BoardEvent {
         self.folder = folder
         self.date = date
         self.clock = clock
+        createdAdultHistory = !FileManager.default.fileExists(atPath: folder.adultHistoryURL.path)
 
         try FileManager.default.createDirectory(at: folder.eventFolder(date), withIntermediateDirectories: true)
         scouts = try CSVFile.read(Scout.self, from: folder.youthURL(event: date))
@@ -336,6 +341,11 @@ public final class BoardEvent {
             }
             members.append(member)
         }
+        // The council's same-unit rule may be overridden; the national floor
+        // of one member from outside the unit may not (SPEC.md D-4).
+        guard BoardRules.hasMemberFromOutsideUnit(scoutUnitName: scout.unitName, members: members) else {
+            throw EventError(BoardRules.noMemberFromOutsideUnit(scoutName: scout.fullName, scoutUnitName: scout.unitName))
+        }
 
         let minimum = BoardRules.minimumMembers(for: boardType)
         switch BoardRules.checkSize(members.count, for: boardType) {
@@ -422,6 +432,9 @@ public final class BoardEvent {
             }
             members.append(member)
         }
+        guard BoardRules.hasMemberFromOutsideUnit(scoutUnitName: scout.unitName, members: members) else {
+            throw EventError(BoardRules.noMemberFromOutsideUnit(scoutName: scout.fullName, scoutUnitName: scout.unitName))
+        }
 
         let minimum = BoardRules.minimumMembers(for: boardType)
         switch BoardRules.checkSize(members.count, for: boardType) {
@@ -444,7 +457,7 @@ public final class BoardEvent {
             throw EventError("\(chair.fullName) is not qualified to chair a \(boardType.label) (role: \(role)).")
         }
 
-        let leavingIDs = Set(scout.boardMemberIDs.split(separator: ",").map(String.init)).subtracting(uniqueMemberIDs)
+        let leavingIDs = Set(scout.boardMembers(among: adults).members.map(\.id)).subtracting(uniqueMemberIDs)
         let memberNames = members.map(\.fullName).joined(separator: ",")
         rooms[roomIndex].leaderNames = memberNames
         scout.boardMembers = memberNames
@@ -561,11 +574,12 @@ public final class BoardEvent {
             guard rooms[index].isFree || rooms[index].name == currentRoom else {
                 throw EventError("Room \(earlier.room) has been given to \(rooms[index].scoutName) since.")
             }
-            memberIDs = earlier.boardMemberIDs.split(separator: ",").map(String.init)
-            for memberID in memberIDs {
-                guard let member = adult(id: memberID) else {
-                    throw EventError("There is no adult '\(memberID)'.")
-                }
+            let listed = earlier.boardMembers(among: adults)
+            guard listed.unknown.isEmpty else {
+                throw EventError("There is no adult '\(listed.unknown)'.")
+            }
+            memberIDs = listed.members.map(\.id)
+            for member in listed.members {
                 if member.isDisabledForToday {
                     throw EventError("\(member.fullName) has gone home since.")
                 }
@@ -729,19 +743,22 @@ public final class BoardEvent {
 
     /// Add the rooms from an earlier event that this event does not have yet,
     /// empty, so the room list does not have to be typed in every month.
+    ///
+    /// Returns the IDs of the rooms added, in the earlier event's order, for
+    /// Undo to remove.
     @discardableResult
-    public func copyRooms(fromEvent earlierEvent: String) throws -> Int {
+    public func copyRooms(fromEvent earlierEvent: String) throws -> [Room.ID] {
         let earlierRooms = try CSVFile.read(Room.self, from: folder.roomsURL(event: earlierEvent))
-        var added = 0
+        var added: [Room.ID] = []
         for earlier in earlierRooms where !earlier.name.isEmpty && room(id: Room.roomID(for: earlier.name)) == nil {
             var copy = Room.blank(at: now)
             copy["ID"] = Room.roomID(for: earlier.name)
             copy.name = earlier.name
             copy.boardTypeText = earlier.boardTypeText
             rooms.append(copy)
-            added += 1
+            added.append(copy.id)
         }
-        if added > 0 {
+        if !added.isEmpty {
             try save(.rooms)
         }
         return added

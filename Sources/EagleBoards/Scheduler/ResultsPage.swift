@@ -28,10 +28,10 @@ struct ResultsPage: View {
                 }
                 .width(min: 30, ideal: 36, max: 50)
                 TableColumn("Last", value: \Scout.last) { youth in
-                    EditableText(youth.last, name: "Last name") { value in edit(youth) { $0.last = value } }
+                    EditableText(youth.last.shownValue, name: "Last name") { value in edit(youth) { $0.last = value } }
                 }
                 TableColumn("First", value: \Scout.first) { youth in
-                    EditableText(youth.first, name: "First name") { value in edit(youth) { $0.first = value } }
+                    EditableText(youth.first.shownValue, name: "First name") { value in edit(youth) { $0.first = value } }
                 }
                 TableColumn("Type", value: \Scout.unitType) { youth in
                     EditableChoice(youth.unitType, choices: RecordChoices.youthUnitTypes, name: "Unit type") { value in
@@ -67,17 +67,19 @@ struct ResultsPage: View {
                 .width(min: 70, ideal: 100, max: 130)
                 // Who sat changes on the Event page, under the rules for
                 // seating; never typed into a table (P-6).
-                TableColumn("Chair", value: \Scout.boardChair)
+                TableColumn("Chair", value: \Scout.boardChair) { youth in
+                    Text(youth.boardChair.shownValue)
+                }
             }
             Group {
                 TableColumn("Members", value: \Scout.boardMembers) { youth in
                     Text(youth.boardMembers.withListSeparators).help(youth.boardMembers.withListSeparators)
                 }
                 TableColumn("Leader", value: \Scout.leader) { youth in
-                    EditableText(youth.leader, name: "Leader") { value in edit(youth) { $0.leader = value } }
+                    EditableText(youth.leader.shownValue, name: "Leader") { value in edit(youth) { $0.leader = value } }
                 }
                 TableColumn("Notes", value: \Scout.notes) { youth in
-                    EditableText(youth.notes.withCommasRestored, name: "Notes") { value in edit(youth) { $0.notes = value } }
+                    EditableText(youth.notes.shownMultilineValue, name: "Notes") { value in edit(youth) { $0.notes = value } }
                 }
             }
         } rows: {
@@ -112,8 +114,8 @@ struct ResultsPage: View {
         let query = search.trimmingCharacters(in: .whitespaces)
         guard !query.isEmpty else { return true }
         let result = BoardResult(rawValue: youth.result)?.label ?? youth.result
-        return [youth.fullName, youth.unitName, youth.unitLabel, youth.leader, youth.room, youth.regNum,
-                youth.boardChair, youth.boardMembers, result, youth.notes]
+        return [youth.shownFullName, youth.unitName, youth.unitLabel, youth.leader.shownValue, youth.room, youth.regNum,
+                youth.boardChair.shownValue, youth.boardMembers.shownValue, result, youth.notes.shownValue]
             .contains { $0.localizedCaseInsensitiveContains(query) }
     }
 }

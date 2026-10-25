@@ -30,10 +30,10 @@ struct AdultList: View {
                 }
                 .width(min: 80, ideal: 110, max: 150)
                 TableColumn("Last", value: \Adult.last) { adult in
-                    EditableText(adult.last, name: "Last name") { value in edit(adult) { $0.last = value } }
+                    EditableText(adult.last.shownValue, name: "Last name") { value in edit(adult) { $0.last = value } }
                 }
                 TableColumn("First", value: \Adult.first) { adult in
-                    EditableText(adult.first, name: "First name") { value in edit(adult) { $0.first = value } }
+                    EditableText(adult.first.shownValue, name: "First name") { value in edit(adult) { $0.first = value } }
                 }
                 TableColumn("Type", value: \Adult.unitType) { adult in
                     EditableChoice(adult.unitType, choices: RecordChoices.adultUnitTypes, name: "Unit type") { value in
@@ -122,14 +122,14 @@ struct AdultList: View {
 
     private func supportedNames(_ adult: Adult) -> String {
         adult.supporting.split(separator: "|")
-            .compactMap { event.scout(id: String($0))?.fullName }
+            .compactMap { event.scout(id: String($0))?.shownFullName }
             .joined(separator: ", ")
     }
 
     private func matches(_ search: String, _ adult: Adult) -> Bool {
         let query = search.trimmingCharacters(in: .whitespaces)
         guard !query.isEmpty else { return true }
-        return [adult.fullName, adult.unitName, adult.unitLabel, adult.room, adult.email]
+        return [adult.shownFullName, adult.unitName, adult.unitLabel, adult.room, adult.email]
             .contains { $0.localizedCaseInsensitiveContains(query) }
     }
 }
@@ -173,7 +173,7 @@ struct AdultActionButtons: View {
         let adults = model.event?.adults.filter { ids.contains($0.id) } ?? []
         let single = adults.count == 1 ? adults.first : nil
 
-        Button(youth.map { "Add to \($0.first)'s Board" } ?? "Add to Board") {
+        Button(youth.map { "Add to \($0.first.shownValue)'s Board" } ?? "Add to Board") {
             run { model.addToDraft(Array(ids)) }
         }
         .keyboardShortcut("b")
@@ -182,9 +182,9 @@ struct AdultActionButtons: View {
             .disabled(draft == nil || !ids.contains { draft?.memberIDs.contains($0) == true })
         Divider()
         if let single, let youth, single.supports(youth.id) {
-            Button("Unlink from \(youth.fullName)") { run { model.toggleSupportLink() } }
+            Button("Unlink from \(youth.shownFullName)") { run { model.toggleSupportLink() } }
         } else {
-            Button(youth.map { "Came to Support \($0.fullName)" } ?? "Came to Support the Selected Youth") {
+            Button(youth.map { "Came to Support \($0.shownFullName)" } ?? "Came to Support the Selected Youth") {
                 run { model.toggleSupportLink() }
             }
             .disabled(single == nil || youth == nil)
@@ -236,7 +236,7 @@ struct AddAdultSheet: View {
                 if let known {
                     LabeledContent("From the adult history") {
                         HStack {
-                            Text("\(known.fullName), \(known.unitDisplay)")
+                            Text("\(known.shownFullName), \(known.unitDisplay)")
                             Button("Start Over") { startOver() }
                                 .buttonStyle(.link)
                         }
@@ -248,7 +248,7 @@ struct AddAdultSheet: View {
                             fill(from: match)
                         } label: {
                             HStack {
-                                Text(match.fullName)
+                                Text(match.shownFullName)
                                 Text(match.unitDisplay).foregroundStyle(.secondary)
                                 Spacer()
                                 Text(match.email).foregroundStyle(.secondary)
@@ -256,7 +256,7 @@ struct AddAdultSheet: View {
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                        .help("Fill in the form from \(match.fullName)'s record")
+                        .help("Fill in the form from \(match.shownFullName)'s record")
                     }
                 }
             }
@@ -307,8 +307,8 @@ struct AddAdultSheet: View {
 
     private func fill(from match: Adult) {
         known = match
-        first = match.first
-        last = match.last
+        first = match.first.shownValue
+        last = match.last.shownValue
         unitType = UnitType(rawValue: match.unitType) ?? .troop
         unit = match.unit
         email = match.email

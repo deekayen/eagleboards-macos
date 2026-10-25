@@ -28,8 +28,8 @@ struct SeatBoardSheet: View {
 
             VStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Seat \(youth.fullName)'s Board").font(.headline)
-                    Text("The members get the room and the paperwork. \(youth.first) waits outside until Start Review.")
+                    Text("Seat \(youth.shownFullName)'s Board").font(.headline)
+                    Text("The members get the room and the paperwork. \(youth.first.shownValue) waits outside until Start Review.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
@@ -38,11 +38,11 @@ struct SeatBoardSheet: View {
                 .padding(.top, 20)
                 Form {
                     Section {
-                        LabeledContent("Youth", value: youth.fullName)
+                        LabeledContent("Youth", value: youth.shownFullName)
                         LabeledContent("Unit", value: youth.unitName)
                         LabeledContent("Board", value: youth.boardType?.label ?? youth.boardTypeText)
                         if !youth.leader.isEmpty {
-                            LabeledContent("Leader", value: youth.leader)
+                            LabeledContent("Leader", value: youth.leader.shownValue)
                         }
                     }
 
@@ -61,7 +61,7 @@ struct SeatBoardSheet: View {
                         }
                         ForEach(members) { member in
                             HStack {
-                                Text(member.fullName)
+                                Text(member.shownFullName)
                                 AdultMarks(adult: member, youth: youth)
                                 Spacer()
                                 Text(member.unitLabel).foregroundStyle(.secondary)
@@ -82,7 +82,7 @@ struct SeatBoardSheet: View {
                                 Text("No qualified chair selected").tag(String?.none)
                             }
                             ForEach(review.qualifiedChairs) { chair in
-                                Text(chair.fullName).tag(Optional(chair.id))
+                                Text(chair.shownFullName).tag(Optional(chair.id))
                             }
                         }
                         .disabled(review.qualifiedChairs.isEmpty)
@@ -162,7 +162,7 @@ struct SeatBoardSheet: View {
 
     private func roomLabel(_ room: Room) -> String {
         let kind = room.boardType?.label ?? room.boardTypeText
-        return room.isFree ? "\(room.name) -- \(kind)" : "\(room.name) -- \(kind), in use by \(room.scoutName)"
+        return room.isFree ? "\(room.name) -- \(kind)" : "\(room.name) -- \(kind), in use by \(room.scoutName.shownValue)"
     }
 }
 
@@ -220,9 +220,9 @@ struct CompleteBoardSheet: View {
     var body: some View {
         let youth = event.scout(id: scoutID)
         SheetLayout(
-            title: "Complete \(youth.map { "\($0.fullName)'s" } ?? "the") Board",
+            title: "Complete \(youth.map { "\($0.shownFullName)'s" } ?? "the") Board",
             message: youth.map {
-                "Room \($0.room) · \($0.boardType?.label ?? $0.boardTypeText) · chaired by \($0.boardChair). "
+                "Room \($0.room) · \($0.boardType?.label ?? $0.boardTypeText) · chaired by \($0.boardChair.shownValue). "
                     + "The room and the members are freed for the next board."
             }
         ) {
@@ -309,7 +309,7 @@ struct RenameRoomSheet: View {
         let room = event.room(id: roomID)
         SheetLayout(
             title: "Rename Room \(room?.name ?? "")",
-            message: room.flatMap { $0.isFree ? nil : "\($0.scoutName)'s board is in this room. It moves with the new name; nobody has to be reseated." }
+            message: room.flatMap { $0.isFree ? nil : "\($0.scoutName.shownValue)'s board is in this room. It moves with the new name; nobody has to be reseated." }
         ) {
             Section {
                 TextField("New name", text: $name, prompt: Text("101 or 200A"))
@@ -383,7 +383,7 @@ struct SwapRoomsSheet: View {
     }
 
     private func describe(_ room: Room) -> String {
-        room.isFree ? "\(room.name) (free)" : "\(room.name) (\(room.scoutName))"
+        room.isFree ? "\(room.name) (free)" : "\(room.name) (\(room.scoutName.shownValue))"
     }
 }
 
