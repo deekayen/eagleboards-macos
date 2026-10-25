@@ -44,4 +44,10 @@ public struct DataFolder: Sendable, Hashable {
             }
             .sorted(by: >)
     }
+
+    /// An event as File › Open Recent Event and the Open Another Event sheet
+    /// both name it: its date, with "(Today)" after today's.
+    public static func eventLabel(_ event: String, today: String) -> String {
+        event == today ? "\(event) (Today)" : event
+    }
 }

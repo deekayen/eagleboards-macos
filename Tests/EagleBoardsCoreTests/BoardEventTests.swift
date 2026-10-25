@@ -993,6 +993,27 @@ struct BoardEventTests {
         #expect(AdultLocator.introduction(for: youth, among: event.adults)?.first?.whereabouts == "marked as gone home")
     }
 
+    // SPEC.md D-23 and O-2. A project review has no introduction, so the Mac
+    // starts it at once, as Windows does, and Undo is the way back: even with
+    // an adult linked to the youth there is no one to fetch, and restoreBoard
+    // returns the board to convening in its room with its timer as it was.
+    @Test func aProjectReviewStartsAtOnceAndUndoTakesItBack() throws {
+        try event.registerAdult([
+            "Last": "Scoutmaster", "First": "Sam", "Email": "sm@example.org", "UnitType": "Troop", "Unit": "1010",
+            "ProjectReview": "Member", "FinalBoard": "Member", "Supporting": projectYouth(1),
+        ])
+        try seat("200A", projectYouth(1), chair: projectChair1, member(1))
+        let seated = try #require(event.scout(id: projectYouth(1)))
+        #expect(AdultLocator.introduction(for: seated, among: event.adults) == nil, "no reminder to confirm")
+
+        try event.startReview(scoutID: projectYouth(1))
+        #expect(status(projectYouth(1)) == .inProgress)
+        try event.restoreBoard(seated)
+        #expect(status(projectYouth(1)) == .seated)
+        #expect(event.scout(id: projectYouth(1))?.lastUpdateTime == seated.lastUpdateTime, "the convening timer resumes")
+        #expect(roomOf(projectYouth(1)) == "200A" && adultRoom(projectChair1) == "200A" && adultRoom(member(1)) == "200A")
+    }
+
     // Java section 24, the youth phone number (SPEC.md D-8), which goes the
     // way the birthdate did (D-7, O-5): not kept from a sign-in or an import,
     // but one already on file stays there, never shown or exported. An

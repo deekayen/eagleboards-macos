@@ -5,7 +5,8 @@ import SwiftUI
 /// sign-in order, edited in place. A changed cell is saved as it is left and
 /// stays off the Undo stack. The status and the room are read-only: they
 /// change only through the Event page's steps, which take and free a room
-/// and its members. Double-click a youth to see them on the Event page.
+/// and its members. Double-click a youth, or choose Board › Show on Event
+/// Page, to see them on the Event page; Delete deletes one, asking first.
 ///
 /// A youth's birthdate and phone number are never shown here (D-7, D-8).
 struct YouthPage: View {
@@ -84,6 +85,8 @@ struct YouthPage: View {
                 model.showOnEventPage(id)
             }
         }
+        // Edit › Delete and the Delete key, asking first as the context menu does.
+        .onDeleteCommand(perform: model.selectedYouthID.map { id in { model.confirmDeleteYouth(id) } })
         .overlay {
             if rows.isEmpty {
                 if model.searchText.isEmpty {

@@ -5,6 +5,7 @@ import SwiftUI
 /// scheduler for the open event.
 struct SchedulerWindow: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         Group {
@@ -15,6 +16,8 @@ struct SchedulerWindow: View {
             }
         }
         .frame(minWidth: 900, minHeight: 560)
+        // For the model's commands, which can run with this window closed.
+        .onAppear { model.openWindow = { [openWindow] id in openWindow(id: id) } }
     }
 }
 

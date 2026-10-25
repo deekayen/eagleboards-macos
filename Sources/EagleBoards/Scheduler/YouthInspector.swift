@@ -11,20 +11,31 @@ struct YouthInspector: View {
 
     var body: some View {
         if let youth = model.selectedYouth {
-            TimelineView(.periodic(from: .now, by: 20)) { timeline in
-                Form {
-                    YouthHeader(youth: youth, event: event, now: timeline.date)
-                    switch youth.status {
-                    case .registered, .verified, nil:
-                        DraftBoardSections(youth: youth, event: event)
-                    case .seated, .inProgress:
-                        SittingBoardSection(youth: youth, event: event, now: timeline.date)
-                    case .completed, .postponed:
-                        ResultSection(youth: youth)
+            ScrollViewReader { scroller in
+                TimelineView(.periodic(from: .now, by: 20)) { timeline in
+                    Form {
+                        YouthHeader(youth: youth, event: event, now: timeline.date)
+                        switch youth.status {
+                        case .registered, .verified, nil:
+                            DraftBoardSections(youth: youth, event: event)
+                        case .seated, .inProgress:
+                            SittingBoardSection(youth: youth, event: event, now: timeline.date)
+                        case .completed, .postponed:
+                            ResultSection(youth: youth)
+                        }
+                        WithThemSection(youth: youth, event: event)
+                            .id(WithThemSection.scrollID)
                     }
-                    WithThemSection(youth: youth, event: event)
+                    .formStyle(.grouped)
                 }
-                .formStyle(.grouped)
+                // Board › Locate Leader and Parents. Checked on appearing too:
+                // showing the inspector, or selecting another youth, draws it
+                // afresh. The scroll waits a turn for the form's layout.
+                .onChange(of: model.locateRequested, initial: true) {
+                    guard model.locateRequested else { return }
+                    model.locateRequested = false
+                    Task { scroller.scrollTo(WithThemSection.scrollID, anchor: .top) }
+                }
             }
             .id(youth.id)
         } else {
@@ -405,6 +416,9 @@ private struct ResultSection: View {
 /// The adults to fetch: whoever introduces the youth to their board
 /// (SPEC.md D-23), then their leader and parents, with where each one is now.
 private struct WithThemSection: View {
+    /// Where Board › Locate Leader and Parents scrolls the inspector.
+    static let scrollID = "withThem"
+
     @Environment(AppModel.self) private var model
     let youth: Scout
     let event: BoardEvent

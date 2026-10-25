@@ -37,37 +37,58 @@ final class AppModel {
     }
 
     /// Use `url` as the data folder from now on and open today's event in it.
+    /// A folder whose event cannot be opened is not kept as the choice.
     func chooseDataFolder(_ url: URL) {
-        UserDefaults.standard.set(url.path, forKey: Keys.dataFolderPath)
-        open(folder: DataFolder(root: url), event: today)
+        if open(folder: DataFolder(root: url), event: today) {
+            UserDefaults.standard.set(url.path, forKey: Keys.dataFolderPath)
+        }
     }
 
-    func open(folder: DataFolder, event name: String) {
+    /// Open an event, or say why not: on the welcome screen when no event is
+    /// open, or in an alert over the event that stays open.
+    @discardableResult
+    func open(folder: DataFolder, event name: String) -> Bool {
         do {
-            let opened = try BoardEvent(folder: folder, date: name)
-            stopServer()
-            dataFolder = folder
-            event = opened
-            openError = nil
-            // Undo steps belong to the event they were taken on.
-            undoManager?.removeAllActions()
-            attention.forgetEvent()
-            clearSchedulerSelection()
-            startServer()
-            // SPEC.md D-9, said only on the open that made it, so someone who
-            // picked the wrong folder learns it before the event starts.
-            if opened.createdAdultHistory {
-                message = Message(
-                    title: "Started a New Adult History",
-                    text: "This data folder had no adult history, so Eagle Boards started a new, empty one:\n\n"
-                        + "\(folder.adultHistoryURL.path)\n\n"
-                        + "If you meant a folder that already has one, choose it with File › Choose Data Folder… instead.")
-            }
-            if signUpGeniusAllowed, importOnOpen, name == today, hasSignUpGeniusKey {
-                Task { await importSignUps() }
-            }
+            try openOrThrow(folder: folder, event: name)
+            return true
         } catch {
-            openError = "Could not open \(folder.root.appending(path: name).path): \(error.localizedDescription)"
+            let path = folder.eventFolder(name).path
+            openError = "Could not open \(path): \(error.localizedDescription)"
+            if event != nil {
+                message = Message(title: "Could Not Open the \(name) Event",
+                                  text: "\(error.localizedDescription)\n\nThe event's folder is \(path).")
+            }
+            return false
+        }
+    }
+
+    /// Open an event, or throw why not, for the Open Another Event sheet,
+    /// which says it inside the sheet: an alert would wait behind it.
+    func openOrThrow(folder: DataFolder, event name: String) throws {
+        let opened = try BoardEvent(folder: folder, date: name)
+        stopServer()
+        dataFolder = folder
+        event = opened
+        openError = nil
+        // Undo steps belong to the event they were taken on, and so do a
+        // sheet or question still up.
+        undoManager?.removeAllActions()
+        sheet = nil
+        confirmation = nil
+        attention.forgetEvent()
+        clearSchedulerSelection()
+        startServer()
+        // SPEC.md D-9, said only on the open that made it, so someone who
+        // picked the wrong folder learns it before the event starts.
+        if opened.createdAdultHistory {
+            message = Message(
+                title: "Started a New Adult History",
+                text: "This data folder had no adult history, so Eagle Boards started a new, empty one:\n\n"
+                    + "\(folder.adultHistoryURL.path)\n\n"
+                    + "If you meant a folder that already has one, choose it with File › Choose Data Folder… instead.")
+        }
+        if signUpGeniusAllowed, importOnOpen, name == today, hasSignUpGeniusKey {
+            Task { await importSignUps() }
         }
     }
 
@@ -221,10 +242,16 @@ final class AppModel {
     /// Edit › Find… asked for the toolbar search. The scheduler window takes
     /// it up when it next draws, which may be once Find has opened it.
     var findRequested = false
+    /// Board › Locate Leader and Parents asked for the inspector's With Them
+    /// section, which the inspector scrolls to once it is on screen.
+    var locateRequested = false
 
     var selectedYouthID: Scout.ID?
+    /// Picked on the Adults page, and let go when it is left.
     var selectedAdultIDs: Set<Adult.ID> = []
     var selectedRoomID: Room.ID?
+    /// Picked on the Adult History CSV page, for Adult › Sign In for Today.
+    var selectedHistoryIDs: Set<Adult.ID> = []
 
     /// The boards being drawn up for waiting youth (SPEC.md D-12).
     private(set) var drafts = BoardDrafts()
@@ -278,6 +305,28 @@ final class AppModel {
 
     var confirmation: Confirmation?
 
+    /// Opens a window by its `WindowID`, or brings it forward. Set by the
+    /// scheduler window, or by the Sign-In Code window when it is the first
+    /// to appear; the Dock menu opens windows through it too.
+    @ObservationIgnored var openWindow: (@MainActor (String) -> Void)?
+
+    /// Sheets and confirmations are shown on the scheduler window, so a
+    /// command that puts one up opens it first: the menu bar works with the
+    /// window closed, and the sheet would otherwise wait there unseen.
+    func openScheduler() {
+        openWindow?(WindowID.scheduler)
+    }
+
+    func present(_ newSheet: Sheet) {
+        openScheduler()
+        sheet = newSheet
+    }
+
+    func present(_ newConfirmation: Confirmation) {
+        openScheduler()
+        confirmation = newConfirmation
+    }
+
     /// Something the operator has to read and acknowledge: a refusal, a
     /// failure, or the report of an import.
     struct Message: Identifiable {
@@ -309,15 +358,27 @@ final class AppModel {
         selectedYouthID = nil
         selectedAdultIDs = []
         selectedRoomID = nil
+        selectedHistoryIDs = []
         drafts.removeAll()
     }
 
     /// Change the main window's page. Each page searches its own list, so
-    /// the search starts empty.
+    /// the search starts empty. The adults picked on the Adults page or the
+    /// Adult History CSV page are let go with it, so the Adult menu never
+    /// acts on people the page shown does not list.
     func show(_ newPage: Page) {
         guard newPage != page else { return }
+        if page == .adults { selectedAdultIDs = [] }
+        if page == .adultHistory { selectedHistoryIDs = [] }
         page = newPage
         searchText = ""
+    }
+
+    /// Those picked on the Adult History CSV page who have not signed in
+    /// today, while it is the page shown.
+    var historySelectionToSignIn: Set<Adult.ID> {
+        guard let event, page == .adultHistory else { return [] }
+        return selectedHistoryIDs.subtracting(event.adults.map(\.id))
     }
 
     /// A board picked on Results, on the Event page beside its room.
@@ -464,7 +525,7 @@ final class AppModel {
     func beginSeating() {
         guard let youth = selectedYouth, youth.status?.isWaitingForBoard == true else { return }
         if drafts[youth.id] == nil { selectYouth(youth.id) }
-        sheet = .seatBoard(scoutID: youth.id)
+        present(.seatBoard(scoutID: youth.id))
     }
 
     /// A youth dropped on a room: seat their board there.
@@ -504,7 +565,7 @@ final class AppModel {
 
     func beginChangingMembers() {
         guard let youth = selectedYouth, canChangeMembers else { return }
-        sheet = .changeMembers(scoutID: youth.id)
+        present(.changeMembers(scoutID: youth.id))
     }
 
     func changeMembers(scoutID: String, chairID: String, memberIDs: [String]) -> Bool {
@@ -516,23 +577,33 @@ final class AppModel {
     func confirmStartReview() {
         guard let event, let youth = selectedYouth else { return }
         // A board of review starts with an introduction (SPEC.md D-23): name
-        // whom to fetch and where. A project review has none.
+        // whom to fetch and where. A project review has none, so it starts at
+        // once, as on Windows; Undo takes it back, so there is nothing to
+        // confirm (O-2).
+        guard AdultLocator.introduction(for: youth, among: event.adults) != nil else {
+            startReview(youth.id)
+            return
+        }
         let fetch = AdultLocator.introductionText(for: youth, among: event.adults)
-        confirmation = Confirmation(
+        present(Confirmation(
             title: "Start the review?",
             message: "Bring \(youth.shownFullName) into room \(youth.room) and start the review. Do this once the board has "
                 + "finished reading the application, references and project workbook.\(fetch)",
             actionTitle: "Start Review"
         ) { [weak self] in
-            self?.changeBoard(youth.id, "Start Review", failure: "Could not start the review") { event in
-                try event.startReview(scoutID: youth.id)
-            }
+            self?.startReview(youth.id)
+        })
+    }
+
+    private func startReview(_ scoutID: Scout.ID) {
+        changeBoard(scoutID, "Start Review", failure: "Could not start the review") { event in
+            try event.startReview(scoutID: scoutID)
         }
     }
 
     func beginCompleting() {
         guard let youth = selectedYouth, youth.status == .inProgress else { return }
-        sheet = .completeBoard(scoutID: youth.id)
+        present(.completeBoard(scoutID: youth.id))
     }
 
     func complete(scoutID: String, result: BoardResult, notes: String) -> Bool {
@@ -572,10 +643,13 @@ final class AppModel {
     }
 
     /// The inspector lists who introduces the youth, then their leader and
-    /// parents, with where each one is.
+    /// parents, with where each one is. Show it, scrolled to them, in the
+    /// scheduler window even if it was closed.
     func locateSelectedYouth() {
         guard selectedYouth != nil else { return }
+        openScheduler()
         showsInspector = true
+        locateRequested = true
     }
 
     // MARK: - Attention
@@ -614,9 +688,10 @@ final class AppModel {
     @discardableResult
     private func change(_ name: String, failure: String,
                         _ forward: @escaping (BoardEvent) throws -> Void,
-                        undo backward: @escaping (BoardEvent) throws -> Void) -> Bool {
+                        undo backward: @escaping (BoardEvent) throws -> Void,
+                        reveal: @escaping (AppModel) -> Void = { _ in }) -> Bool {
         guard let event, attempt(failure, { try forward(event) }) else { return false }
-        registerUndo(name, on: event, undo: backward, redo: forward)
+        registerUndo(name, on: event, undo: backward, redo: forward, reveal: reveal)
         return true
     }
 
@@ -637,6 +712,15 @@ final class AppModel {
             reveal(model)
         }
         undoManager.setActionName(name)
+    }
+
+    /// An undone or redone room change selects the room, by whichever of
+    /// these IDs it has now, so the operator sees what changed on the Event
+    /// or Rooms page.
+    private static func revealRoom(_ ids: Room.ID...) -> (AppModel) -> Void {
+        { model in
+            if let id = ids.first(where: { model.event?.room(id: $0) != nil }) { model.selectedRoomID = id }
+        }
     }
 
     /// After an undo, let go of anything that is no longer there.
@@ -697,7 +781,8 @@ final class AppModel {
         let id = Room.roomID(for: name.trimmingCharacters(in: .whitespacesAndNewlines))
         registerUndo("Add Room", on: event,
                      undo: { try $0.removeRoom(id: id) },
-                     redo: { try $0.addRoom(named: name, boardType: boardType) })
+                     redo: { try $0.addRoom(named: name, boardType: boardType) },
+                     reveal: Self.revealRoom(id))
     }
 
     /// Add an earlier event's rooms, empty. Undo removes the rooms it added.
@@ -730,7 +815,8 @@ final class AppModel {
         let boardType = room.boardType ?? .finalBoard
         if change("Remove Room", failure: "Could not remove the room",
                   { try $0.removeRoom(id: room.id) },
-                  undo: { try $0.addRoom(named: room.name, boardType: boardType) }) {
+                  undo: { try $0.addRoom(named: room.name, boardType: boardType) },
+                  reveal: Self.revealRoom(room.id)) {
             tidySelection()
         }
     }
@@ -743,24 +829,29 @@ final class AppModel {
         guard newID != id else { return newID }
         registerUndo("Rename Room", on: event,
                      undo: { try $0.renameRoom(id: newID, to: oldName) },
-                     redo: { try $0.renameRoom(id: id, to: newName) })
+                     redo: { try $0.renameRoom(id: id, to: newName) },
+                     reveal: Self.revealRoom(newID, id))
         return newID
     }
 
     /// Move a board to another room, or swap two boards. Swapping again
-    /// undoes it.
+    /// undoes it, and selects the room the board was moved from; a redo
+    /// selects the one it went to, as the move did.
     func swapRooms(_ firstID: Room.ID, _ secondID: Room.ID) -> Bool {
         let swap: (BoardEvent) throws -> Void = { try $0.swapRooms(firstID, secondID) }
-        guard change("Move Board", failure: "Could not move the board", swap, undo: swap) else { return false }
+        guard change("Move Board", failure: "Could not move the board", swap, undo: swap, reveal: { model in
+            model.selectedRoomID = model.undoManager?.isUndoing == true ? firstID : secondID
+        }) else { return false }
         selectedRoomID = secondID
         return true
     }
 
     func setBoardType(_ boardType: BoardType, forRoom roomID: Room.ID) {
         guard let old = event?.room(id: roomID)?.boardType, old != boardType else { return }
-        change("Change Room", failure: "Could not change the room",
+        change("Change Room Use", failure: "Could not change the room",
                { try $0.setBoardType(boardType, forRoom: roomID) },
-               undo: { try $0.setBoardType(old, forRoom: roomID) })
+               undo: { try $0.setBoardType(old, forRoom: roomID) },
+               reveal: Self.revealRoom(roomID))
     }
 
     /// After a rename the room keeps its record but not necessarily its ID.
@@ -831,13 +922,14 @@ final class AppModel {
 
     // MARK: - Records, edited in place
 
-    /// Sign an adult in by hand, as the tablet would, and select them on the
-    /// Adults page. Like a sign-in at the door, it is not undone; Delete
-    /// Adult takes a mistake off the event's list.
+    /// Sign an adult in by hand, as the tablet would, and select them if
+    /// the Adults page is shown; elsewhere the Adult menu would act on them
+    /// unseen. Like a sign-in at the door, it is not undone; Delete Adult
+    /// takes a mistake off the event's list.
     func addAdult(_ form: [String: String]) throws {
         guard let event else { return }
         let adult = try event.registerAdult(form)
-        selectedAdultIDs = [adult.id]
+        if page == .adults { selectedAdultIDs = [adult.id] }
     }
 
     /// Sign adults in for today straight from the Adult History CSV page, with
@@ -891,7 +983,7 @@ final class AppModel {
         guard let event, let youth = (scheduled ? event.scheduledScouts : event.scouts).first(where: { $0.id == id }) else {
             return
         }
-        confirmation = Confirmation(
+        present(Confirmation(
             title: "Delete \(youth.shownFullName)?",
             message: "The record is removed from the file. This cannot be undone.",
             actionTitle: "Delete",
@@ -900,12 +992,12 @@ final class AppModel {
             guard let self, attempt("Could not delete \(youth.shownFullName)", { try event.deleteYouth(id: id, scheduled: scheduled) })
             else { return }
             if !scheduled && selectedYouthID == id { selectYouth(nil) }
-        }
+        })
     }
 
     func confirmDeleteAdult(_ id: Adult.ID) {
         guard let event, let adult = event.adult(id: id) else { return }
-        confirmation = Confirmation(
+        present(Confirmation(
             title: "Delete \(adult.shownFullName)?",
             message: "They are taken off today's list; the adult history keeps them. This cannot be undone.",
             actionTitle: "Delete",
@@ -914,7 +1006,7 @@ final class AppModel {
             guard let self, attempt("Could not delete \(adult.shownFullName)", { try event.deleteAdult(id: id) }) else { return }
             selectedAdultIDs.remove(id)
             drafts.takeOff([id])
-        }
+        })
     }
 
     // MARK: - Files

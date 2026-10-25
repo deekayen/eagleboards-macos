@@ -59,6 +59,7 @@ struct PreRegisteredPage: View {
                 Button("Delete Pre-Registration…", role: .destructive) { model.confirmDeleteYouth(id, scheduled: true) }
             }
         }
+        .onDeleteCommand(perform: selection.map { id in { model.confirmDeleteYouth(id, scheduled: true) } })
         .overlay {
             if rows.isEmpty {
                 if model.searchText.isEmpty {
@@ -80,12 +81,12 @@ struct PreRegisteredPage: View {
 /// sign-in form fills itself in from, read-only (SPEC.md P-6), and searched by
 /// name, email or unit. A sign-in writes it, and a change on the Adults page
 /// reaches the same adult here. Last Event has a check for those signed in
-/// today; double-click someone, or choose Sign In for Today, to put them on
-/// the event's list without the tablet.
+/// today; double-click someone, or choose Sign In for Today here or in the
+/// Adult menu, to put them on the event's list without the tablet. The
+/// selection is the model's, for that menu.
 struct AdultHistoryPage: View {
     @Environment(AppModel.self) private var model
     let event: BoardEvent
-    @State private var selection: Set<String> = []
 
     /// An adult in the history, and whether they have signed in today.
     struct Row: Identifiable, Equatable {
@@ -95,6 +96,7 @@ struct AdultHistoryPage: View {
     }
 
     var body: some View {
+        @Bindable var model = model
         let signedIn = Set(event.adults.map(\.id))
         let rows = event.adultHistory
             .filter { matches(model.searchText, $0.shownFullName, $0.email, $0.unitName) }
@@ -117,7 +119,7 @@ struct AdultHistoryPage: View {
             ],
             sortedBy: "last",
             name: "Adult History CSV",
-            selection: $selection,
+            selection: $model.selectedHistoryIDs,
             doubleClick: { id in
                 if !signedIn.contains(id) { model.signInFromHistory([id]) }
             },
@@ -242,13 +244,15 @@ struct RoomsPage: View {
                     }
                 }
             } else {
-                Button("Add Room…") { model.sheet = .addRoom }
+                Button("Add Room…") { model.present(.addRoom) }
             }
         } primaryAction: { ids in
-            if ids.isEmpty { model.sheet = .addRoom }
+            if ids.isEmpty { model.present(.addRoom) }
         }
+        // Room › Remove Room, which a room in use dims, as it does Edit › Delete.
+        .onDeleteCommand(perform: model.selectedRoom?.isFree == true ? { model.removeSelectedRoom() } : nil)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            ListFooter("Add Room", help: "Add a room for today") { model.sheet = .addRoom }
+            ListFooter("Add Room", help: "Add a room for today") { model.present(.addRoom) }
         }
         .overlay {
             if rows.isEmpty {

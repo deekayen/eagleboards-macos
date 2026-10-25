@@ -392,6 +392,7 @@ struct OpenEventSheet: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var chosen: String?
+    @State private var problem: String?
 
     var body: some View {
         SheetLayout(
@@ -401,23 +402,32 @@ struct OpenEventSheet: View {
             Section {
                 Picker("Event", selection: $chosen) {
                     ForEach(eventsOnFile, id: \.self) { name in
-                        Text(name == model.today ? "\(name) (today)" : name).tag(Optional(name))
+                        Text(DataFolder.eventLabel(name, today: model.today)).tag(Optional(name))
                     }
+                }
+            } footer: {
+                if let problem {
+                    Text(problem).foregroundStyle(.red)
                 }
             }
         } buttons: {
             Button("Cancel", role: .cancel) { dismiss() }
                 .keyboardShortcut(.cancelAction)
             Button("Open") {
-                if let chosen, let folder = model.dataFolder {
-                    model.open(folder: folder, event: chosen)
+                guard let chosen, let folder = model.dataFolder else { return }
+                // A failure stays in the sheet, to choose another event.
+                do {
+                    try model.openOrThrow(folder: folder, event: chosen)
                     dismiss()
+                } catch {
+                    problem = "Could not open \(chosen): \(error.localizedDescription)"
                 }
             }
             .keyboardShortcut(.defaultAction)
             .disabled(chosen == nil || chosen == model.event?.date)
         }
         .onAppear { chosen = model.event?.date }
+        .onChange(of: chosen) { problem = nil }
     }
 
     /// Newest first, with today even before it has a folder.

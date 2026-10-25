@@ -21,7 +21,7 @@ struct HelpView: View {
                     step("At the tablet, a youth taps I am a Youth and an adult taps I am 21+. Each fills in the form.")
                     step("People who pre-registered on SignUpGenius, and adults who have served before, are recognized by email and their form fills itself in.")
                     step("They appear in the scheduler the moment they register. Youth are numbered P1, P2… if they pre-registered and W1, W2… if they walked in, and the list keeps pre-registered youth ahead of walk-ins.")
-                    step("An adult who would rather not use the tablet can be signed in on the Mac: choose Adult › Add Adult… (Command-N), or click Add Adult at the foot of the Adults page. Search the adult history to fill the form in for someone who has served before. On the Adult History CSV page, double-click someone to sign them in for today.")
+                    step("An adult who would rather not use the tablet can be signed in on the Mac: choose Adult › Add Adult… (Command-N), or click Add Adult at the foot of the Adults page. Search the adult history to fill the form in for someone who has served before. On the Adult History CSV page, double-click someone, or select them and choose Adult › Sign In for Today, to sign them in for today.")
                     step("Check the paperwork as youth sign in. If it is not in order, select them and choose Board › Postpone. Edit › Undo brings them back.")
                 }
 
@@ -39,7 +39,7 @@ struct HelpView: View {
                 }
 
                 section("Start the review") {
-                    step("When the members have finished reading, select the youth and press Start Review (Command-Return again). For a board of review, the confirmation names whom to fetch to introduce the youth to the board and where they are, even on another board: the adult linked to them, or if no one is, their leader. A project review has no introduction.")
+                    step("When the members have finished reading, select the youth and press Start Review (Command-Return again). For a board of review, the confirmation names whom to fetch to introduce the youth to the board and where they are, even on another board: the adult linked to them, or if no one is, their leader. A project review has no introduction, so it starts at once; Edit › Undo takes it back.")
                     step("At sign-in, adults can say \"No thanks\" to one kind of board (they are never seated on it), whether today counts toward a Wood Badge ticket item (marked with a small five-colored pentagon next to their name), and which youth they will introduce to their board: usually the youth's Scoutmaster, or a leader standing in, and not a parent unless they are also the Scoutmaster. Proposed boards favour those who came to serve on any board.")
                     step("If the adult introducing a youth did not say so at sign-in, select the youth and use Link an Adult under With Them in the inspector. Right-click them there to unlink. On the Adults page, with the youth still selected, Adult › Introduces and the youth's name links the selected adult, or unlinks them if it has a check.")
                 }
@@ -51,14 +51,14 @@ struct HelpView: View {
 
                 section("The records") {
                     step("The other pages in the View menu are the tables the event keeps, and their values are changed in place: click a name, unit or note to type in it, or a value with ⌃⌄ beside it to choose from a menu. A change is saved when you press Return or leave the cell. It is not on Edit › Undo, which is for the Event page's steps; change the cell back instead. Who sits on a board and which room someone is in are never typed in: they change on the Event page. Nor is a youth's status: it is read-only on every page, and changes only through the Event page's steps (Seat Board, Start Review, Complete, Postpone, Reset Board and Undo), which take and free a room and its members.")
-                    bullet("Results: every board and its result. Correct a result or its notes here. Double-click a board to see it on the Event page.")
+                    bullet("Results: every board and its result. Correct a result or its notes here. Double-click a board, or choose Board › Show on Event Page, to see it on the Event page.")
                     bullet("Adults: the event's adults. Promote someone to Chair, mark Wood Badge, or fix a name. Add Adult at the foot signs someone in by hand.")
-                    bullet("Youth: every youth who signed in, in sign-in order.")
+                    bullet("Youth: every youth who signed in, in sign-in order. Double-click one, or choose Board › Show on Event Page, to see them on the Event page.")
                     bullet("Pre-Registered: the youth who signed up on SignUpGenius for today.")
-                    bullet("Adult History CSV: every adult who has ever signed in, across events, read-only and searched by name, email or unit. Last Event has a check for those signed in today; double-click someone to sign them in for today. A change to an adult's name, unit, contact or roles on the Adults page is made here too, so someone promoted to Chair today is a chair next time. Wood Badge is for today only.")
-                    bullet("Rooms: what each room is used for today, and whose board is in it. Add Room at the foot adds one.")
+                    bullet("Adult History CSV: every adult who has ever signed in, across events, read-only and searched by name, email or unit. Last Event has a check for those signed in today; double-click someone, or choose Adult › Sign In for Today, to sign them in for today. A change to an adult's name, unit, contact or roles on the Adults page is made here too, so someone promoted to Chair today is a chair next time. Wood Badge is for today only.")
+                    bullet("Rooms: what each room is used for today, and whose board is in it. Add Room at the foot adds one, and Delete removes a free one; Edit › Undo puts it back.")
                     bullet("Approved Proposals: every project proposal approved at an earlier event in the data folder, however long ago, for a youth who comes without the signed page: who, their unit, when, the chair and the other members. Read only; the line above it says which events were read.")
-                    bullet("Right-click a record to delete it; that asks first. File › Export List… (Shift-Command-E) saves the page's list as a spreadsheet.")
+                    bullet("To delete a youth, a pre-registration, or an adult, select them and press Delete or choose Edit › Delete, or right-click them; that asks first, since Undo cannot bring them back. File › Export List… (Shift-Command-E) saves the page's list as a spreadsheet.")
                 }
 
                 section("Board sizes") {
@@ -76,11 +76,12 @@ struct HelpView: View {
                 section("Menus") {
                     bullet("Every action is in the Board, Adult and Room menus, dimmed when it does not apply. The right-click menu of a youth, an adult or a room lists only what can be done to them now; a youth's starts with their next step.")
                     bullet("Edit › Undo (Command-Z) takes back the last step: seating, starting, completing, postponing or resetting a board, changing its members, disabling or enabling an adult, linking, and adding, copying, removing, renaming or swapping rooms. It is refused if the room or a member has been given to another board since.")
-                    bullet("Board › Locate Leader and Parents (Command-L) shows in the inspector who introduces the selected youth, then their leader and parents, with where each one is.")
+                    bullet("Board › Locate Leader and Parents (Command-L) shows the inspector and scrolls it to With Them: who introduces the selected youth, then their leader and parents, with where each one is.")
                     bullet("Board › Reset Board undoes seating: the youth waits again and the room and members are freed.")
                     bullet("Adult › Disable for Today takes adults out of the pool, for example when they have gone home. Enable for Today brings them back.")
                     bullet("Room › Move Board to Another Room… moves a board, or swaps two boards.")
                     bullet("View › Event, Results, Adults, Youth, Pre-Registered, Adult History CSV, Rooms and Approved Proposals (Option-Command-1 to 8) choose the page; the one shown has a check.")
+                    bullet("Window › Scheduler (Command-1) and Window › Sign-In Code (Command-3) bring those windows back once closed. The Dock icon's menu (Control-click it) has the same two.")
                     bullet("File › Export Board Results saves every board and its result as a spreadsheet; File › Export List… saves the page's list.")
                     bullet("File › Restart Sign-In Station starts the sign-in station again after it stopped with an error, for example once another program has let go of its port. File › Open Sign-In Page in Browser opens the sign-in page on this Mac.")
                 }

@@ -202,9 +202,12 @@ struct YouthActionButtons: View {
     var body: some View {
         let youth = scoutID.flatMap { model.event?.scout(id: $0) } ?? model.selectedYouth
         let status = youth?.status
+        // A sheet up is about this board or a room: a step, a reset, or a
+        // postponement now would change it under the sheet.
         let idle = model.sheet == nil
         let waiting = status?.isWaitingForBoard == true
-        let canReset = status == .seated || status == .inProgress || status == .verified
+        let canReset = idle && (status == .seated || status == .inProgress || status == .verified)
+        let canPostpone = idle && waiting
 
         step(.seat, status: status, idle: idle) { model.beginSeating() }
         step(.startReview, status: status, idle: idle) { model.confirmStartReview() }
@@ -223,13 +226,23 @@ struct YouthActionButtons: View {
         command("Clear Board", applies: waiting) { model.clearDraft() }
         if !inContextMenu {
             Divider()
+            // The Results and Youth pages' double-click, in the menu bar, for
+            // a youth the page lists: Results leaves out those still waiting,
+            // whom the Event page may have selected.
+            let listed = model.page == .youth || (model.page == .results && status?.isWaitingForBoard == false)
+            command("Show on Event Page", applies: youth != nil && listed) {
+                if let youth {
+                    model.openScheduler()
+                    model.showOnEventPage(youth.id)
+                }
+            }
             locate(youth)
         }
-        if !inContextMenu || ((youth != nil || waiting) && (canReset || waiting)) {
+        if !inContextMenu || ((youth != nil || waiting) && (canReset || canPostpone)) {
             Divider()
         }
         command("Reset Board", applies: canReset) { model.reset() }
-        command("Postpone", applies: waiting) { model.postpone() }
+        command("Postpone", applies: canPostpone) { model.postpone() }
     }
 
     /// Seat Board, Start Review or Complete, on Command-Return while it is

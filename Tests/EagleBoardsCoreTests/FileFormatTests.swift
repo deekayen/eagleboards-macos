@@ -165,6 +165,12 @@ struct FileFormatTests {
         }
         #expect(scratch.dataFolder.events() == ["2026-09-22"])
     }
+
+    /// The submenu and the sheet that open an event write today's the same way.
+    @Test func todaysEventIsNamedTheSameInEveryList() {
+        #expect(DataFolder.eventLabel("2026-10-27", today: "2026-10-27") == "2026-10-27 (Today)")
+        #expect(DataFolder.eventLabel("2026-09-22", today: "2026-10-27") == "2026-09-22")
+    }
 }
 
 @Suite("Timestamps")

@@ -87,8 +87,8 @@ youth are listed ahead of walk-ins.
 An adult who would rather not use the tablet can be signed in on the Mac:
 choose **Adult › Add Adult…** (**⌘N**), or click **Add Adult** at the foot of
 the **Adults** page. Search the adult history to fill the form in for someone
-who has served before. On the **Adult History CSV** page, double-click someone to sign
-them in for today.
+who has served before. On the **Adult History CSV** page, double-click someone, or
+select them and choose **Adult › Sign In for Today**, to sign them in for today.
 
 ### 2. Check the paperwork
 
@@ -156,9 +156,10 @@ When the members have finished reading, select the youth and press **Start
 Review** (**⌘↩** again). On a board of review, the confirmation names whom to
 fetch to introduce the youth to the board, and where they are, even on another
 board: the adult linked to them, or if no one is, their leader, never a
-parent. A project review has no introduction, so its confirmation names no
-one. Throughout the event, the inspector lists who introduces the youth, then
-their leader and parents, under **With Them**.
+parent. A project review has no introduction, so it starts at once, with no
+confirmation; **Edit › Undo** takes it back. Throughout the event, the
+inspector lists who introduces the youth, then their leader and parents, under
+**With Them**; **Board › Locate Leader and Parents** (**⌘L**) scrolls to it.
 
 If the adult introducing a youth did not say so at sign-in, select the youth
 and use **Link an Adult** under **With Them**. On the **Adults** page, with
@@ -207,16 +208,18 @@ members. There is no separate records window.
 
 | Page | What it holds |
 | --- | --- |
-| **Results** (⌥⌘2) | Every board and its result. Correct a result or its notes here. Double-click a board to see it on the Event page. |
+| **Results** (⌥⌘2) | Every board and its result. Correct a result or its notes here. Double-click a board, or choose **Board › Show on Event Page**, to see it on the Event page. |
 | **Adults** (⌥⌘3) | The event's adults. Promote someone to Chair, mark Wood Badge, or fix a name; a change to a name, unit, contact or role reaches the adult history too. **Add Adult** at the foot signs someone in by hand. |
-| **Youth** (⌥⌘4) | Every youth who signed in, in sign-in order. |
+| **Youth** (⌥⌘4) | Every youth who signed in, in sign-in order. Double-click one, or choose **Board › Show on Event Page**, to see them on the Event page. |
 | **Pre-Registered** (⌥⌘5) | The youth who signed up on SignUpGenius for today. |
-| **Adult History CSV** (⌥⌘6) | Every adult who has ever signed in, across events, read-only, searched by name, email or unit. **Last Event** has a check for those signed in today; double-click someone to sign them in. |
-| **Rooms** (⌥⌘7) | What each room is used for today, and whose board is in it. **Add Room** at the foot adds one. |
+| **Adult History CSV** (⌥⌘6) | Every adult who has ever signed in, across events, read-only, searched by name, email or unit. **Last Event** has a check for those signed in today; double-click someone, or choose **Adult › Sign In for Today**, to sign them in. |
+| **Rooms** (⌥⌘7) | What each room is used for today, and whose board is in it. **Add Room** at the foot adds one, and **Delete** removes a free one; **Edit › Undo** puts it back. |
 | **Approved Proposals** (⌥⌘8) | Every project proposal approved at an earlier event in the data folder, however long ago, for a youth who comes without the signed page: who, their unit, when, the chair and the other members. Read only. |
 
-Right-click a record to delete it; that asks first. **File › Export List…**
-(⇧⌘E) saves the page's list as a spreadsheet.
+To delete a youth, a pre-registration, or an adult, select them and press
+**Delete** or choose **Edit › Delete**, or right-click them; that asks first,
+since Undo cannot bring them back. **File › Export List…** (⇧⌘E) saves the
+page's list as a spreadsheet.
 
 ## Room timers
 
@@ -247,7 +250,10 @@ disabling an adult, or a change to the rooms from the Event page. It is refused
 once the room or a member has been given to another board.
 
 The Dock icon shows how many youth are waiting, and a notification tells you
-when a room goes overdue while you are in another app.
+when a room goes overdue while you are in another app. If you close the
+scheduler or the sign-in code, **Window › Scheduler** (**⌘1**) or **Window ›
+Sign-In Code** (**⌘3**) brings it back, and so does the Dock icon's menu
+(Control-click the icon).
 
 ## If something goes wrong
 

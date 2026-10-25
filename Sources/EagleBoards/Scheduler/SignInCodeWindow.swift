@@ -6,6 +6,7 @@ import SwiftUI
 /// It grows with the window.
 struct SignInCodeWindow: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         Group {
@@ -36,6 +37,12 @@ struct SignInCodeWindow: View {
             }
         }
         .frame(minWidth: 360, idealWidth: 560, maxWidth: .infinity, minHeight: 420, idealHeight: 680, maxHeight: .infinity)
+        // The scheduler window sets this as it appears. A launch that brings
+        // back only this window would leave the Dock menu's Scheduler and the
+        // model's commands with no way to open it.
+        .onAppear {
+            if model.openWindow == nil { model.openWindow = { [openWindow] id in openWindow(id: id) } }
+        }
     }
 
     private var unavailableTitle: String {

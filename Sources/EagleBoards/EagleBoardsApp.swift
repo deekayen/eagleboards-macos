@@ -22,6 +22,9 @@ struct EagleBoardsApp: App {
         Window("Sign-In Code", id: WindowID.signInCode) {
             SignInCodeWindow()
                 .environment(model)
+                // The Dock menu reaches the model through the delegate, also
+                // when this window is the only one open.
+                .onAppear { appDelegate.model = model }
         }
         .defaultSize(width: 560, height: 680)
         .commandsRemoved()
@@ -53,8 +56,9 @@ enum WindowID {
     static let donate = "donate"
 }
 
-/// Keeps the app a regular app when launched straight from `swift run`, and
-/// asks before quitting while the sign-in station is serving.
+/// Keeps the app a regular app when launched straight from `swift run`, asks
+/// before quitting while the sign-in station is serving, and gives the Dock
+/// icon a menu for the windows an operator reaches for once they are closed.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     weak var model: AppModel?
@@ -72,6 +76,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
+    }
+
+    /// Scheduler and Sign-In Code, as in the Window menu.
+    func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
+        let menu = NSMenu()
+        for (title, action) in [("Scheduler", #selector(showScheduler)), ("Sign-In Code", #selector(showSignInCode))] {
+            let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
+            item.target = self
+            menu.addItem(item)
+        }
+        return menu
+    }
+
+    @objc private func showScheduler() { show(WindowID.scheduler) }
+    @objc private func showSignInCode() { show(WindowID.signInCode) }
+
+    private func show(_ windowID: String) {
+        NSApplication.shared.activate()
+        model?.openWindow?(windowID)
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
@@ -92,19 +115,26 @@ struct EagleBoardsCommands: Commands {
 
     var body: some Commands {
         CommandGroup(after: .newItem) {
-            Button("Open Another Event…") { model.sheet = .openEvent }
+            // Opening another event while a sheet is up would take the event
+            // out from under it.
+            Button("Open Another Event…") { model.present(.openEvent) }
                 .keyboardShortcut("o")
-                .disabled(model.dataFolder == nil)
+                .disabled(model.dataFolder == nil || model.sheet != nil)
             Menu("Open Recent Event") {
                 ForEach(recentEvents, id: \.self) { name in
-                    Button(name == model.today ? "\(name) (Today)" : name) {
-                        if let folder = model.dataFolder { model.open(folder: folder, event: name) }
+                    // In the scheduler window, where the event shows, or the
+                    // alert saying why it could not be opened.
+                    Button(DataFolder.eventLabel(name, today: model.today)) {
+                        guard let folder = model.dataFolder else { return }
+                        model.openScheduler()
+                        model.open(folder: folder, event: name)
                     }
                     .disabled(name == model.event?.date)
                 }
             }
-            .disabled(recentEvents.isEmpty)
+            .disabled(recentEvents.isEmpty || model.sheet != nil)
             Button("Choose Data Folder…") { model.chooseDataFolderWithPanel() }
+                .disabled(model.sheet != nil)
             Button("Show Event Folder in Finder") { model.showDataFolderInFinder() }
                 .disabled(model.event == nil)
         }
@@ -155,15 +185,20 @@ struct EagleBoardsCommands: Commands {
                 .disabled(model.event == nil)
         }
         CommandMenu("Adult") {
-            Button("Add Adult…") { model.sheet = .addAdult }
+            Button("Add Adult…") { model.present(.addAdult) }
                 .keyboardShortcut("n")
                 .disabled(model.event == nil || model.sheet != nil)
+            Button("Sign In for Today") { model.signInFromHistory(model.historySelectionToSignIn) }
+                .disabled(model.historySelectionToSignIn.isEmpty)
             Divider()
             AdultActionButtons(model: model)
                 .disabled(model.event == nil)
         }
+        // A room changed under an open sheet would change the board it is
+        // drawing up, or replace the sheet with its own.
         CommandMenu("Room") {
             RoomActionButtons(model: model, event: model.event)
+                .disabled(model.sheet != nil)
         }
         // In place of the scheduler scene's own Window menu entry, which
         // named it after the app. Replacing this group leaves the other

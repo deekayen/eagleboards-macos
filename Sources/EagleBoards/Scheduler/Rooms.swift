@@ -251,7 +251,7 @@ struct NoRoomsYet: View {
             Text("A board cannot be seated without a room. Mark each one Final or Project by what it is used for today.")
         } actions: {
             HStack {
-                Button("Add Room…") { model.sheet = .addRoom }
+                Button("Add Room…") { model.present(.addRoom) }
                 if !earlierEvents.isEmpty {
                     CopyRoomsMenu(event: event)
                 }
@@ -305,17 +305,17 @@ struct RoomActionButtons: View {
         let room = (roomID ?? model.selectedRoomID).flatMap { event?.room(id: $0) }
 
         if !inContextMenu {
-            Button("Add Room…") { model.sheet = .addRoom }
+            Button("Add Room…") { model.present(.addRoom) }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
                 .disabled(event == nil)
             CopyRoomsItems(model: model, event: event)
             Divider()
         }
         MenuCommand("Rename…", applies: room != nil, inContextMenu: inContextMenu) {
-            run(room) { model.sheet = .renameRoom(roomID: $0.id) }
+            run(room) { model.present(.renameRoom(roomID: $0.id)) }
         }
         MenuCommand("Move Board to Another Room…", applies: room != nil, inContextMenu: inContextMenu) {
-            run(room) { model.sheet = .swapRooms(roomID: $0.id) }
+            run(room) { model.present(.swapRooms(roomID: $0.id)) }
         }
         if room != nil || !inContextMenu {
             Picker("Used For", selection: Binding(

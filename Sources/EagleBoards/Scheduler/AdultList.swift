@@ -85,20 +85,22 @@ struct AdultList: View {
         }
         .contextMenu(forSelectionType: Adult.ID.self) { ids in
             if ids.isEmpty {
-                Button("Add Adult…") { model.sheet = .addAdult }
+                Button("Add Adult…") { model.present(.addAdult) }
             } else {
                 AdultActionButtons(model: model, adultIDs: ids, inContextMenu: true)
             }
         } primaryAction: { ids in
             // Double-clicking below the last row adds someone.
             if ids.isEmpty {
-                model.sheet = .addAdult
+                model.present(.addAdult)
             } else {
                 model.addToDraft(Array(ids))
             }
         }
+        // One adult at a time, as in the context menu, asking first.
+        .onDeleteCommand(perform: model.singleSelectedAdult.map { adult in { model.confirmDeleteAdult(adult.id) } })
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            ListFooter("Add Adult", help: "Sign in an adult who would rather not use the tablet") { model.sheet = .addAdult }
+            ListFooter("Add Adult", help: "Sign in an adult who would rather not use the tablet") { model.present(.addAdult) }
         }
         .overlay {
             if rows.isEmpty {
