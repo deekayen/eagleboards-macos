@@ -19,7 +19,8 @@ writes the same data files, so a district can switch between them.
 
 **Running an event? This page is the whole manual.** The same guide is
 in the app under **Help › Eagle Boards Help**, with a search field that
-**Edit › Find…** (**⌘F**) goes to while Help is in front. The pictures use a
+**Edit › Find…** (**⌘F**) goes to while Help is in front. Help's **Keyboard
+shortcuts** sections list every key the app answers. The pictures use a
 made-up event whose cast is famous Eagle Scouts; nothing in them is real.
 
 ## Before the first event
@@ -128,10 +129,10 @@ one), and **−** takes one off. In the **Adults** page you can also
 Command-click several adults and choose **Adult › Add to Board** (**⌘B**), or
 drag them onto the board. To hand the
 chair to someone who reads **Can Chair**, right-click them and choose **Make
-Chair**, or select them on the **Adults** page and choose **Adult › Make
-Chair**. **Fill the Rest** keeps who you chose and adds a chair, if none of
-them can chair it, and members up to the number needed; **Start Over**
-replaces the whole board with a proposal.
+Chair**, choose them from **Board › Chair**, or select them on the **Adults**
+page and choose **Adult › Make Chair**. **Fill the Rest** keeps who you chose
+and adds a chair, if none of them can chair it, and members up to the number
+needed; **Start Over** replaces the whole board with a proposal.
 
 Until you change it, the proposed board keeps up with the event: when an adult
 signs in, goes home or comes back, or leaves a board, it is proposed again.
@@ -169,9 +170,10 @@ inspector lists who introduces the youth, then their leader and parents, under
 
 If the adult introducing a youth did not say so at sign-in, select the youth
 and use **Link an Adult** under **With Them**, which lists the adults from the
-youth's unit first. On the **Adults** page, with the youth still selected,
-**Adult › Introduces** and the youth's name links the selected adult, or
-unlinks them if it has a check.
+youth's unit first. To unlink them, right-click them there or choose them from
+**Board › Unlink Introducer**. On the **Adults** page, with the youth still
+selected, **Adult › Introduces** and the youth's name links the selected
+adult, or unlinks them if it has a check.
 
 ### 5. Complete
 
@@ -211,7 +213,9 @@ and which room someone is in are never typed in: they change on the Event
 page. Nor is a youth's status: it is read-only on every page, and changes only
 through the Event page's steps (**Seat Board**, **Start Review**, **Complete…**,
 **Postpone**, **Reset Board** and **Undo**), which take and free a room and its
-members. There is no separate records window.
+members. There is no separate records window. Click a column heading to sort
+a page by it, or choose **View › Sort By**; **Return** in the search goes to
+the first row found.
 
 | Page | What it holds |
 | --- | --- |

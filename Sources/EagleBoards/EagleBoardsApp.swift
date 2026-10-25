@@ -190,6 +190,8 @@ struct EagleBoardsCommands: Commands {
             ForEach(pages.dropFirst(), id: \.element) { index, page in
                 pageButton(page, KeyEquivalent(Character(String(index + 1))))
             }
+            Divider()
+            SortByMenu(model: model)
         }
         // Xcode 26's CommandsBuilder takes at most ten items in a block, and
         // CI builds with it, so the menus below are grouped to stay under that.

@@ -12,15 +12,22 @@ import SwiftUI
 struct PreRegisteredPage: View {
     @Environment(AppModel.self) private var model
     let event: BoardEvent
+    let focus: FocusState<SchedulerFocus?>.Binding
     @State private var selection: Scout.ID?
-    @State private var sortOrder = [KeyPathComparator(\Scout.last)]
+
+    /// The sortable columns, as headed below, for View › Sort By.
+    static let order = TableOrder<Scout>([
+        .init("Last Name", \.last), .init("First Name", \.first), .init("Unit Type", \.unitType), .init("Unit", \.unit),
+        .init("Board Type", \.boardTypeText), .init("Leader", \.leader), .init("Email", \.email),
+    ])
 
     var body: some View {
+        let sortOrder = model.sortOrder(for: .preRegistered, Self.order)
         let rows = event.scheduledScouts
             .filter { matches(model.searchText, $0.shownFullName, $0.email, $0.unitName, $0.unitDisplay, $0.leader.shownValue) }
-            .sorted(using: sortOrder)
+            .sorted(using: sortOrder.wrappedValue)
 
-        Table(of: Scout.self, selection: $selection, sortOrder: $sortOrder) {
+        Table(of: Scout.self, selection: $selection, sortOrder: sortOrder) {
             TableColumn("Last Name", value: \Scout.last) { youth in
                 EditableText(youth.last.shownValue, name: "Last name") { value in edit(youth) { $0.last = value } }
             }
@@ -53,6 +60,13 @@ struct PreRegisteredPage: View {
             }
         } rows: {
             ForEach(rows) { TableRow($0) }
+        }
+        .focused(focus, equals: .table(.preRegistered))
+        // Return in the search: the first pre-registration found, with the focus.
+        .onChange(of: model.searchSubmitted) {
+            guard let first = rows.first else { return }
+            selection = first.id
+            focus.wrappedValue = .table(.preRegistered)
         }
         .accessibilityLabel(model.page.title)
         .speaksSearchCount(model.searchText, shown: rows.count, total: event.scheduledScouts.count)
@@ -99,35 +113,44 @@ struct AdultHistoryPage: View {
         var id: String { adult.id }
     }
 
+    /// The table's columns, which View › Sort By lists too. `today`'s date
+    /// shows as Today.
+    static func columns(today: String) -> [PlainColumn<Row>] {
+        [
+            // The date in words, "Today" for today's, sorted by the
+            // folder's name, which is the help.
+            PlainColumn(id: "lastEvent", title: "Last Event", width: 140, style: .digits, ascendingFirst: false,
+                        text: { $0.adult.lastEvent == today ? "Today" : Timestamp.shownDate($0.adult.lastEvent) },
+                        toolTip: { $0.adult.lastEvent.isEmpty ? nil : $0.adult.lastEvent }, checked: \.signedIn,
+                        sortText: { $0.adult.lastEvent }),
+            PlainColumn(id: "last", title: "Last Name", width: 130, text: { $0.adult.last.shownValue }),
+            PlainColumn(id: "first", title: "First Name", width: 130, text: { $0.adult.first.shownValue }),
+            PlainColumn(id: "unit", title: "Unit", width: 90, text: { $0.adult.unitDisplay }),
+            PlainColumn(id: "final", title: "Final Board Role", width: 106, style: .role, text: { $0.adult.finalBoardRoleText }),
+            PlainColumn(id: "project", title: "Proposal Review Role", width: 132, style: .role,
+                        text: { $0.adult.projectReviewRoleText }),
+            PlainColumn(id: "events", title: "Events", width: 55, style: .digits, text: { "\($0.adult.eventCount)" },
+                        toolTip: { $0.adult.boardHistory }, sortKey: { $0.adult.eventCount }),
+            PlainColumn(id: "email", title: "Email", width: 220, text: { $0.adult.email }),
+            PlainColumn(id: "phone", title: "Phone", width: 120, text: { $0.adult.phone }),
+        ]
+    }
+
+    static var sortColumns: [SortColumn] { columns(today: "").map(\.sortColumn) }
+
     var body: some View {
         @Bindable var model = model
         let signedIn = Set(event.adults.map(\.id))
         let rows = event.adultHistory
             .filter { matches(model.searchText, $0.shownFullName, $0.email, $0.unitName, $0.unitDisplay) }
             .map { Row(adult: $0, signedIn: signedIn.contains($0.id)) }
-        let today = model.today
+        // Read here, so View › Sort By redraws the page.
+        let sort = model.sort(for: .adultHistory)
         // AppKit, not a SwiftUI Table: see PlainTable.
         PlainTable(
             rows: rows,
-            columns: [
-                // The date in words, "Today" for today's, sorted by the
-                // folder's name, which is the help.
-                PlainColumn(id: "lastEvent", title: "Last Event", width: 140, style: .digits, ascendingFirst: false,
-                            text: { $0.adult.lastEvent == today ? "Today" : Timestamp.shownDate($0.adult.lastEvent) },
-                            toolTip: { $0.adult.lastEvent.isEmpty ? nil : $0.adult.lastEvent }, checked: \.signedIn,
-                            sortText: { $0.adult.lastEvent }),
-                PlainColumn(id: "last", title: "Last Name", width: 130, text: { $0.adult.last.shownValue }),
-                PlainColumn(id: "first", title: "First Name", width: 130, text: { $0.adult.first.shownValue }),
-                PlainColumn(id: "unit", title: "Unit", width: 90, text: { $0.adult.unitDisplay }),
-                PlainColumn(id: "final", title: "Final Board Role", width: 106, style: .role, text: { $0.adult.finalBoardRoleText }),
-                PlainColumn(id: "project", title: "Proposal Review Role", width: 132, style: .role,
-                            text: { $0.adult.projectReviewRoleText }),
-                PlainColumn(id: "events", title: "Events", width: 55, style: .digits, text: { "\($0.adult.eventCount)" },
-                            toolTip: { $0.adult.boardHistory }, sortKey: { $0.adult.eventCount }),
-                PlainColumn(id: "email", title: "Email", width: 220, text: { $0.adult.email }),
-                PlainColumn(id: "phone", title: "Phone", width: 120, text: { $0.adult.phone }),
-            ],
-            sortedBy: "last",
+            columns: Self.columns(today: model.today),
+            sort: Binding(get: { sort }, set: { model.setSort($0, for: .adultHistory) }),
             name: "Adult History CSV",
             selection: $model.selectedHistoryIDs,
             doubleClick: { id in
@@ -137,7 +160,10 @@ struct AdultHistoryPage: View {
                 PlainMenuItem(title: "Sign In for Today",
                               isEnabled: { !$0.isSubset(of: signedIn) },
                               action: { model.signInFromHistory($0.subtracting(signedIn)) }),
-            ]
+            ],
+            takesFocus: true,
+            firstRowRequest: model.searchSubmitted,
+            focusRequest: model.plainTableFocusRequests
         )
         .speaksSearchCount(model.searchText, shown: rows.count, total: event.adultHistory.count)
         .overlay {
@@ -164,9 +190,25 @@ struct ApprovedProposalsPage: View {
     @State private var found: ApprovedProposals?
     @State private var selection: Set<String> = []
 
+    /// The table's columns, which View › Sort By lists too.
+    static let columns: [PlainColumn<ApprovedProposal>] = [
+        PlainColumn(id: "last", title: "Last Name", width: 130, text: \.last),
+        PlainColumn(id: "first", title: "First Name", width: 120, text: \.first),
+        PlainColumn(id: "unit", title: "Unit", width: 100, text: \.unit),
+        PlainColumn(id: "event", title: "Approved On", width: 140, style: .digits, ascendingFirst: false,
+                    text: { Timestamp.shownDate($0.event) }, toolTip: { $0.event }, sortText: \.event),
+        PlainColumn(id: "chair", title: "Chair", width: 150, text: \.chair),
+        PlainColumn(id: "members", title: "Other Members", width: 240, text: { $0.otherMembers.joined(separator: ", ") }),
+        PlainColumn(id: "notes", title: "Notes", width: 260, text: \.notes, toolTip: { $0.notes.isEmpty ? nil : $0.notes }),
+    ]
+
+    static var sortColumns: [SortColumn] { columns.map(\.sortColumn) }
+
     var body: some View {
         let approvals = (found?.approvals ?? [])
             .filter { matches(model.searchText, "\($0.first) \($0.last)", $0.unit) }
+        // Read here, so View › Sort By redraws the page.
+        let sort = model.sort(for: .approvedProposals)
         VStack(alignment: .leading, spacing: 0) {
             if let found {
                 VStack(alignment: .leading, spacing: 4) {
@@ -181,19 +223,13 @@ struct ApprovedProposalsPage: View {
             }
             PlainTable(
                 rows: approvals,
-                columns: [
-                    PlainColumn(id: "last", title: "Last Name", width: 130, text: \.last),
-                    PlainColumn(id: "first", title: "First Name", width: 120, text: \.first),
-                    PlainColumn(id: "unit", title: "Unit", width: 100, text: \.unit),
-                    PlainColumn(id: "event", title: "Approved On", width: 140, style: .digits, ascendingFirst: false,
-                                text: { Timestamp.shownDate($0.event) }, toolTip: { $0.event }, sortText: \.event),
-                    PlainColumn(id: "chair", title: "Chair", width: 150, text: \.chair),
-                    PlainColumn(id: "members", title: "Other Members", width: 240, text: { $0.otherMembers.joined(separator: ", ") }),
-                    PlainColumn(id: "notes", title: "Notes", width: 260, text: \.notes, toolTip: { $0.notes.isEmpty ? nil : $0.notes }),
-                ],
-                sortedBy: "last",
+                columns: Self.columns,
+                sort: Binding(get: { sort }, set: { model.setSort($0, for: .approvedProposals) }),
                 name: "Approved Proposals",
-                selection: $selection
+                selection: $selection,
+                takesFocus: true,
+                firstRowRequest: model.searchSubmitted,
+                focusRequest: model.plainTableFocusRequests
             )
             .speaksSearchCount(model.searchText, shown: approvals.count, total: found?.approvals.count ?? 0)
             .overlay {
@@ -220,15 +256,21 @@ struct ApprovedProposalsPage: View {
 struct RoomsPage: View {
     @Environment(AppModel.self) private var model
     let event: BoardEvent
-    @State private var sortOrder = [KeyPathComparator(\Room.name)]
+    let focus: FocusState<SchedulerFocus?>.Binding
+
+    /// The sortable columns, as headed below, for View › Sort By.
+    static let order = TableOrder<Room>([
+        .init("Room", \.name), .init("Used For", \.boardTypeText), .init("Youth", \.scoutName), .init("Members", \.leaderNames),
+    ])
 
     var body: some View {
         @Bindable var model = model
+        let sortOrder = model.sortOrder(for: .rooms, Self.order)
         let rows = event.rooms
             .filter { matches(model.searchText, $0.name, $0.scoutName.shownValue, $0.leaderNames.shownValue) }
-            .sorted(using: sortOrder)
+            .sorted(using: sortOrder.wrappedValue)
 
-        Table(of: Room.self, selection: $model.selectedRoomID, sortOrder: $sortOrder) {
+        Table(of: Room.self, selection: $model.selectedRoomID, sortOrder: sortOrder) {
             TableColumn("Room", value: \Room.name) { room in
                 Text(room.name).help(room.name)
             }
@@ -249,6 +291,13 @@ struct RoomsPage: View {
             }
         } rows: {
             ForEach(rows) { TableRow($0) }
+        }
+        .focused(focus, equals: .table(.rooms))
+        // Return in the search: the first room found, with the focus.
+        .onChange(of: model.searchSubmitted) {
+            guard let first = rows.first else { return }
+            model.selectedRoomID = first.id
+            focus.wrappedValue = .table(.rooms)
         }
         .accessibilityLabel(model.page.title)
         .speaksSearchCount(model.searchText, shown: rows.count, total: event.rooms.count)

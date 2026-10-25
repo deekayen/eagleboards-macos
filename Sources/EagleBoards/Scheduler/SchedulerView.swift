@@ -19,6 +19,11 @@ struct SchedulerView: View {
     /// The youth list's width on the Event page, as the operator last left it.
     @AppStorage("youthListWidth") private var youthListWidth = 320.0
     @FocusState private var searchFocused: Bool
+    /// The page's list or table, and the inspector's controls, where the app
+    /// moves the focus itself.
+    @FocusState private var focus: SchedulerFocus?
+    /// A step a focused inspector button opened a sheet or a question for.
+    @State private var pendingStep: StepFocus.Pending?
     let event: BoardEvent
 
     var body: some View {
@@ -37,7 +42,7 @@ struct SchedulerView: View {
                 Task { startSearch() }
             }
             .inspector(isPresented: $model.showsInspector) {
-                YouthInspector(event: event)
+                YouthInspector(event: event, steps: steps)
                     .inspectorColumnWidth(min: 300, ideal: 340, max: 480)
                     .toolbar {
                         ToolbarItem {
@@ -51,7 +56,7 @@ struct SchedulerView: View {
                     }
             }
             .toolbar { toolbar }
-            .sheet(item: $model.sheet) { sheet in
+            .sheet(item: $model.sheet, onDismiss: landPendingStep) { sheet in
                 switch sheet {
                 case .seatBoard(let scoutID): SeatBoardSheet(event: event, scoutID: scoutID)
                 case .changeMembers(let scoutID): ChangeMembersSheet(event: event, scoutID: scoutID)
@@ -76,7 +81,19 @@ struct SchedulerView: View {
             } message: { confirmation in
                 Text(confirmation.message)
             }
+            // A turn after the question closes, so its button has run, before
+            // or after the close.
+            .onChange(of: model.confirmation == nil) { _, closed in
+                if closed { Task { landPendingStep() } }
+            }
             .messageAlert()
+            // A turn later, once the page shown has replaced the one before.
+            .onChange(of: model.page, initial: true) { Task { focusShownPage() } }
+            .onChange(of: model.listFocusRequested, initial: true) {
+                guard model.listFocusRequested else { return }
+                model.listFocusRequested = false
+                Task { focus = .youthList }
+            }
             .onChange(of: BoardDrafts.fingerprint(of: event)) { model.refreshProposals() }
             // Who signed in at the door, said once the sign-ins pause: a
             // newer one restarts the wait, so a rush is one sentence.
@@ -97,24 +114,24 @@ struct SchedulerView: View {
         switch model.page {
         case .event:
             HStack(spacing: 0) {
-                YouthList(event: event)
+                YouthList(event: event, focus: $focus)
                     .frame(width: youthListWidth)
                 ColumnResizer(width: $youthListWidth, range: 260...520, label: "Youth list width")
                 RoomsGrid(event: event)
                     .frame(minWidth: 240, maxWidth: .infinity, maxHeight: .infinity)
             }
         case .results:
-            ResultsPage(event: event)
+            ResultsPage(event: event, focus: $focus)
         case .adults:
-            AdultList(event: event)
+            AdultList(event: event, focus: $focus)
         case .youth:
-            YouthPage(event: event)
+            YouthPage(event: event, focus: $focus)
         case .preRegistered:
-            PreRegisteredPage(event: event)
+            PreRegisteredPage(event: event, focus: $focus)
         case .adultHistory:
             AdultHistoryPage(event: event)
         case .rooms:
-            RoomsPage(event: event)
+            RoomsPage(event: event, focus: $focus)
         case .approvedProposals:
             ApprovedProposalsPage(event: event)
         }
@@ -125,6 +142,33 @@ struct SchedulerView: View {
     /// forward.
     private func startSearch() {
         startToolbarSearch($searchFocused)
+    }
+
+    private var steps: StepFocus {
+        StepFocus(model: model, focus: $focus, pending: $pendingStep)
+    }
+
+    /// Into the page shown, as Windows' FocusPage does, at launch and after a
+    /// page change, but only when the focus fell to the window: focus left in
+    /// the toolbar search, or on a control still shown, stays there. The
+    /// Adult History CSV and Approved Proposals tables take it themselves
+    /// (`PlainTable.takesFocus`).
+    private func focusShownPage() {
+        guard let target = SchedulerFocus.content(of: model.page),
+              let window = model.schedulerWindow ?? NSApp.keyWindow,
+              window.firstResponder == nil || window.firstResponder === window
+        else { return }
+        if #available(macOS 15, *), searchFocused { return }
+        focus = target
+    }
+
+    /// The sheet or question a focused step button opened has closed. If the
+    /// step was taken, that button is gone, and the focus goes on.
+    private func landPendingStep() {
+        guard let step = pendingStep else { return }
+        pendingStep = nil
+        guard model.selectedYouthID == step.youthID, event.scout(id: step.youthID)?.status != step.status else { return }
+        steps.move(to: step.target)
     }
 
     private var title: String { model.page.title }

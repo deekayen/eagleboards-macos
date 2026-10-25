@@ -267,6 +267,30 @@ final class AppModel {
     /// Board › Locate Leader and Parents asked for the inspector's With Them
     /// section, which the inspector scrolls to once it is on screen.
     var locateRequested = false
+    /// Show on Event Page asked for the youth list to take the focus, with
+    /// the youth selected in it.
+    var listFocusRequested = false
+    /// Return in a table page's search, counted so the same search can be
+    /// submitted again: the page selects its first row found and focuses
+    /// its table.
+    private(set) var searchSubmitted = 0
+    /// A step from a focused inspector button that went away, on the Adult
+    /// History CSV or Approved Proposals page: their AppKit table takes the
+    /// focus, as a SwiftUI page's table does through `SchedulerFocus`.
+    private(set) var plainTableFocusRequests = 0
+
+    func focusPlainTable() { plainTableFocusRequests += 1 }
+
+    /// Each table page's order, which a click on a column heading and
+    /// View › Sort By both set.
+    private var sorts: [Page: TableSort] = [:]
+
+    func sort(for page: Page) -> TableSort { sorts[page] ?? page.defaultSort }
+
+    func setSort(_ sort: TableSort, for page: Page) {
+        guard self.sort(for: page) != sort else { return }
+        sorts[page] = sort
+    }
 
     var selectedYouthID: Scout.ID?
     /// Picked on the Adults page, and let go when it is left.
@@ -403,10 +427,12 @@ final class AppModel {
         return selectedHistoryIDs.subtracting(event.adults.map(\.id))
     }
 
-    /// A board picked on Results, on the Event page beside its room.
+    /// A board picked on Results, on the Event page beside its room, with
+    /// the focus on the youth in the list.
     func showOnEventPage(_ id: Scout.ID) {
         show(.event)
         selectYouth(id)
+        listFocusRequested = true
     }
 
     /// A room picked on the Rooms page, its card selected on the Event page.
@@ -495,14 +521,15 @@ final class AppModel {
         drafts.makeChair(adult, for: youth, in: event)
     }
 
-    /// Clicking a room selects it, and the youth in it if any.
-    /// A free room has no youth, so the youth selected before is let go:
-    /// the inspector and Next Step must not go on acting on someone the
-    /// operator has clicked away from.
     /// Return in the search on the Event page (SPEC.md D-21): open the first
-    /// room found, or the youth found if they are in no room.
+    /// room found, or the youth found if they are in no room. On a table
+    /// page, go to the first row found, as Windows' Find does.
     func openFirstFound() {
-        guard let event, page == .event else { return }
+        guard let event else { return }
+        guard page == .event else {
+            if !searchText.trimmingCharacters(in: .whitespaces).isEmpty { searchSubmitted += 1 }
+            return
+        }
         let find = event.find(searchText)
         if let room = find.rooms.first, !searchText.trimmingCharacters(in: .whitespaces).isEmpty {
             selectRoom(room.id)
@@ -511,6 +538,10 @@ final class AppModel {
         }
     }
 
+    /// Clicking a room selects it, and the youth in it if any.
+    /// A free room has no youth, so the youth selected before is let go:
+    /// the inspector and Next Step must not go on acting on someone the
+    /// operator has clicked away from.
     func selectRoom(_ id: Room.ID) {
         selectedRoomID = id
         let occupant = event?.room(id: id).flatMap { room in

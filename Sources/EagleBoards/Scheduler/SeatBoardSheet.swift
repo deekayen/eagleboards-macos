@@ -332,6 +332,8 @@ struct AddRoomSheet: View {
     @State private var name = ""
     @State private var boardType: BoardType = .finalBoard
     @State private var problem: String?
+    /// The name is what a refusal is about, so the cursor goes back to it.
+    @FocusState private var nameFocused: Bool
 
     var body: some View {
         SheetLayout(
@@ -341,6 +343,7 @@ struct AddRoomSheet: View {
         ) {
             Section {
                 TextField("Name", text: $name, prompt: Text("101 or 200A"))
+                    .focused($nameFocused)
                 Picker("Used for", selection: $boardType) {
                     ForEach(BoardType.allCases) { Text($0.label).tag($0) }
                 }
@@ -358,12 +361,25 @@ struct AddRoomSheet: View {
                     dismiss()
                 } catch {
                     problem = error.localizedDescription
+                    refocusName($nameFocused)
                 }
             }
             .keyboardShortcut(.defaultAction)
             .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
         }
+        // A turn later, once the sheet is in its window.
+        .onAppear { Task { nameFocused = true } }
     }
+}
+
+/// Put the cursor back in a room sheet's name, with its text selected, so
+/// the fix for a refusal is typed straight over it, as Windows' dialogs do.
+/// Out and back in, a turn apart: a field that still has the cursor, after
+/// Return, would otherwise not take it again, and keep its text unselected.
+@MainActor
+private func refocusName(_ focused: FocusState<Bool>.Binding) {
+    focused.wrappedValue = false
+    Task { focused.wrappedValue = true }
 }
 
 /// Rename a room. A board in it moves with it: its youth and adults follow
@@ -377,6 +393,7 @@ struct RenameRoomSheet: View {
 
     @State private var name = ""
     @State private var problem: String?
+    @FocusState private var nameFocused: Bool
 
     var body: some View {
         let room = event.room(id: roomID)
@@ -386,6 +403,7 @@ struct RenameRoomSheet: View {
         ) {
             Section {
                 TextField("New name", text: $name, prompt: Text("101 or 200A"))
+                    .focused($nameFocused)
             } footer: {
                 if let problem {
                     SheetProblem(text: problem)
@@ -400,12 +418,17 @@ struct RenameRoomSheet: View {
                     dismiss()
                 } catch {
                     problem = error.localizedDescription
+                    refocusName($nameFocused)
                 }
             }
             .keyboardShortcut(.defaultAction)
             .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || name == room?.name)
         }
-        .onAppear { name = room?.name ?? "" }
+        .onAppear {
+            name = room?.name ?? ""
+            // Once the old name is in, so it is selected and typing replaces it.
+            Task { nameFocused = true }
+        }
     }
 }
 

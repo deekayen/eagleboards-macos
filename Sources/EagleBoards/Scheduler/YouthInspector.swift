@@ -8,6 +8,7 @@ import SwiftUI
 struct YouthInspector: View {
     @Environment(AppModel.self) private var model
     let event: BoardEvent
+    let steps: StepFocus
 
     var body: some View {
         if let youth = model.selectedYouth {
@@ -17,9 +18,9 @@ struct YouthInspector: View {
                         YouthHeader(youth: youth, event: event, now: timeline.date)
                         switch youth.status {
                         case .registered, .verified, nil:
-                            DraftBoardSections(youth: youth, event: event)
+                            DraftBoardSections(youth: youth, event: event, steps: steps)
                         case .seated, .inProgress:
-                            SittingBoardSection(youth: youth, event: event, now: timeline.date)
+                            SittingBoardSection(youth: youth, event: event, now: timeline.date, steps: steps)
                         case .completed, .postponed:
                             ResultSection(youth: youth)
                         }
@@ -91,6 +92,7 @@ private struct DraftBoardSections: View {
     @Environment(AppModel.self) private var model
     let youth: Scout
     let event: BoardEvent
+    let steps: StepFocus
     @State private var isTargeted = false
 
     var body: some View {
@@ -109,9 +111,9 @@ private struct DraftBoardSections: View {
                 ForEach(members) { member in
                     MemberRow(
                         member: member, youth: youth, boardType: boardType,
-                        isChair: member.id == chairID,
+                        isChair: member.id == chairID, focus: steps.focus,
                         makeChair: { model.makeChair(member.id) },
-                        remove: { model.removeFromDraft([member.id]) })
+                        remove: { remove(member.id, from: members) })
                 }
                 if members.isEmpty {
                     Text("Click adults in the list below to add them, or drag them here from the Adults list.")
@@ -143,22 +145,42 @@ private struct DraftBoardSections: View {
                         .help("Replace this board with a proposed chair, members and room")
                     Button("Fill the Rest") { model.fillDraft() }
                         .help("Keep who you chose and add a chair and members to complete the board")
-                    Button("Clear Board") { model.clearDraft() }
-                        .disabled(members.isEmpty)
+                    Button("Clear Board") {
+                        steps.run(.clearBoard, then: .findAdult, landed: { model.draft?.memberIDs.isEmpty != false }) {
+                            model.clearDraft()
+                        }
+                    }
+                    .focused(steps.focus, equals: .clearBoard)
+                    .disabled(members.isEmpty)
+                }
+                // A refresh can take off the member whose − has the focus:
+                // the focus goes on, as − itself sends it. On this one row,
+                // not the section, which hands its modifiers to every row.
+                .onChange(of: members.map(\.id)) { old, new in
+                    if case .remove(let id)? = steps.focus.wrappedValue, !new.contains(id) {
+                        steps.focus.wrappedValue = ListFocus.row(id, in: old, becoming: new).map { .remove($0) } ?? .findAdult
+                    }
                 }
                 HStack {
                     // Not styled destructive: Edit › Undo brings them back.
-                    Button("Postpone") { model.postpone() }
-                        .buttonStyle(.link)
-                        .help("Put this board off to another event, as when the paperwork is not ready")
+                    Button("Postpone") {
+                        steps.run(.postpone, then: .youthList) { model.postpone() }
+                    }
+                    .focused(steps.focus, equals: .postpone)
+                    .buttonStyle(.link)
+                    .help("Put this board off to another event, as when the paperwork is not ready")
                     Spacer()
-                    Button(BoardStep.seat.title) { model.beginSeating() }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(members.isEmpty || model.sheet != nil)
+                    Button(BoardStep.seat.title) {
+                        steps.run(.seat, then: .startReview) { model.beginSeating() }
+                    }
+                    .focused(steps.focus, equals: .seat)
+                    .buttonStyle(.borderedProminent)
+                    .disabled(members.isEmpty || model.sheet != nil)
                 }
             }
 
-            FreeAdultsSection(youth: youth, event: event, boardType: boardType, draftIDs: Set(draft.memberIDs))
+            FreeAdultsSection(youth: youth, event: event, boardType: boardType, draftIDs: Set(draft.memberIDs),
+                              focus: steps.focus)
         } else if youth.boardType == nil {
             Section {
                 NoticeLabel.warning(
@@ -172,8 +194,25 @@ private struct DraftBoardSections: View {
         } else {
             // No board yet, so there is nothing to start over.
             Section {
-                Button("Suggest Board") { model.suggestBoard() }
+                Button("Suggest Board") {
+                    steps.run(.suggestBoard, then: model.draftMembers(for: youth.id).isEmpty ? .findAdult : .seat,
+                              landed: { model.draft != nil }) {
+                        model.suggestBoard()
+                    }
+                }
+                .focused(steps.focus, equals: .suggestBoard)
             }
+        }
+    }
+
+    /// − on a member. With the focus on it, the focus goes to the next
+    /// member's −, or to Find an adult once the board is empty.
+    private func remove(_ id: Adult.ID, from members: [Adult]) {
+        let hadFocus = steps.focus.wrappedValue == .remove(id)
+        let next = ListFocus.row(after: id, in: members.map(\.id))
+        model.removeFromDraft([id])
+        if hadFocus {
+            steps.focus.wrappedValue = next.map { .remove($0) } ?? .findAdult
         }
     }
 
@@ -219,6 +258,7 @@ private struct MemberRow: View {
     let youth: Scout
     let boardType: BoardType
     let isChair: Bool
+    let focus: FocusState<SchedulerFocus?>.Binding
     let makeChair: () -> Void
     let remove: () -> Void
 
@@ -253,6 +293,7 @@ private struct MemberRow: View {
             Button(action: remove) {
                 Image(systemName: "minus.circle").memberButtonTarget()
             }
+            .focused(focus, equals: .remove(member.id))
             .buttonStyle(.borderless)
             .help("Take \(member.shownFullName) off this board")
             .accessibilityLabel("Remove \(member.shownFullName)")
@@ -343,6 +384,7 @@ private struct FreeAdultsSection: View {
     let event: BoardEvent
     let boardType: BoardType
     let draftIDs: Set<Adult.ID>
+    let focus: FocusState<SchedulerFocus?>.Binding
     @State private var search = ""
 
     var body: some View {
@@ -361,9 +403,20 @@ private struct FreeAdultsSection: View {
         Section {
             TextField("Find an adult", text: $search, prompt: Text("Name or unit"))
                 .labelsHidden()
+                .focused(focus, equals: .findAdult)
                 // Only once something is typed: Return in the empty field
                 // would otherwise add whoever heads the list.
-                .onSubmit { if !query.isEmpty, let first = free.first { add(first) } }
+                .onSubmit { if !query.isEmpty, let first = free.first { add(first, from: free) } }
+                // An adult whose + has the focus can leave the list with no
+                // button pressed: put on another board, gone home, or on this
+                // one by a refresh. The focus goes to the row in their place.
+                // On this one row, not the section, which hands its
+                // modifiers to every row.
+                .onChange(of: free.map(\.id)) { old, new in
+                    if case .add(let id)? = focus.wrappedValue, !new.contains(id) {
+                        focus.wrappedValue = ListFocus.row(id, in: old, becoming: new).map { .add($0) } ?? .findAdult
+                    }
+                }
             if free.isEmpty {
                 Text(query.isEmpty ? "Everyone who could sit is on a board." : "No free adult matches.")
                     .foregroundStyle(.secondary)
@@ -381,16 +434,17 @@ private struct FreeAdultsSection: View {
                     .accessibilityLabel(adult.spokenRow(youth: youth, place: adult.unitDisplay,
                                                         role: adult.role(for: boardType)?.label ?? ""))
                     Button {
-                        add(adult)
+                        add(adult, from: free)
                     } label: {
                         Image(systemName: "plus.circle").memberButtonTarget()
                     }
+                    .focused(focus, equals: .add(adult.id))
                     .buttonStyle(.borderless)
                     .help("Put \(adult.shownFullName) on this board")
                     .accessibilityLabel("Add \(adult.shownFullName)")
                 }
                 .contentShape(Rectangle())
-                .onTapGesture { add(adult) }
+                .onTapGesture { add(adult, from: free) }
                 .draggable(DragPayload.adult(adult.id))
             }
         } header: {
@@ -398,10 +452,17 @@ private struct FreeAdultsSection: View {
         }
     }
 
-    /// Put them on the board, and clear the search for the next one.
-    private func add(_ adult: Adult) {
+    /// Put them on the board, and clear the search for the next one. With
+    /// the focus on their +, the focus goes to the next adult's +, or to Find
+    /// an adult once no one is left.
+    private func add(_ adult: Adult, from free: [Adult]) {
+        let hadFocus = focus.wrappedValue == .add(adult.id)
+        let next = ListFocus.row(after: adult.id, in: free.map(\.id))
         model.addToDraft([adult.id])
         search = ""
+        if hadFocus {
+            focus.wrappedValue = next.map { .add($0) } ?? .findAdult
+        }
     }
 }
 
@@ -412,6 +473,7 @@ private struct SittingBoardSection: View {
     let youth: Scout
     let event: BoardEvent
     let now: Date
+    let steps: StepFocus
 
     var body: some View {
         Section {
@@ -435,17 +497,26 @@ private struct SittingBoardSection: View {
         }
         Section {
             HStack {
-                Button("Reset Board") { model.reset() }
-                    .help("Undo seating: the youth waits again and the room and members are freed")
+                Button("Reset Board") {
+                    steps.run(.resetBoard, then: .youthList) { model.reset() }
+                }
+                .focused(steps.focus, equals: .resetBoard)
+                .help("Undo seating: the youth waits again and the room and members are freed")
                 Spacer()
                 if youth.status == .seated {
-                    Button(BoardStep.startReview.title) { model.confirmStartReview() }
-                        .buttonStyle(.borderedProminent)
-                        .help("Bring the youth into the room, once the members have finished reading")
+                    Button(BoardStep.startReview.title) {
+                        steps.run(.startReview, then: .complete) { model.confirmStartReview() }
+                    }
+                    .focused(steps.focus, equals: .startReview)
+                    .buttonStyle(.borderedProminent)
+                    .help("Bring the youth into the room, once the members have finished reading")
                 } else {
-                    Button(BoardStep.complete.title) { model.beginCompleting() }
-                        .buttonStyle(.borderedProminent)
-                        .help("Finish the review and record the result")
+                    Button(BoardStep.complete.title) {
+                        steps.run(.complete, then: .youthList) { model.beginCompleting() }
+                    }
+                    .focused(steps.focus, equals: .complete)
+                    .buttonStyle(.borderedProminent)
+                    .help("Finish the review and record the result")
                 }
             }
         }
@@ -524,9 +595,14 @@ private struct WithThemSection: View {
                 }
                 .contextMenu {
                     if match.relation == .supporting {
-                        Button("Unlink from \(youth.shownFullName)") {
-                            model.setSupporting(false, adultID: match.adult.id, scoutID: youth.id)
-                        }
+                        unlinkButton(match.adult)
+                    }
+                }
+                // Board › Unlink Introducer is the keyboard's way; this is
+                // VoiceOver's, in the Actions menu.
+                .accessibilityActions {
+                    if match.relation == .supporting {
+                        unlinkButton(match.adult)
                     }
                 }
             }
@@ -552,6 +628,12 @@ private struct WithThemSection: View {
                 .disabled(others.isEmpty)
                 .help("Link the adult who will introduce \(youth.first.shownValue) to their board")
             }
+        }
+    }
+
+    private func unlinkButton(_ adult: Adult) -> some View {
+        Button("Unlink from \(youth.shownFullName)") {
+            model.setSupporting(false, adultID: adult.id, scoutID: youth.id)
         }
     }
 

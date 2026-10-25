@@ -14,17 +14,27 @@ import SwiftUI
 struct PlainTable<Row: Identifiable & Equatable>: NSViewRepresentable where Row.ID == String {
     let rows: [Row]
     let columns: [PlainColumn<Row>]
-    /// The column sorted by at first, ascending.
-    let sortedBy: String
+    /// The order, by a column's ID. A click on a heading sets it, as View ›
+    /// Sort By does.
+    @Binding var sort: TableSort
     let name: String
     @Binding var selection: Set<String>
     var doubleClick: ((String) -> Void)?
     var menuItems: [PlainMenuItem] = []
+    /// Take the focus as the page is shown, if nothing else has it.
+    var takesFocus = false
+    /// Changed by Return in the toolbar search: the first row is selected,
+    /// scrolled to and focused.
+    var firstRowRequest = 0
+    /// Changed when a step took away the inspector button that had the
+    /// focus: the table takes it.
+    var focusRequest = 0
 
     func makeCoordinator() -> PlainTableCoordinator { PlainTableCoordinator() }
 
     func makeNSView(context: Context) -> NSScrollView {
-        let table = NSTableView()
+        let table = PageTableView()
+        table.takesFocusWhenShown = takesFocus
         table.style = .inset
         table.usesAlternatingRowBackgroundColors = true
         table.allowsMultipleSelection = true
@@ -38,7 +48,7 @@ struct PlainTable<Row: Identifiable & Equatable>: NSViewRepresentable where Row.
             tableColumn.sortDescriptorPrototype = NSSortDescriptor(key: column.id, ascending: column.ascendingFirst)
             table.addTableColumn(tableColumn)
         }
-        table.sortDescriptors = [NSSortDescriptor(key: sortedBy, ascending: true)]
+        table.sortDescriptors = [NSSortDescriptor(key: sort.column, ascending: sort.ascending)]
         table.dataSource = context.coordinator
         table.delegate = context.coordinator
         table.target = context.coordinator
@@ -54,6 +64,10 @@ struct PlainTable<Row: Identifiable & Equatable>: NSViewRepresentable where Row.
         scroll.hasHorizontalScroller = true
         scroll.autohidesScrollers = true
         context.coordinator.table = table
+        // A search submitted, or a step taken, before the page was shown is
+        // not this page's.
+        context.coordinator.firstRowRequest = firstRowRequest
+        context.coordinator.focusRequest = focusRequest
         return scroll
     }
 
@@ -77,8 +91,11 @@ struct PlainTable<Row: Identifiable & Equatable>: NSViewRepresentable where Row.
                     return column.cell(row)
                 },
                 selection: $selection,
+                order: $sort,
                 doubleClick: doubleClick,
-                menuItems: menuItems
+                menuItems: menuItems,
+                firstRowRequest: firstRowRequest,
+                focusRequest: focusRequest
             ),
             rows: rows
         )
@@ -112,6 +129,30 @@ struct PlainColumn<Row> {
     func cell(_ row: Row) -> PlainCell.Content {
         PlainCell.Content(text: text(row), style: style, toolTip: toolTip(row), checked: checked(row))
     }
+
+    /// The column as View › Sort By lists it.
+    var sortColumn: SortColumn { SortColumn(id: id, title: title, ascendingFirst: ascendingFirst) }
+}
+
+/// The table a page shows. It takes the focus once, as the page is shown,
+/// when nothing else has it (Windows' FocusPage): focus left in the toolbar
+/// search stays there.
+final class PageTableView: NSTableView {
+    var takesFocusWhenShown = false
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        guard takesFocusWhenShown, window != nil else { return }
+        takesFocusWhenShown = false
+        // A turn later, once the page it replaces has left the window and
+        // let go of the focus.
+        Task { [weak self] in
+            guard let self, let window = self.window,
+                  window.firstResponder == nil || window.firstResponder === window
+            else { return }
+            window.makeFirstResponder(self)
+        }
+    }
 }
 
 /// A right-click menu command on the selected (or clicked) rows.
@@ -131,8 +172,12 @@ final class PlainTableCoordinator: NSObject, NSTableViewDataSource, NSTableViewD
         let sort: (String, Bool) -> [String]
         let cell: (String, String) -> PlainCell.Content?
         let selection: Binding<Set<String>>
+        /// The order the page keeps, which the headings show.
+        let order: Binding<TableSort>
         let doubleClick: ((String) -> Void)?
         let menuItems: [PlainMenuItem]
+        let firstRowRequest: Int
+        let focusRequest: Int
     }
 
     weak var table: NSTableView?
@@ -140,17 +185,59 @@ final class PlainTableCoordinator: NSObject, NSTableViewDataSource, NSTableViewD
     private(set) var shownRows: Any?
     private var sorted: [String] = []
     private var isApplyingSelection = false
+    private var isApplyingSort = false
+    /// The last Return in the search this table has gone to the first row for.
+    var firstRowRequest = 0
+    /// The last step this table has taken the focus for.
+    var focusRequest = 0
 
-    /// Re-sort and redraw only when the rows changed: SwiftUI asks after
-    /// every change to the event.
+    /// Re-sort and redraw only when the rows or their order changed: SwiftUI
+    /// asks after every change to the event.
     func update(_ model: Model, rows: Any) {
         let changed = shownRows == nil || model.changed()
         self.model = model
+        let reordered = applySort(model.order.wrappedValue)
         if changed {
             shownRows = rows
+        }
+        if changed || reordered {
             resort()
         }
         applySelection()
+        if model.firstRowRequest != firstRowRequest {
+            firstRowRequest = model.firstRowRequest
+            // Not while SwiftUI is updating the view: selecting reports the
+            // selection back to it.
+            Task { [weak self] in self?.goToFirstRow() }
+        }
+        if model.focusRequest != focusRequest {
+            focusRequest = model.focusRequest
+            // A turn later, once the inspector has dropped the button.
+            Task { [weak self] in
+                guard let table = self?.table else { return }
+                table.window?.makeFirstResponder(table)
+            }
+        }
+    }
+
+    /// View › Sort By's order onto the headings. True when it changed them.
+    private func applySort(_ sort: TableSort) -> Bool {
+        guard let table else { return false }
+        let shown = table.sortDescriptors.first
+        guard shown?.key != sort.column || shown?.ascending != sort.ascending else { return false }
+        isApplyingSort = true
+        table.sortDescriptors = [NSSortDescriptor(key: sort.column, ascending: sort.ascending)]
+        isApplyingSort = false
+        return true
+    }
+
+    /// Return in the search: the first row found, selected, in view and
+    /// with the focus.
+    private func goToFirstRow() {
+        guard let table, !sorted.isEmpty else { return }
+        table.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
+        table.scrollRowToVisible(0)
+        table.window?.makeFirstResponder(table)
     }
 
     private func resort() {
@@ -180,8 +267,15 @@ final class PlainTableCoordinator: NSObject, NSTableViewDataSource, NSTableViewD
     func numberOfRows(in tableView: NSTableView) -> Int { sorted.count }
 
     func tableView(_ tableView: NSTableView, sortDescriptorsDidChange oldDescriptors: [NSSortDescriptor]) {
+        // View › Sort By's own change, which `update` sorts by.
+        guard !isApplyingSort else { return }
         resort()
         applySelection()
+        // A click on a heading, for View › Sort By's checks.
+        if let model, let shown = tableView.sortDescriptors.first, let key = shown.key {
+            let sort = TableSort(key, ascending: shown.ascending)
+            if model.order.wrappedValue != sort { model.order.wrappedValue = sort }
+        }
     }
 
     func tableViewSelectionDidChange(_ notification: Notification) {

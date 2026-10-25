@@ -14,16 +14,25 @@ import SwiftUI
 struct AdultList: View {
     @Environment(AppModel.self) private var model
     let event: BoardEvent
-    @State private var sortOrder = [KeyPathComparator(\Adult.last)]
+    let focus: FocusState<SchedulerFocus?>.Binding
+
+    /// The sortable columns, as headed below, for View › Sort By.
+    static let order = TableOrder<Adult>([
+        .init("Status", \.room), .init("Last Name", \.last), .init("First Name", \.first),
+        .init("Unit Type", \.unitType), .init("Unit", \.unit), .init("Final Board Role", \.finalBoardRoleText),
+        .init("Proposal Review Role", \.projectReviewRoleText), .init("Wood Badge", \.woodBadge),
+        .init("Introduces", \.supporting), .init("Email", \.email), .init("Phone", \.phone),
+    ])
 
     var body: some View {
         @Bindable var model = model
         let draft = model.draft
+        let sortOrder = model.sortOrder(for: .adults, Self.order)
         let rows = event.adults
             .filter { matches(model.searchText, $0) }
-            .sorted(using: sortOrder)
+            .sorted(using: sortOrder.wrappedValue)
 
-        Table(of: Adult.self, selection: $model.selectedAdultIDs, sortOrder: $sortOrder) {
+        Table(of: Adult.self, selection: $model.selectedAdultIDs, sortOrder: sortOrder) {
             Group {
                 TableColumn("Status", value: \Adult.room) { adult in
                     AdultStatusLabel(adult: adult, isOnDraft: draft?.memberIDs.contains(adult.id) == true)
@@ -82,6 +91,13 @@ struct AdultList: View {
             ForEach(rows) { adult in
                 TableRow(adult).draggable(DragPayload.adult(adult.id))
             }
+        }
+        .focused(focus, equals: .table(.adults))
+        // Return in the search: the first adult found, with the focus.
+        .onChange(of: model.searchSubmitted) {
+            guard let first = rows.first else { return }
+            model.selectedAdultIDs = [first.id]
+            focus.wrappedValue = .table(.adults)
         }
         .accessibilityLabel(model.page.title)
         .speaksSearchCount(model.searchText, shown: rows.count, total: event.adults.count)
@@ -259,10 +275,21 @@ struct AddAdultSheet: View {
     /// What the history search last said to VoiceOver.
     @State private var foundSaid: String?
 
+    /// Where Return and the arrow keys take the cursor: the history search,
+    /// a match under it, or First name once the form is filled in.
+    private enum Field: Hashable {
+        case search
+        case match(Adult.ID)
+        case first
+    }
+
+    @FocusState private var field: Field?
+
     /// The matches listed under the search; how many there are in all is said.
     private static let matchesShown = 5
 
     var body: some View {
+        let matches = known == nil ? model.event?.historyMatches(for: search, limit: Self.matchesShown) ?? [] : []
         SheetLayout(
             title: "Add an Adult",
             message: "For an adult who would rather not sign in at the tablet. They are signed in for today as if they had."
@@ -278,25 +305,40 @@ struct AddAdultSheet: View {
                     }
                 } else {
                     TextField("Signed in before?", text: $search, prompt: Text("Search the adult history by name, email or unit"))
-                    ForEach(model.event?.historyMatches(for: search, limit: Self.matchesShown) ?? []) { match in
-                        Button {
-                            fill(from: match)
-                        } label: {
-                            HStack {
-                                Text(match.shownFullName)
-                                Text(match.unitDisplay).foregroundStyle(.secondary)
-                                Spacer()
-                                Text(match.email).foregroundStyle(.secondary)
-                            }
-                            .contentShape(Rectangle())
+                        .focused($field, equals: .search)
+                        .onSubmit { submitSearch(matches) }
+                    ForEach(matches) { match in
+                        HStack {
+                            Text(match.shownFullName)
+                            Text(match.unitDisplay).foregroundStyle(.secondary)
+                            Spacer()
+                            Text(match.email).foregroundStyle(.secondary)
                         }
-                        .buttonStyle(.plain)
+                        .contentShape(Rectangle())
+                        .onTapGesture { fill(from: match) }
+                        // Return in the search comes here, so a match takes
+                        // the focus with Keyboard navigation off too.
+                        .focusable(interactions: .edit)
+                        .focused($field, equals: .match(match.id))
+                        .onKeyPress(.return) {
+                            fill(from: match)
+                            return .handled
+                        }
+                        .onKeyPress(.space) {
+                            fill(from: match)
+                            return .handled
+                        }
+                        .onMoveCommand { move($0, from: match.id, in: matches) }
                         .help("Fill in the form from \(match.shownFullName)'s record")
+                        .accessibilityElement(children: .combine)
+                        .accessibilityAddTraits(.isButton)
+                        .accessibilityAction { fill(from: match) }
                     }
                 }
             }
             Section {
                 TextField("First name", text: $first)
+                    .focused($field, equals: .first)
                 TextField("Last name", text: $last)
                 Picker("Unit type", selection: $unitType) {
                     ForEach(UnitType.allCases) { Text($0.rawValue).tag($0) }
@@ -335,7 +377,7 @@ struct AddAdultSheet: View {
                     problem = error.localizedDescription
                 }
             }
-            .keyboardShortcut(.defaultAction)
+            .keyboardShortcut(inSearch ? nil : .defaultAction)
             .disabled(first.trimmingCharacters(in: .whitespaces).isEmpty || last.trimmingCharacters(in: .whitespaces).isEmpty)
         }
         // How many in the history match, said once typing pauses, since the
@@ -354,6 +396,38 @@ struct AddAdultSheet: View {
         }
     }
 
+    /// Return in the search or on a match fills the form from the history.
+    /// It never presses Add Adult, which would add names typed by hand.
+    private var inSearch: Bool {
+        switch field {
+        case .search, .match: true
+        case .first, nil: false
+        }
+    }
+
+    /// Return in the search: the form filled in from the one match, or the
+    /// first of several, to choose from with the arrow keys.
+    private func submitSearch(_ matches: [Adult]) {
+        if matches.count == 1, let match = matches.first {
+            fill(from: match)
+        } else if let first = matches.first {
+            field = .match(first.id)
+        }
+    }
+
+    /// Up and Down through the matches; Up from the first goes back to the
+    /// search.
+    private func move(_ direction: MoveCommandDirection, from id: Adult.ID, in matches: [Adult]) {
+        guard let index = matches.firstIndex(where: { $0.id == id }) else { return }
+        switch direction {
+        case .up: field = index == 0 ? .search : .match(matches[index - 1].id)
+        case .down where index + 1 < matches.count: field = .match(matches[index + 1].id)
+        default: break
+        }
+    }
+
+    /// The search and its matches give way to the record's name, so the
+    /// cursor goes on to First name.
     private func fill(from match: Adult) {
         known = match
         first = match.first.shownValue
@@ -364,8 +438,11 @@ struct AddAdultSheet: View {
         phone = match.phone
         finalBoard = match.role(for: .finalBoard)
         projectReview = match.role(for: .projectReview)
+        field = .first
     }
 
+    /// The form emptied, and the search back in place of the record's name,
+    /// with the cursor in it.
     private func startOver() {
         known = nil
         search = ""
@@ -377,6 +454,8 @@ struct AddAdultSheet: View {
         phone = ""
         finalBoard = nil
         projectReview = nil
+        // A turn later, once the search is drawn again.
+        Task { field = .search }
     }
 
     private func rolePicker(_ title: String, selection: Binding<BoardRole?>) -> some View {

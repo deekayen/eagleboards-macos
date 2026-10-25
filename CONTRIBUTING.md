@@ -90,7 +90,7 @@ below. Run things locally to debug what CI found, or to iterate.
 
 1. **CI is the acceptance gate.** Keep it green. Add a test when you fix a
    bug, and a case in `BoardEventTests` when you change how a board is
-   seated, run or torn down -- a rule with no test is a rule that comes back.
+   seated, run, or torn down. A rule with no test is a rule that comes back.
 2. **Never commit participant data or secrets.** Data folders live outside
    the repository. `.gitignore` and `scripts/hooks/pre-commit` block CSVs,
    dated folders, `Master_AdultHistory*` and `config.properties`. Install the
@@ -123,7 +123,7 @@ below. Run things locally to debug what CI found, or to iterate.
    - **Same unit.** A same-unit member is an overridable warning (this
      council forbids them; the national rule does not). A board made *entirely*
      of the youth's unit is refused (GTA 8.0.3.0 #2). Deliberately not checked
-     in `seatBoard`: it is a judgement call.
+     in `seatBoard`: it is a judgment call.
 7. **Lifecycle:** Registered -> Seated -> InProgress -> Completed, or
    Registered -> Postponed. Seating and starting are separate so the two phases
    can be timed apart: seating convenes the board with the paperwork while the
@@ -138,6 +138,13 @@ below. Run things locally to debug what CI found, or to iterate.
    greps for `var` followed by digits and fails.
 9. **Branding is district-neutral.** The app never displays whose district
    it is.
+10. **Help's Keyboard shortcuts sections are the key contract.** They list
+    every key the app answers (`HelpView.guide`). Change them in the same
+    commit as the key.
+11. **Focus is never left on a control that went away.** After a step taken
+    from an inspector button, it moves to the next step's button or to the
+    youth's row (`StepFocus`); a list row that leaves hands it to the row now
+    in its place (`ListFocus`).
 
 ## Releases
 

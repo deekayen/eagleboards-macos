@@ -16,9 +16,10 @@ struct ChangeMembersSheet: View {
     @State private var acknowledged: Set<String> = []
     @State private var search = ""
     @State private var problem: String?
-    /// While Find an adult has the cursor, Return adds the first match
-    /// rather than pressing Save Changes.
-    @FocusState private var findFocused: Bool
+    /// Find an adult and the + and − buttons, the inspector's cases. While
+    /// Find an adult has the cursor, Return adds the first match rather than
+    /// pressing Save Changes.
+    @FocusState private var focus: SchedulerFocus?
 
     var body: some View {
         if let youth = event.scout(id: scoutID), let boardType = youth.boardType {
@@ -60,10 +61,11 @@ struct ChangeMembersSheet: View {
                                 .accessibilityLabel(member.spokenRow(youth: youth, place: member.unitDisplay,
                                                                      role: member.role(for: boardType)?.label ?? ""))
                                 Button {
-                                    memberIDs.removeAll { $0 == member.id }
+                                    remove(member.id, from: members)
                                 } label: {
                                     Image(systemName: "minus.circle").memberButtonTarget()
                                 }
+                                .focused($focus, equals: .remove(member.id))
                                 .buttonStyle(.borderless)
                                 .help("Take \(member.shownFullName) off this board")
                                 .accessibilityLabel("Remove \(member.shownFullName)")
@@ -120,7 +122,7 @@ struct ChangeMembersSheet: View {
                     }
 
                     FreeAdultsToAddSection(youth: youth, event: event, boardType: boardType, memberIDs: $memberIDs,
-                                           search: $search, findFocused: $findFocused)
+                                           search: $search, focus: $focus)
                 }
                 .formStyle(.grouped)
 
@@ -141,7 +143,7 @@ struct ChangeMembersSheet: View {
                                 problem = error.localizedDescription
                             }
                         }
-                        .keyboardShortcut(findFocused ? nil : .defaultAction)
+                        .keyboardShortcut(focus == .findAdult ? nil : .defaultAction)
                         .disabled(!review.canApply || !chairIsQualified || !warningsCleared)
                     }
                 }
@@ -167,6 +169,17 @@ struct ChangeMembersSheet: View {
             SheetUnavailable(title: "That Youth Is No Longer on the List", text: "Nothing was changed.")
         }
     }
+
+    /// − on a member. With the focus on it, the focus goes to the next
+    /// member's − as listed, or to Find an adult once no one is left.
+    private func remove(_ id: Adult.ID, from members: [Adult]) {
+        let hadFocus = focus == .remove(id)
+        let next = ListFocus.row(after: id, in: members.map(\.id))
+        memberIDs.removeAll { $0 == id }
+        if hadFocus {
+            focus = next.map { .remove($0) } ?? .findAdult
+        }
+    }
 }
 
 /// Adults free to join this board, plus its own members not yet checked
@@ -178,7 +191,7 @@ private struct FreeAdultsToAddSection: View {
     let boardType: BoardType
     @Binding var memberIDs: [String]
     @Binding var search: String
-    let findFocused: FocusState<Bool>.Binding
+    let focus: FocusState<SchedulerFocus?>.Binding
 
     var body: some View {
         let query = search.trimmingCharacters(in: .whitespaces)
@@ -196,10 +209,19 @@ private struct FreeAdultsToAddSection: View {
         Section {
             TextField("Find an adult", text: $search, prompt: Text("Name or unit"))
                 .labelsHidden()
-                .focused(findFocused)
+                .focused(focus, equals: .findAdult)
                 // Only once something is typed: Return in the empty field
                 // would otherwise add whoever heads the list.
-                .onSubmit { if !query.isEmpty, let first = candidates.first { add(first) } }
+                .onSubmit { if !query.isEmpty, let first = candidates.first { add(first, from: candidates) } }
+                // An adult whose + has the focus can leave the list with no
+                // button pressed, put on another board or gone home: the
+                // focus goes to the row in their place. On this one row, not
+                // the section, which hands its modifiers to every row.
+                .onChange(of: candidates.map(\.id)) { old, new in
+                    if case .add(let id)? = focus.wrappedValue, !new.contains(id) {
+                        focus.wrappedValue = ListFocus.row(id, in: old, becoming: new).map { .add($0) } ?? .findAdult
+                    }
+                }
             if candidates.isEmpty {
                 Text(query.isEmpty ? "Everyone who could sit is on a board." : "No free adult matches.")
                     .foregroundStyle(.secondary)
@@ -217,24 +239,32 @@ private struct FreeAdultsToAddSection: View {
                     .accessibilityLabel(adult.spokenRow(youth: youth, place: adult.unitDisplay,
                                                         role: adult.role(for: boardType)?.label ?? ""))
                     Button {
-                        add(adult)
+                        add(adult, from: candidates)
                     } label: {
                         Image(systemName: "plus.circle").memberButtonTarget()
                     }
+                    .focused(focus, equals: .add(adult.id))
                     .buttonStyle(.borderless)
                     .help("Put \(adult.shownFullName) on this board")
                     .accessibilityLabel("Add \(adult.shownFullName)")
                 }
                 .contentShape(Rectangle())
-                .onTapGesture { add(adult) }
+                .onTapGesture { add(adult, from: candidates) }
             }
         } header: {
             Text("Free for a \(boardType.label) (\(candidates.count))").heading(.h2)
         }
     }
 
-    private func add(_ adult: Adult) {
+    /// With the focus on their +, the focus goes to the next adult's +, or
+    /// to Find an adult once no one is left.
+    private func add(_ adult: Adult, from candidates: [Adult]) {
+        let hadFocus = focus.wrappedValue == .add(adult.id)
+        let next = ListFocus.row(after: adult.id, in: candidates.map(\.id))
         memberIDs.append(adult.id)
         search = ""
+        if hadFocus {
+            focus.wrappedValue = next.map { .add($0) } ?? .findAdult
+        }
     }
 }

@@ -13,16 +13,26 @@ import SwiftUI
 struct ResultsPage: View {
     @Environment(AppModel.self) private var model
     let event: BoardEvent
-    @State private var sortOrder = [KeyPathComparator(\Scout.queueOrder)]
+    let focus: FocusState<SchedulerFocus?>.Binding
+
+    /// The sortable columns, as headed below, for View › Sort By.
+    static let order = TableOrder<Scout>([
+        .init("Sign-In Number", \.queueOrder), .init("Last Name", \.last), .init("First Name", \.first),
+        .init("Unit Type", \.unitType), .init("Unit", \.unit), .init("Board Type", \.boardTypeText),
+        .init("Status", \.statusRank), .init("Room", \.room), .init("Result", \.result),
+        .init("Chair", \.boardChair), .init("Members", \.boardMembers), .init("Leader", \.leader),
+        .init("Notes", \.notes),
+    ])
 
     var body: some View {
         let boards = event.scouts.filter { !($0.status?.isWaitingForBoard ?? true) }
+        let sortOrder = model.sortOrder(for: .results, Self.order)
         let rows = boards
             .filter { matches(model.searchText, $0) }
-            .sorted(using: sortOrder)
+            .sorted(using: sortOrder.wrappedValue)
         let selection = Binding(get: { model.selectedYouthID }, set: { model.selectYouth($0) })
 
-        Table(of: Scout.self, selection: selection, sortOrder: $sortOrder) {
+        Table(of: Scout.self, selection: selection, sortOrder: sortOrder) {
             Group {
                 TableColumn("Sign-In Number", value: \Scout.queueOrder) { youth in
                     Text(youth.regNum).help(youth.regNumHelp)
@@ -89,6 +99,13 @@ struct ResultsPage: View {
             }
         } rows: {
             ForEach(rows) { TableRow($0) }
+        }
+        .focused(focus, equals: .table(.results))
+        // Return in the search: the first board found, with the focus.
+        .onChange(of: model.searchSubmitted) {
+            guard let first = rows.first else { return }
+            model.selectYouth(first.id)
+            focus.wrappedValue = .table(.results)
         }
         .accessibilityLabel(model.page.title)
         .speaksSearchCount(model.searchText, shown: rows.count, total: boards.count)

@@ -12,6 +12,7 @@ import SwiftUI
 struct YouthList: View {
     @Environment(AppModel.self) private var model
     let event: BoardEvent
+    let focus: FocusState<SchedulerFocus?>.Binding
 
     var body: some View {
         let found = event.scouts
@@ -23,6 +24,7 @@ struct YouthList: View {
                 section(.onBoard, of: found, now: timeline.date)
                 section(.finished, of: found, now: timeline.date)
             }
+            .focused(focus, equals: .youthList)
             .accessibilityLabel("Youth")
         }
         .contextMenu(forSelectionType: Scout.ID.self) { ids in
@@ -233,6 +235,8 @@ struct YouthActionButtons: View {
         command("Fill the Rest", applies: waiting) { model.fillDraft() }
         command("Clear Board", applies: waiting) { model.clearDraft() }
         if !inContextMenu {
+            // The member row's Make Chair, which only a click reaches.
+            chair(youth)
             Divider()
             // The Results and Youth pages' double-click, in the menu bar, for
             // a youth the page lists: Results leaves out those still waiting,
@@ -245,6 +249,8 @@ struct YouthActionButtons: View {
                 }
             }
             locate(youth)
+            // The With Them row's Unlink, which only a click reaches.
+            unlink(youth)
         }
         if !inContextMenu || ((youth != nil || waiting) && (canReset || canPostpone)) {
             Divider()
@@ -261,6 +267,37 @@ struct YouthActionButtons: View {
         let isNext = status?.nextStep == step
         return command(step.title, applies: idle && isNext,
                        shortcut: isNext ? KeyboardShortcut(.return, modifiers: .command) : nil, action)
+    }
+
+    /// Board › Chair: the members of the board being drawn up who may chair
+    /// it, with a check on its chair. Dimmed when there is no such board, or
+    /// no one on it may chair, as Room › Used For is with no room.
+    private func chair(_ youth: Scout?) -> some View {
+        let boardType = youth?.boardType
+        let draft = youth.flatMap { model.drafts[$0.id] }
+        let members = youth.map { model.draftMembers(for: $0.id) } ?? []
+        let chairs = boardType.map { type in members.filter { $0.canChair(type) } } ?? []
+        return Picker("Chair", selection: Binding(
+            get: { boardType.flatMap { draft?.chair(among: members, for: $0) } },
+            set: { id in run { if let id { model.makeChair(id) } } }
+        )) {
+            ForEach(chairs) { Text($0.shownFullName).tag(Optional($0.id)) }
+        }
+        .disabled(chairs.isEmpty)
+    }
+
+    /// Board › Unlink Introducer: whoever is linked to introduce the youth
+    /// (SPEC.md D-23). Dimmed when no one is.
+    private func unlink(_ youth: Scout?) -> some View {
+        let linked = youth.map { youth in model.event?.adults.filter { $0.supports(youth.id) } ?? [] } ?? []
+        return Menu("Unlink Introducer") {
+            ForEach(linked) { adult in
+                Button(adult.shownFullName) {
+                    if let youth { run { model.setSupporting(false, adultID: adult.id, scoutID: youth.id) } }
+                }
+            }
+        }
+        .disabled(linked.isEmpty)
     }
 
     private func locate(_ youth: Scout?) -> MenuCommand {
