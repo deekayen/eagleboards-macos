@@ -1,4 +1,4 @@
-# CLAUDE.md -- working notes for this repo
+# CLAUDE.md: working notes for this repo
 
 Guidance for anyone (human or AI) making changes here. Read
 [CONTRIBUTING.md](CONTRIBUTING.md) first; it holds the architecture and the
@@ -13,7 +13,7 @@ Boards does; this repo does not decide shared behavior on its own.
 
 The native Mac version of the Java Eagle Board Scheduler
 (`deekayen/eagleboards-java`), an Eagle Scout board of review check-in and room
-scheduler. Swift 6, SwiftUI, macOS 14+, Apple silicon only -- there is no
+scheduler. Swift 6, SwiftUI, macOS 14+, Apple silicon only; there is no
 Intel build, by the owner's decision. The sign-in stations still register by
 web page, served by an embedded Hummingbird server; every operator screen is
 a native window. See `PROVENANCE.md`.
@@ -36,6 +36,11 @@ a native window. See `PROVENANCE.md`.
   screenshot run. `EAGLEBOARDS_APPEARANCE=dark|light` picks the appearance
   for the run; never change the system's.
 - Prefer pushing over re-running the suite locally; CI is the gate.
+- CI builds with the Xcode on GitHub's `macos-latest` image, which can be
+  older than the one here (Xcode 26.6 as of 2026-10-25). Code that builds
+  locally can fail there: its `CommandsBuilder` takes at most ten items in a
+  block, so `EagleBoardsCommands` groups its menus with `Group`. Check an API
+  newer than macOS 14 against that SDK before relying on it.
 
 ## Standing rules
 

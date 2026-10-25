@@ -190,47 +190,53 @@ struct EagleBoardsCommands: Commands {
                 pageButton(page, KeyEquivalent(Character(String(index + 1))))
             }
         }
-        CommandMenu("Board") {
-            YouthActionButtons(model: model)
-                .disabled(model.event == nil)
+        // Xcode 26's CommandsBuilder takes at most ten items in a block, and
+        // CI builds with it, so the menus below are grouped to stay under that.
+        Group {
+            CommandMenu("Board") {
+                YouthActionButtons(model: model)
+                    .disabled(model.event == nil)
+            }
+            CommandMenu("Adult") {
+                Button("Add Adult…") { model.present(.addAdult) }
+                    .keyboardShortcut("n")
+                    .disabled(model.event == nil || model.sheet != nil)
+                Button("Sign In for Today") { model.signInFromHistory(model.historySelectionToSignIn) }
+                    .disabled(model.historySelectionToSignIn.isEmpty)
+                Divider()
+                AdultActionButtons(model: model)
+                    .disabled(model.event == nil)
+            }
+            // A room changed under an open sheet would change the board it is
+            // drawing up, or replace the sheet with its own.
+            CommandMenu("Room") {
+                RoomActionButtons(model: model, event: model.event)
+                    .disabled(model.sheet != nil)
+            }
         }
-        CommandMenu("Adult") {
-            Button("Add Adult…") { model.present(.addAdult) }
-                .keyboardShortcut("n")
-                .disabled(model.event == nil || model.sheet != nil)
-            Button("Sign In for Today") { model.signInFromHistory(model.historySelectionToSignIn) }
-                .disabled(model.historySelectionToSignIn.isEmpty)
-            Divider()
-            AdultActionButtons(model: model)
-                .disabled(model.event == nil)
-        }
-        // A room changed under an open sheet would change the board it is
-        // drawing up, or replace the sheet with its own.
-        CommandMenu("Room") {
-            RoomActionButtons(model: model, event: model.event)
-                .disabled(model.sheet != nil)
-        }
-        // In place of the scheduler scene's own Window menu entry, which
-        // named it after the app. Replacing this group leaves the other
-        // scenes' entries, so those scenes have commandsRemoved().
-        CommandGroup(replacing: .singleWindowList) {
-            Button("Scheduler") { openWindow(id: WindowID.scheduler) }
-                .keyboardShortcut("1")
-            Button("Sign-In Code") { openWindow(id: WindowID.signInCode) }
-                .keyboardShortcut("3")
-        }
-        CommandGroup(replacing: .appInfo) {
-            Button("About Eagle Boards") { AboutPanel.show() }
-        }
-        CommandGroup(replacing: .help) {
-            Button("Eagle Boards Help") { openWindow(id: WindowID.help) }
-                .keyboardShortcut("?")
-            Divider()
-            // SPEC.md D-17: the one Donate link, with a heart.
-            Button {
-                openWindow(id: WindowID.donate)
-            } label: {
-                Label("Donate…", systemImage: "heart")
+        Group {
+            // In place of the scheduler scene's own Window menu entry, which
+            // named it after the app. Replacing this group leaves the other
+            // scenes' entries, so those scenes have commandsRemoved().
+            CommandGroup(replacing: .singleWindowList) {
+                Button("Scheduler") { openWindow(id: WindowID.scheduler) }
+                    .keyboardShortcut("1")
+                Button("Sign-In Code") { openWindow(id: WindowID.signInCode) }
+                    .keyboardShortcut("3")
+            }
+            CommandGroup(replacing: .appInfo) {
+                Button("About Eagle Boards") { AboutPanel.show() }
+            }
+            CommandGroup(replacing: .help) {
+                Button("Eagle Boards Help") { openWindow(id: WindowID.help) }
+                    .keyboardShortcut("?")
+                Divider()
+                // SPEC.md D-17: the one Donate link, with a heart.
+                Button {
+                    openWindow(id: WindowID.donate)
+                } label: {
+                    Label("Donate…", systemImage: "heart")
+                }
             }
         }
     }
