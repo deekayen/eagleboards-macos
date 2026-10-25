@@ -105,7 +105,10 @@ a native window. See `PROVENANCE.md`.
   Pre-Registered, Rooms, and the read-only Adult History CSV), edited in
   place with
   `EditableText` and `EditableChoice` through `AppModel.editYouth`,
-  `editAdult` and `editRoomType`. A changed cell stays off the Undo stack,
+  `editAdult` and `editRoomType`. The View menu's eight pages, Approved
+  Proposals last, take Command-1 to Command-8 where Windows has Ctrl+1 to 8
+  (P-3), and the Window menu's items have no keys. A changed cell stays off
+  the Undo stack,
   and who sits on a board or which room anyone is in is never typed into a
   table (P-6), nor a youth's status, which the pages show read-only;
   `BoardEvent.updateYouth` also refuses Seated, In review, or changing a

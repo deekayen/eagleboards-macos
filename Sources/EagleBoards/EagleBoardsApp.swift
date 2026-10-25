@@ -17,8 +17,8 @@ struct EagleBoardsApp: App {
         .commands { EagleBoardsCommands(model: model) }
 
         // Each Window scene would also list itself in the Window menu. The
-        // menu's own Sign-In Code item (Command-3) is the one entry for that
-        // window, and the Help menu opens Help and Donate.
+        // menu's own Sign-In Code item is the one entry for that window, and
+        // the Help menu opens Help and Donate.
         Window("Sign-In Code", id: WindowID.signInCode) {
             SignInCodeWindow()
                 .environment(model)
@@ -221,11 +221,12 @@ struct EagleBoardsCommands: Commands {
             // In place of the scheduler scene's own Window menu entry, which
             // named it after the app. Replacing this group leaves the other
             // scenes' entries, so those scenes have commandsRemoved().
+            // No keys: Command-1 to Command-8 are the pages, any of which
+            // brings the scheduler forward, and the Sign-In Code window is
+            // opened once per event.
             CommandGroup(replacing: .singleWindowList) {
                 Button("Scheduler") { openWindow(id: WindowID.scheduler) }
-                    .keyboardShortcut("1")
                 Button("Sign-In Code") { openWindow(id: WindowID.signInCode) }
-                    .keyboardShortcut("3")
             }
             CommandGroup(replacing: .appInfo) {
                 Button("About Eagle Boards") { AboutPanel.show() }
@@ -252,6 +253,8 @@ struct EagleBoardsCommands: Commands {
         return Array(events.prefix(10))
     }
 
+    /// Command-1 to Command-8 in the View menu's order, Windows' Ctrl+1 to 8
+    /// with the Mac's modifier (SPEC.md P-3, P-6).
     private func pageButton(_ page: AppModel.Page, _ key: KeyEquivalent) -> some View {
         Toggle(page.title, isOn: Binding(
             get: { model.event != nil && model.page == page },
@@ -260,7 +263,7 @@ struct EagleBoardsCommands: Commands {
                 model.show(page)
             }
         ))
-        .keyboardShortcut(key, modifiers: [.command, .option])
+        .keyboardShortcut(key)
         .disabled(model.event == nil)
     }
 }

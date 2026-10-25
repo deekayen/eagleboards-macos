@@ -56,7 +56,7 @@ final class AppModel {
             let path = folder.eventFolder(name).path
             openError = "Could not open \(path): \(error.localizedDescription)"
             if event != nil {
-                message = Message(title: "Could Not Open the \(name) Event",
+                message = Message(title: DataFolder.openFailedTitle(name),
                                   text: "\(error.localizedDescription)\n\nThe event's folder is \(path).")
             }
             return false
@@ -934,7 +934,7 @@ final class AppModel {
     func copyRooms(from earlier: String) {
         guard let event else { return }
         var copied: [Room.ID] = []
-        guard attempt("Could Not Copy the Rooms from \(earlier)", { copied = try event.copyRooms(fromEvent: earlier) }),
+        guard attempt(DataFolder.copyRoomsFailedTitle(from: earlier), { copied = try event.copyRooms(fromEvent: earlier) }),
               !copied.isEmpty
         else { return }
         let added = copied

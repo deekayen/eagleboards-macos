@@ -54,9 +54,26 @@ public struct DataFolder: Sendable, Hashable {
     }
 
     /// What the sign-in station's status adds when the open event is not
-    /// today's, "for 2026-09-22": a tablet at the door signs people in to
-    /// whichever event is open. Nil for today's, which needs no saying.
-    public static func servedEventNote(_ event: String, today: String) -> String? {
-        event == today ? nil : "for \(event)"
+    /// today's, "for September 22, 2026": a tablet at the door signs people
+    /// in to whichever event is open. Nil for today's, which needs no saying.
+    public static func servedEventNote(_ event: String, today: String, locale: Locale = .current) -> String? {
+        event == today ? nil : "for \(Timestamp.shownDate(event, locale: locale))"
+    }
+
+    /// The title of the alert saying an event could not be opened, "Could
+    /// Not Open the September 22, 2026 Event".
+    public static func openFailedTitle(_ event: String, locale: Locale = .current) -> String {
+        "Could Not Open the \(Timestamp.shownDate(event, locale: locale)) Event"
+    }
+
+    /// The same said inside the Open Another Event sheet, with the reason.
+    public static func openFailed(_ event: String, reason: String, locale: Locale = .current) -> String {
+        "Could not open the \(Timestamp.shownDate(event, locale: locale)) event: \(reason)"
+    }
+
+    /// The title of the alert saying Copy Rooms From failed, "Could Not Copy
+    /// the Rooms from September 22, 2026".
+    public static func copyRoomsFailedTitle(from event: String, locale: Locale = .current) -> String {
+        "Could Not Copy the Rooms from \(Timestamp.shownDate(event, locale: locale))"
     }
 }

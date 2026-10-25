@@ -108,7 +108,7 @@ them and choose **Board › Postpone**. **Edit › Undo** brings them back.
 
 ### 3. Seat a board
 
-The **View** menu chooses the page; there is no sidebar. **Event** (**⌥⌘1**)
+The **View** menu chooses the page; there is no sidebar. **Event** (**⌘1**)
 is where you work: every youth in one list, stacked **Waiting** (in sign-in
 order), **On a Board** (by room) and **Finished** (the most recent first), each
 with its count, and a card for every room filling the rest of the window, so a
@@ -236,13 +236,13 @@ window. Click a column heading to sort a page by it, or choose
 
 | Page | What it holds |
 | --- | --- |
-| **Results** (⌥⌘2) | Every board and its result. Correct a result or its notes here. Double-click a board, or choose **Board › Show on Event Page**, to see it on the Event page. |
-| **Adults** (⌥⌘3) | The event's adults. Promote someone to Chair, mark Wood Badge, or fix a name; a change to a name, unit, contact or role reaches the adult history too. **Add Adult…** at the foot signs someone in by hand. |
-| **Youth** (⌥⌘4) | Every youth who signed in, in sign-in order. Double-click one, or choose **Board › Show on Event Page**, to see them on the Event page. |
-| **Pre-Registered** (⌥⌘5) | The youth who signed up on SignUpGenius for today. |
-| **Adult History CSV** (⌥⌘6) | Every adult who has ever signed in, across events, read-only, searched by name, email or unit. **Last Event** has a check for those signed in today; double-click someone, or choose **Adult › Sign In for Today**, to sign them in. |
-| **Rooms** (⌥⌘7) | What each room is used for today, and whose board is in it. Double-click a room, or choose **Show on Event Page** from its right-click menu, to see its card on the Event page. **Add Room…** at the foot adds one, and **Delete** removes a free one; **Edit › Undo** puts it back. |
-| **Approved Proposals** (⌥⌘8) | Every project proposal approved at an earlier event in the data folder, however long ago, for a youth who comes without the signed page: who, their unit, when, the chair and the other members. Read only. |
+| **Results** (⌘2) | Every board and its result. Correct a result or its notes here. Double-click a board, or choose **Board › Show on Event Page**, to see it on the Event page. |
+| **Adults** (⌘3) | The event's adults. Promote someone to Chair, mark Wood Badge, or fix a name; a change to a name, unit, contact or role reaches the adult history too. **Add Adult…** at the foot signs someone in by hand. |
+| **Youth** (⌘4) | Every youth who signed in, in sign-in order. Double-click one, or choose **Board › Show on Event Page**, to see them on the Event page. |
+| **Pre-Registered** (⌘5) | The youth who signed up on SignUpGenius for today. |
+| **Adult History CSV** (⌘6) | Every adult who has ever signed in, across events, read-only, searched by name, email or unit. **Last Event** has a check for those signed in today; double-click someone, or choose **Adult › Sign In for Today**, to sign them in. |
+| **Rooms** (⌘7) | What each room is used for today, and whose board is in it. Double-click a room, or choose **Show on Event Page** from its right-click menu, to see its card on the Event page. **Add Room…** at the foot adds one, and **Delete** removes a free one; **Edit › Undo** puts it back. |
+| **Approved Proposals** (⌘8) | Every project proposal approved at an earlier event in the data folder, however long ago, for a youth who comes without the signed page: who, their unit, when, the chair and the other members. Read only. |
 
 To delete a youth, a pre-registration, or an adult, select them and press
 **Delete** or choose **Edit › Delete**, or right-click them; that asks first,
@@ -281,8 +281,9 @@ page. It is refused once the room or a member has been given to another board.
 The Dock icon shows how many youth are waiting, and a notification tells you
 when a room goes overdue while you are in another app, with the scheduler
 window open or closed. If you close the scheduler or the sign-in code,
-**Window › Scheduler** (**⌘1**) or **Window › Sign-In Code** (**⌘3**) brings it
-back, and so does the Dock icon's menu (Control-click the icon).
+**Window › Scheduler** or **Window › Sign-In Code** brings it back, and so does
+the Dock icon's menu (Control-click the icon). Choosing a page from the
+**View** menu also brings back the scheduler.
 
 ## If something goes wrong
 

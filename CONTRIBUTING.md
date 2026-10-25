@@ -165,8 +165,8 @@ below. Run things locally to debug what CI found, or to iterate.
     - A context menu lists only what applies, with no keys (`MenuCommand`,
       HIG Context menus). With Keyboard navigation on, Tab reaches every
       control, room cards included. A new shortcut never takes a key macOS
-      uses (HIG Keyboards); Option-Command-8, which Zoom also uses, waits on
-      the owner in `eagleboards-shared`.
+      uses (HIG Keyboards). One that Windows has keeps its key, with Command
+      for Ctrl (SPEC.md P-3), as the pages' Command-1 to Command-8 do.
     - Help and messages say click for a button and choose for a menu item.
       Menu paths read File › Export List…, and keys read Command-Return.
       Places are named (the toolbar, the inspector, Free for a Final Board)

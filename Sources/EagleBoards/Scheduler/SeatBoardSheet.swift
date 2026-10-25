@@ -520,7 +520,7 @@ struct OpenEventSheet: View {
                     try model.openOrThrow(folder: folder, event: chosen)
                     dismiss()
                 } catch {
-                    problem = "Could not open \(chosen): \(error.localizedDescription)"
+                    problem = DataFolder.openFailed(chosen, reason: error.localizedDescription)
                 }
             }
             .keyboardShortcut(.defaultAction)

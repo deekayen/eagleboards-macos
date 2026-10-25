@@ -201,10 +201,29 @@ struct FileFormatTests {
     }
 
     /// The sign-in station names the event it serves only when that is not
-    /// today's, after Open Recent Event or Choose Data Folder moved it.
+    /// today's, after Open Recent Event or Choose Data Folder moved it, with
+    /// the date as the Mac writes dates.
     @Test func theSignInStationNamesAnEarlierEventItServes() {
-        #expect(DataFolder.servedEventNote("2026-09-22", today: "2026-10-27") == "for 2026-09-22")
-        #expect(DataFolder.servedEventNote("2026-10-27", today: "2026-10-27") == nil)
+        let us = Locale(identifier: "en_US")
+        #expect(DataFolder.servedEventNote("2026-09-22", today: "2026-10-27", locale: us) == "for September 22, 2026")
+        #expect(DataFolder.servedEventNote("2026-09-22", today: "2026-10-27", locale: Locale(identifier: "en_GB"))
+            == "for 22 September 2026")
+        #expect(DataFolder.servedEventNote("2026-10-27", today: "2026-10-27", locale: us) == nil)
+    }
+
+    /// An event that could not be opened, or whose rooms could not be
+    /// copied, is named by its date as the Mac writes dates, not its folder.
+    @Test func failuresNameAnEventByItsDate() {
+        let us = Locale(identifier: "en_US")
+        let gb = Locale(identifier: "en_GB")
+        #expect(DataFolder.openFailedTitle("2026-09-22", locale: us) == "Could Not Open the September 22, 2026 Event")
+        #expect(DataFolder.openFailedTitle("2026-09-22", locale: gb) == "Could Not Open the 22 September 2026 Event")
+        #expect(DataFolder.openFailed("2026-09-22", reason: "The file is locked.", locale: us)
+            == "Could not open the September 22, 2026 event: The file is locked.")
+        #expect(DataFolder.openFailed("2026-09-22", reason: "The file is locked.", locale: gb)
+            == "Could not open the 22 September 2026 event: The file is locked.")
+        #expect(DataFolder.copyRoomsFailedTitle(from: "2026-09-22", locale: us) == "Could Not Copy the Rooms from September 22, 2026")
+        #expect(DataFolder.copyRoomsFailedTitle(from: "2026-09-22", locale: gb) == "Could Not Copy the Rooms from 22 September 2026")
     }
 }
 
