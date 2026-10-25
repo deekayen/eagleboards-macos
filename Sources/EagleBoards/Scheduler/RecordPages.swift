@@ -308,7 +308,7 @@ struct RoomsPage: View {
                 Button("Show on Event Page") { model.showRoomOnEventPage(id) }
                 if room.isFree {
                     Divider()
-                    Button("Remove Room") {
+                    Button("Remove Room…") {
                         model.selectedRoomID = id
                         model.removeSelectedRoom()
                     }
@@ -325,7 +325,7 @@ struct RoomsPage: View {
                 model.present(.addRoom)
             }
         }
-        // Room › Remove Room, which a room in use dims, as it does Edit › Delete.
+        // Room › Remove Room…, which a room in use dims, as it does Edit › Delete.
         .onDeleteCommand(perform: model.selectedRoom?.isFree == true ? { model.removeSelectedRoom() } : nil)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             ListFooter("Add Room…", help: "Add a room for today") { model.present(.addRoom) }

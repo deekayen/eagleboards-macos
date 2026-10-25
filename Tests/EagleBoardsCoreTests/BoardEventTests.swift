@@ -293,6 +293,23 @@ struct BoardEventTests {
             == ["Lysander Whitmore, Jr. has gone home. Remove them, or bring them back with Adult › Mark Back."])
     }
 
+    /// A table never deletes someone a board holds (SPEC.md P-6, amended
+    /// 2026-10-24; the event test's section 29): a youth whose board is
+    /// seated or in review, or a member sitting on it, until it is over.
+    @Test func aTableNeverDeletesSomeoneABoardHolds() throws {
+        try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
+        #expect(refusal { try event.deleteYouth(id: finalYouth(1)) }?.hasSuffix("Reset or complete that board first.") == true,
+                "a seated youth is not deleted")
+        #expect(refusal { try event.deleteAdult(id: member(1)) } != nil, "nor a member of their board")
+        try event.startReview(scoutID: finalYouth(1))
+        #expect(refusal { try event.deleteYouth(id: finalYouth(1)) } != nil, "nor a youth in review")
+        #expect(refusal { try event.deleteAdult(id: chairOfEither) } != nil, "nor its chair")
+        #expect(event.scout(id: finalYouth(1))?.status == .inProgress, "the board keeps its youth")
+        try event.completeBoard(scoutID: finalYouth(1), result: .approved, notes: "")
+        try event.deleteYouth(id: finalYouth(1))
+        #expect(event.scout(id: finalYouth(1)) == nil, "a youth whose board is over can be deleted")
+    }
+
     /// Marking an adult gone home or back, deleting one, and Undo say the
     /// way out (Windows' DisableAdult and Undo). Undo and Redo share
     /// restoreBoard, so its ending fits either.

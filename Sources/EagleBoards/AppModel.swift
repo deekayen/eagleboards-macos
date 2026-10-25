@@ -951,19 +951,29 @@ final class AppModel {
         sayDone(StepSpeech.roomsCopied(added.count, from: earlier))
     }
 
-    /// Remove the selected room. It must be free. Undo adds it back.
+    /// Remove the selected room. It must be free. It asks first, naming the
+    /// room, in the Java version's words (SPEC.md O-2, amended 2026-10-24),
+    /// and Undo still adds it back.
     func removeSelectedRoom() {
         guard let room = selectedRoom else { return }
         guard room.isFree else {
             message = Message(title: "Room \(room.name) is in use.", text: BoardEvent.roomHasABoard(room.name))
             return
         }
-        if change("Remove Room", failure: "Could Not Remove Room \(room.name)", success: StepSpeech.roomRemoved(room.name),
-                  { try $0.removeRoom(id: room.id) },
-                  undo: { try $0.restoreRoom(room) },
-                  reveal: Self.revealRoom(room.id)) {
+        present(Confirmation(
+            title: "Remove Room \(room.name)?",
+            message: "It comes off the list for the rest of this event. You can add it again.",
+            actionTitle: "Remove Room",
+            isDestructive: true
+        ) { [weak self] in
+            guard let self,
+                  change("Remove Room", failure: "Could Not Remove Room \(room.name)", success: StepSpeech.roomRemoved(room.name),
+                         { try $0.removeRoom(id: room.id) },
+                         undo: { try $0.restoreRoom(room) },
+                         reveal: Self.revealRoom(room.id))
+            else { return }
             tidySelection()
-        }
+        })
     }
 
     /// Rename a room, for the Rename sheet. The room keeps its ID.

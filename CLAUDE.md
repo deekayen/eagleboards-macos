@@ -116,7 +116,9 @@ a native window. See `PROVENANCE.md`.
   alerts titled with what failed, or show them in the inspector; no
   self-dismissing toasts.
   A change the operator makes registers its inverse with Undo (`AppModel`'s
-  `change` and `changeBoard`) instead of asking "Are you sure?"; a board step
+  `change` and `changeBoard`) instead of asking "Are you sure?", except Remove
+  Room…, which asks first, naming the room, though Undo also takes it back
+  (SPEC.md O-2, amended 2026-10-24); a board step
   is undone with `BoardEvent.restoreBoard`.
 - **Accessibility follows Apple's HIG** (CONTRIBUTING.md rule 12). An icon
   beside words is a `Label`; an icon-only control has an

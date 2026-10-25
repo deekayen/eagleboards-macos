@@ -893,7 +893,7 @@ public final class BoardEvent {
             try save(.scheduledYouth)
         } else {
             if let scout = scout(id: id), scout.status == .seated || scout.status == .inProgress {
-                throw EventError("\(scout.shownFullName)'s board is active in room \(scout.room). Reset it before deleting.")
+                throw EventError("\(scout.shownFullName)'s board is active in room \(scout.room). Reset or complete that board first.")
             }
             scouts.removeAll { $0.id == id }
             try save(.youth)

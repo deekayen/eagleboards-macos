@@ -436,7 +436,7 @@ struct RoomActionButtons: View {
         if !inContextMenu || room?.isFree == true {
             Divider()
         }
-        MenuCommand("Remove Room", applies: room?.isFree == true, inContextMenu: inContextMenu) {
+        MenuCommand("Remove Room…", applies: room?.isFree == true, inContextMenu: inContextMenu) {
             run(room) { _ in model.removeSelectedRoom() }
         }
     }
