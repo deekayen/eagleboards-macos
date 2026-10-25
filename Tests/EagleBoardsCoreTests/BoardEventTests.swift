@@ -799,6 +799,35 @@ struct BoardEventTests {
         #expect(event.adult(id: member(1))?.room == "101" && history.room == "", "their room is this event's alone")
     }
 
+    // Mac only, with no Java section: the inspector marks who chairs the
+    // board being drawn up and Make Chair hands it on (SPEC.md D-10, D-12).
+    // Seat Board seats that chair, not the first on the board who may chair.
+    @Test func seatBoardSeatsTheChairMadeInTheInspector() throws {
+        let youth = try #require(event.scout(id: finalYouth(1)))
+        var drafts = BoardDrafts()
+        drafts.select(youth, in: event)
+        let proposedChair = try #require(drafts[youth.id]?.chairID)
+        let finalChairs = [chairOfEither, finalChair2, finalChair3]
+        let other = try #require(finalChairs.first { drafts[youth.id]?.memberIDs.contains($0) == false })
+        drafts.add([other], for: youth.id, in: event)
+        drafts.makeChair(try #require(event.adult(id: other)), for: youth, in: event)
+
+        let draft = try #require(drafts[youth.id])
+        let roomID = try #require(draft.roomID)
+        let review = SeatingReview(
+            scout: youth, members: draft.memberIDs.compactMap { event.adult(id: $0) }, room: event.room(id: roomID))
+        #expect(review.qualifiedChairs.first?.id == proposedChair, "the proposal's chair is still first on the board")
+        let chairID = try #require(draft.chairToSeat(from: review.qualifiedChairs))
+        #expect(chairID == other)
+
+        try event.seatBoard(roomID: roomID, scoutID: youth.id, chairID: chairID, memberIDs: draft.memberIDs)
+        #expect(event.scout(id: youth.id)?.boardChairID == other)
+        #expect(adultRoom(proposedChair) == event.room(id: roomID)?.name, "the proposal's chair sits as a member")
+        drafts.discard(youth.id)
+        drafts.refresh(selected: event.scout(id: youth.id), in: event)
+        #expect(drafts[youth.id] == nil, "a seated youth has no board drawn up")
+    }
+
     // Java section 27. Add Adult, for someone who won't use the tablet, signs
     // them in as the tablet does; filled in from the adult history it carries
     // that record's ID, so a name corrected in the sheet is the same adult.

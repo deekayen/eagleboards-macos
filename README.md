@@ -113,16 +113,25 @@ records (see [The records](#the-records)).
 
 Select a waiting youth. Eagle Boards proposes a board in the inspector: a
 chair, enough members, and a free room of the right kind. It never picks adults
-from the youth's own unit.
+from the youth's own unit. The member who will chair it reads **Chair**; anyone
+else on it who may chair reads **Can Chair**.
 
 Change the board in the inspector: click an adult in the free list below it
 to add them (**Find an adult** narrows the list), and **−** takes one off. In
 the **Adults** page you can also Command-click several adults and choose
-**Adult › Add to Board** (**⌘B**), or drag them onto the board. A board you
-have changed is kept while you look at other youth. **Fill the Rest** keeps
-who you chose and adds a chair, if none of them can chair it, and members up to
-the number needed; **Suggest a Board** replaces the whole board with a
-proposal.
+**Adult › Add to Board** (**⌘B**), or drag them onto the board. To hand the
+chair to someone who reads **Can Chair**, right-click them and choose **Make
+Chair**, or select them on the **Adults** page and choose **Adult › Make
+Chair**. **Fill the Rest** keeps who you chose and adds a chair, if none of
+them can chair it, and members up to the number needed; **Suggest a Board**
+replaces the whole board with a proposal.
+
+Until you change it, the proposed board keeps up with the event: when an adult
+signs in, goes home or comes back, or leaves a board, it is proposed again.
+Choosing its room is not a change, and it stays in the room you chose while
+that room is free. Once you take someone off, add someone, use **Fill the
+Rest** or **Clear**, or make someone else chair, the board is yours, kept while
+you look at other youth.
 
 To pick every board yourself, set **Settings › General › When you select a
 waiting youth** to **Start with an empty board**. Selecting a youth then picks
@@ -132,7 +141,9 @@ Press **Seat Board…** (or **⌘↩**, or double-click the youth). You can also
 a waiting youth onto a free room card. The sheet lists anything that stops the board, such as
 too few members, no qualified chair, or someone already on another board. It
 also lists anything worth a second look, and each of those needs its own tick.
-Choose the chair and press **Seat Board**.
+While the sheet is open, the board stays as you are checking it, even if
+someone signs in. Choose the chair (the sheet starts with the board's chair from
+the inspector) and press **Seat Board**.
 
 The members now have the room and the paperwork. The youth waits outside.
 

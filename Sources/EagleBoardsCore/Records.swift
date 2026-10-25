@@ -303,6 +303,15 @@ public struct Scout: PersonRecord {
     public var isPreRegistered: Bool { regNum.hasPrefix("P") }
     public var isWalkIn: Bool { regNum.hasPrefix("W") }
 
+    /// Pre-registered first, then walk-ins, each in the order they signed in.
+    /// Sorting by this keeps someone who booked a slot ahead of a walk-in who
+    /// happened to arrive early.
+    public var queueOrder: String {
+        let rank = isPreRegistered ? 0 : isWalkIn ? 1 : 2
+        let number = Int(regNum.drop(while: \.isLetter)) ?? 0
+        return String(format: "%d-%06d", rank, number)
+    }
+
     /// A copy for a file saved outside the data folder, with the withheld
     /// columns blank. They stay as columns, so the file keeps the data files'
     /// shape; the record itself is not changed.

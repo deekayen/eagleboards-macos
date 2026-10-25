@@ -237,15 +237,6 @@ struct YouthActionButtons: View {
 }
 
 extension Scout {
-    /// Pre-registered first, then walk-ins, each in the order they signed in.
-    /// Sorting by this keeps someone who booked a slot ahead of a walk-in who
-    /// happened to arrive early.
-    var queueOrder: String {
-        let rank = isPreRegistered ? 0 : isWalkIn ? 1 : 2
-        let number = Int(regNum.drop(while: \.isLetter)) ?? 0
-        return String(format: "%d-%06d", rank, number)
-    }
-
     /// Ascending means the most recently changed first.
     var minutesSortKey: Double {
         -(Timestamp.date(fromRecordStamp: lastUpdateTime)?.timeIntervalSince1970 ?? 0)

@@ -454,8 +454,15 @@ public struct BoardSuggestion: Sendable, Equatable {
 
         roomID = rooms.first { $0.isFree && $0.boardType == boardType }?.id
         if roomID == nil {
-            problems.append("No \(label) rooms are free.")
+            problems.append(Self.noFreeRoom(for: boardType))
         }
+    }
+
+    /// The problem reported when no room of the youth's kind is free. A
+    /// board drawn up in a room of the other kind has a room, so
+    /// `BoardDrafts` leaves this one out.
+    public static func noFreeRoom(for boardType: BoardType) -> String {
+        "No \(boardType.label) rooms are free."
     }
 
     /// What Fill the Rest adds to a board (SPEC.md D-12).

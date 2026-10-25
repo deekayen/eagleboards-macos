@@ -180,6 +180,8 @@ struct AdultActionButtons: View {
         .disabled(draft == nil || !ids.contains { draft?.memberIDs.contains($0) == false })
         Button("Remove from Board") { run { model.removeFromDraft(ids) } }
             .disabled(draft == nil || !ids.contains { draft?.memberIDs.contains($0) == true })
+        Button("Make Chair") { run { if let single { model.makeChair(single.id) } } }
+            .disabled(!(single.map { model.canMakeChair($0) } ?? false))
         Divider()
         if let single, let youth, single.supports(youth.id) {
             Button("Unlink from \(youth.shownFullName)") { run { model.toggleSupportLink() } }

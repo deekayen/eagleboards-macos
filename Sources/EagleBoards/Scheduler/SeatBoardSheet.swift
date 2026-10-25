@@ -142,7 +142,7 @@ struct SeatBoardSheet: View {
             .onAppear {
                 roomID = model.drafts[scoutID]?.roomID
                     ?? event.rooms.first { $0.isFree && $0.boardType == youth.boardType }?.id
-                chairID = review.qualifiedChairs.first?.id
+                chairID = model.drafts[scoutID]?.chairToSeat(from: review.qualifiedChairs) ?? review.qualifiedChairs.first?.id
             }
             .onChange(of: review.qualifiedChairs.map(\.id)) { _, chairs in
                 if !chairs.contains(where: { $0 == chairID }) {

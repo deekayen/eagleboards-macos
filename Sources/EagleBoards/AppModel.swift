@@ -212,20 +212,8 @@ final class AppModel {
     var selectedAdultIDs: Set<Adult.ID> = []
     var selectedRoomID: Room.ID?
 
-    /// A board being drawn up for a waiting youth: proposed when they are
-    /// selected, then changed by hand in the inspector.
-    struct BoardDraft: Equatable {
-        var roomID: Room.ID?
-        /// Chair first when the suggestion made it, then in the order added.
-        var memberIDs: [Adult.ID]
-        /// Why the suggestion could not propose a whole board.
-        var problems: [String]
-        /// Changed by hand. A hand-made board is the operator's work and is
-        /// kept while they look at other youth; a proposal is made afresh.
-        var isEdited = false
-    }
-
-    private(set) var drafts: [Scout.ID: BoardDraft] = [:]
+    /// The boards being drawn up for waiting youth (SPEC.md D-12).
+    private(set) var drafts = BoardDrafts()
 
     enum Sheet: Identifiable {
         case seatBoard(scoutID: String)
@@ -251,7 +239,19 @@ final class AppModel {
         }
     }
 
-    var sheet: Sheet?
+    var sheet: Sheet? {
+        didSet {
+            // The board in an open Seat Board sheet is the one the operator
+            // is checking: it stays as it is until the sheet closes, then
+            // catches up on whoever signed in meanwhile.
+            if case .seatBoard(let scoutID) = sheet {
+                drafts.frozenID = scoutID
+            } else if drafts.frozenID != nil {
+                drafts.frozenID = nil
+                refreshProposals()
+            }
+        }
+    }
 
     struct Confirmation: Identifiable {
         let id = UUID()
@@ -295,7 +295,7 @@ final class AppModel {
         selectedYouthID = nil
         selectedAdultIDs = []
         selectedRoomID = nil
-        drafts = [:]
+        drafts.removeAll()
     }
 
     /// Change the main window's page. Each page searches its own list, so
@@ -319,12 +319,8 @@ final class AppModel {
         selectedYouthID = id
         guard let id, let event, let youth = event.scout(id: id) else { return }
 
-        if youth.status?.isWaitingForBoard == true {
-            if drafts[id]?.isEdited != true {
-                drafts[id] = proposedBoard(for: youth, in: event)
-            }
-        } else {
-            drafts[id] = nil
+        drafts.select(youth, in: event, proposing: proposeBoards)
+        if youth.status?.isWaitingForBoard != true {
             selectedRoomID = event.room(named: youth.room)?.id
         }
     }
@@ -332,64 +328,26 @@ final class AppModel {
     /// Throw away any changes and propose a whole board, whether or not
     /// boards are proposed on selection.
     func suggestBoard() {
-        guard let event, let youth = selectedYouth, youth.status?.isWaitingForBoard == true else { return }
-        drafts[youth.id] = proposedBoard(for: youth, in: event, whole: true)
-        // Asked for by hand, so kept even when proposals are off.
-        drafts[youth.id]?.isEdited = !proposeBoards
+        guard let event, let youth = selectedYouth else { return }
+        drafts.suggest(for: youth, in: event, proposing: proposeBoards)
     }
 
-    /// Something a proposal depends on has changed: a room was added or
-    /// freed, an adult signed in or left a board. Proposals are made afresh;
-    /// boards drawn up by hand are left alone.
+    /// Something a proposal is made from has changed (`BoardDrafts.fingerprint`):
+    /// a room was added or freed, an adult signed in or left a board.
+    /// Proposals are made afresh; boards drawn up by hand are left alone.
     func refreshProposals() {
-        drafts = drafts.filter(\.value.isEdited)
-        guard let event, let youth = selectedYouth, youth.status?.isWaitingForBoard == true,
-              drafts[youth.id] == nil else { return }
-        drafts[youth.id] = proposedBoard(for: youth, in: event)
+        guard let event else { return }
+        drafts.refresh(selected: selectedYouth, in: event, proposing: proposeBoards)
     }
 
-    /// Fill the Rest (SPEC.md D-12): keep who the operator put on the board
-    /// and add a chair, if none of them may chair it, and members up to the
-    /// working size, chosen as a suggestion would choose them.
     func fillDraft() {
-        guard let event, let youth = selectedYouth, youth.status?.isWaitingForBoard == true,
-              let draft = drafts[youth.id] else { return }
-        let fill = BoardSuggestion.fill(
-            for: youth, adults: event.adults, picked: draft.memberIDs,
-            waiting: waitingBehind(youth, in: event),
-            freeSince: BoardSuggestion.freeSinceTimes(adults: event.adults, scouts: event.scouts))
-        drafts[youth.id]?.memberIDs = (fill.chairID.map { [$0] } ?? []) + draft.memberIDs + fill.memberIDs
-        drafts[youth.id]?.roomID = draft.roomID ?? event.rooms.first { $0.isFree && $0.boardType == youth.boardType }?.id
-        drafts[youth.id]?.problems = fill.problems
-        drafts[youth.id]?.isEdited = true
+        guard let event, let youth = selectedYouth else { return }
+        drafts.fill(for: youth, in: event)
     }
 
-    /// Empty the board, keeping its room.
     func clearDraft() {
-        guard let id = selectedYouthID, drafts[id] != nil else { return }
-        drafts[id]?.memberIDs = []
-        drafts[id]?.problems = []
-        drafts[id]?.isEdited = true
-    }
-
-    /// The other waiting youth in queue order (pre-registered first), so a
-    /// proposal keeps chairs and adults free for the boards to come.
-    private func waitingBehind(_ youth: Scout, in event: BoardEvent) -> [Scout] {
-        event.scouts
-            .filter { $0.id != youth.id && $0.status?.isWaitingForBoard == true }
-            .sorted { $0.queueOrder < $1.queueOrder }
-    }
-
-    private func proposedBoard(for youth: Scout, in event: BoardEvent, whole: Bool? = nil) -> BoardDraft {
-        guard whole ?? proposeBoards else {
-            // Picking by hand: no one yet, but a free room of the right kind.
-            let roomID = event.rooms.first { $0.isFree && $0.boardType == youth.boardType }?.id
-            return BoardDraft(roomID: roomID, memberIDs: [], problems: [])
-        }
-        let freeSince = BoardSuggestion.freeSinceTimes(adults: event.adults, scouts: event.scouts)
-        let suggestion = BoardSuggestion(
-            for: youth, adults: event.adults, rooms: event.rooms, waiting: waitingBehind(youth, in: event), freeSince: freeSince)
-        return BoardDraft(roomID: suggestion.roomID, memberIDs: suggestion.memberIDs, problems: suggestion.problems)
+        guard let id = selectedYouthID else { return }
+        drafts.clear(id)
     }
 
     /// Can the selected adults be added to the board being drawn up?
@@ -409,31 +367,29 @@ final class AppModel {
                               text: "Select a youth who is waiting, then add adults to their board.")
             return
         }
-        let newIDs = adultIDs.filter { event.adult(id: $0) != nil && drafts[youth.id]?.memberIDs.contains($0) == false }
-        guard !newIDs.isEmpty else { return }
-        drafts[youth.id]?.memberIDs += newIDs
-        // The proposal's complaints no longer describe it; the inspector
-        // checks the board as it now stands.
-        drafts[youth.id]?.problems = []
-        drafts[youth.id]?.isEdited = true
+        drafts.add(adultIDs, for: youth.id, in: event)
     }
 
     func removeFromDraft(_ adultIDs: Set<Adult.ID>) {
-        guard let id = selectedYouthID, drafts[id] != nil else { return }
-        drafts[id]?.memberIDs.removeAll { adultIDs.contains($0) }
-        // The proposal's complaints no longer describe it; the inspector
-        // checks the board as it now stands.
-        drafts[id]?.problems = []
-        drafts[id]?.isEdited = true
+        guard let id = selectedYouthID else { return }
+        drafts.remove(adultIDs, for: id)
     }
 
     func setDraftRoom(_ roomID: Room.ID?) {
-        guard let id = selectedYouthID, drafts[id] != nil, drafts[id]?.roomID != roomID else { return }
-        drafts[id]?.roomID = roomID
-        // The proposal's complaints no longer describe it; the inspector
-        // checks the board as it now stands.
-        drafts[id]?.problems = []
-        drafts[id]?.isEdited = true
+        guard let id = selectedYouthID else { return }
+        drafts.setRoom(roomID, for: id)
+    }
+
+    /// Can this adult be made chair of the board drawn up for the selected
+    /// youth?
+    func canMakeChair(_ adult: Adult) -> Bool {
+        guard let event, let youth = selectedYouth else { return false }
+        return drafts.canMakeChair(adult, for: youth, in: event)
+    }
+
+    func makeChair(_ adultID: Adult.ID) {
+        guard let event, let youth = selectedYouth, let adult = event.adult(id: adultID) else { return }
+        drafts.makeChair(adult, for: youth, in: event)
     }
 
     /// Clicking a room selects it, and the youth in it if any.
@@ -511,8 +467,7 @@ final class AppModel {
             return
         }
         selectYouth(scoutID)
-        drafts[scoutID]?.roomID = roomID
-        drafts[scoutID]?.isEdited = true
+        drafts.setRoom(roomID, for: scoutID)
         beginSeating()
     }
 
@@ -521,7 +476,7 @@ final class AppModel {
             try event.seatBoard(roomID: roomID, scoutID: scoutID, chairID: chairID, memberIDs: memberIDs)
         }
         if seated {
-            drafts[scoutID] = nil
+            drafts.discard(scoutID)
             selectedRoomID = roomID
             attention.askPermissionIfNeeded()
         }
@@ -581,7 +536,7 @@ final class AppModel {
         if changeBoard(youth.id, "Postpone", failure: "Could not postpone the board", { event in
             try event.postponeBoard(scoutID: youth.id)
         }) {
-            drafts[youth.id] = nil
+            drafts.discard(youth.id)
         }
     }
 
@@ -674,9 +629,7 @@ final class AppModel {
         guard let event else { return }
         if let id = selectedRoomID, event.room(id: id) == nil { selectedRoomID = nil }
         selectedAdultIDs = selectedAdultIDs.filter { event.adult(id: $0) != nil }
-        for scoutID in drafts.keys {
-            if let roomID = drafts[scoutID]?.roomID, event.room(id: roomID) == nil { drafts[scoutID]?.roomID = nil }
-        }
+        drafts.forgetRooms(missingFrom: event)
     }
 
     // MARK: - Adults
@@ -692,7 +645,7 @@ final class AppModel {
         }
         if change(available ? "Enable" : "Disable", failure: "Could not \(available ? "enable" : "disable") \(names)",
                   apply(available), undo: apply(!available)), !available {
-            for scoutID in drafts.keys { drafts[scoutID]?.memberIDs.removeAll { ids.contains($0) } }
+            drafts.takeOff(Set(ids))
         }
     }
 
@@ -797,9 +750,7 @@ final class AppModel {
     /// After a rename the room keeps its record but not necessarily its ID.
     func roomRenamed(from oldID: Room.ID, to newID: Room.ID) {
         if selectedRoomID == oldID { selectedRoomID = newID }
-        for scoutID in drafts.keys where drafts[scoutID]?.roomID == oldID {
-            drafts[scoutID]?.roomID = newID
-        }
+        drafts.roomRenamed(from: oldID, to: newID)
     }
 
     // MARK: - SignUpGenius
@@ -946,7 +897,7 @@ final class AppModel {
         ) { [weak self] in
             guard let self, attempt("Could not delete \(adult.shownFullName)", { try event.deleteAdult(id: id) }) else { return }
             selectedAdultIDs.remove(id)
-            for scoutID in drafts.keys { drafts[scoutID]?.memberIDs.removeAll { $0 == id } }
+            drafts.takeOff([id])
         }
     }
 

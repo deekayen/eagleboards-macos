@@ -83,6 +83,7 @@ private struct DraftBoardSections: View {
             let members = model.draftMembers(for: youth.id)
             let room = draft.roomID.flatMap { event.room(id: $0) }
             let review = SeatingReview(scout: youth, members: members, room: room)
+            let chairID = draft.chair(among: members, for: boardType)
 
             Section {
                 Picker("Room", selection: Binding(get: { draft.roomID }, set: { model.setDraftRoom($0) })) {
@@ -92,9 +93,11 @@ private struct DraftBoardSections: View {
                     }
                 }
                 ForEach(members) { member in
-                    MemberRow(member: member, youth: youth, boardType: boardType) {
-                        model.removeFromDraft([member.id])
-                    }
+                    MemberRow(
+                        member: member, youth: youth, boardType: boardType,
+                        isChair: member.id == chairID,
+                        makeChair: { model.makeChair(member.id) },
+                        remove: { model.removeFromDraft([member.id]) })
                 }
                 if members.isEmpty {
                     Text("Click adults in the list below to add them, or drag them here from the Adults list.")
@@ -170,11 +173,14 @@ private struct DraftBoardSections: View {
 }
 
 /// A member of the board being drawn up, with anything that stops them
-/// sitting on it.
+/// sitting on it. Only the board's chair reads Chair (SPEC.md D-10); anyone
+/// else on it who may chair reads Can Chair, and Make Chair hands it to them.
 private struct MemberRow: View {
     let member: Adult
     let youth: Scout
     let boardType: BoardType
+    let isChair: Bool
+    let makeChair: () -> Void
     let remove: () -> Void
 
     var body: some View {
@@ -191,13 +197,29 @@ private struct MemberRow: View {
                 }
             }
             Spacer()
-            RoleText(role: member.role(for: boardType)?.rawValue ?? "")
+            role
             Button(action: remove) {
                 Image(systemName: "minus.circle")
             }
             .buttonStyle(.borderless)
             .help("Take \(member.shownFullName) off this board")
             .accessibilityLabel("Remove \(member.shownFullName)")
+        }
+        .contextMenu {
+            if member.canChair(boardType) && !isChair {
+                Button("Make Chair", action: makeChair)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var role: some View {
+        if isChair {
+            RoleText(role: BoardRole.chair.rawValue)
+        } else if member.canChair(boardType) {
+            Text("Can Chair").foregroundStyle(.secondary)
+        } else {
+            RoleText(role: member.role(for: boardType)?.rawValue ?? "")
         }
     }
 

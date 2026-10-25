@@ -29,7 +29,7 @@ without a window or a socket:
 
 | Target | What lives there |
 | --- | --- |
-| `EagleBoardsCore` | `Records.swift` (the record types), `DataFiles.swift` (the CSV and `config.properties` dialects), `BoardRules.swift` (composition rules, board suggestion, locating leaders, room timers), `BoardEvent.swift` (one event's state and every change to it), `SignUpGenius.swift`, `LaunchSettings.swift` (saved preferences and the development environment variables). No UI, no server. |
+| `EagleBoardsCore` | `Records.swift` (the record types), `DataFiles.swift` (the CSV and `config.properties` dialects), `BoardRules.swift` (composition rules, board suggestion, locating leaders, room timers), `BoardEvent.swift` (one event's state and every change to it), `BoardDrafts.swift` (the boards drawn up for waiting youth before Seat Board, and when a proposal is made again), `SignUpGenius.swift`, `LaunchSettings.swift` (saved preferences and the development environment variables). No UI, no server. |
 | `CheckInServer` | The web server for the tablets, and the sign-in pages in `Resources/CheckIn`. It serves those pages and the five calls they make, and nothing else. |
 | `EagleBoards` | The SwiftUI app. `AppModel` holds which event is open, runs the server, and keeps the operator's work in progress. |
 

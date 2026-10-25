@@ -69,7 +69,7 @@ struct SchedulerView: View {
                 Text(confirmation.message)
             }
             .messageAlert()
-            .onChange(of: proposalInputs) { model.refreshProposals() }
+            .onChange(of: BoardDrafts.fingerprint(of: event)) { model.refreshProposals() }
             .onAppear { model.undoManager = undoManager }
             .onChange(of: model.waitingCount, initial: true) { model.attention.showWaiting(model.waitingCount) }
             .task(id: event.date) {
@@ -79,14 +79,6 @@ struct SchedulerView: View {
                 }
             }
             .onChange(of: undoManager) { model.undoManager = undoManager }
-    }
-
-    /// What a proposed board is made from. When any of it changes, proposals
-    /// the operator has not touched are made again.
-    private var proposalInputs: [String] {
-        event.rooms.map { "\($0.id)|\($0.boardTypeText)|\($0.scoutName)" }
-            + event.adults.map { "\($0.id)|\($0.room)|\($0.finalBoardRoleText)|\($0.projectReviewRoleText)" }
-            + event.scouts.map { "\($0.id)|\($0.statusText)|\($0.boardTypeText)" }
     }
 
     /// On the Event page, every youth beside the rooms -- both always on
