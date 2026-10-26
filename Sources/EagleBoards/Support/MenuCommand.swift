@@ -30,3 +30,28 @@ struct MenuCommand: View {
         }
     }
 }
+
+/// A submenu in the menu bar, or, while it has nothing to offer, a dimmed
+/// plain item with the same title. A disabled `Menu` or `Picker` there keeps
+/// its title lit, with its chevron, and dims only what is inside, so the menu
+/// would look as though it still applies.
+struct SubmenuCommand<Submenu: View>: View {
+    let title: String
+    let applies: Bool
+    let submenu: Submenu
+
+    init(_ title: String, applies: Bool, @ViewBuilder submenu: () -> Submenu) {
+        self.title = title
+        self.applies = applies
+        self.submenu = submenu()
+    }
+
+    var body: some View {
+        if applies {
+            submenu
+        } else {
+            Button(title) {}
+                .disabled(true)
+        }
+    }
+}

@@ -284,27 +284,29 @@ struct YouthActionButtons: View {
         let draft = youth.flatMap { model.drafts[$0.id] }
         let members = youth.map { model.draftMembers(for: $0.id) } ?? []
         let chairs = boardType.map { type in members.filter { $0.canChair(type) } } ?? []
-        return Picker("Chair", selection: Binding(
-            get: { boardType.flatMap { draft?.chair(among: members, for: $0) } },
-            set: { id in run { if let id { model.makeChair(id) } } }
-        )) {
-            ForEach(chairs) { Text($0.shownFullName).tag(Optional($0.id)) }
+        return SubmenuCommand("Chair", applies: !chairs.isEmpty) {
+            Picker("Chair", selection: Binding(
+                get: { boardType.flatMap { draft?.chair(among: members, for: $0) } },
+                set: { id in run { if let id { model.makeChair(id) } } }
+            )) {
+                ForEach(chairs) { Text($0.shownFullName).tag(Optional($0.id)) }
+            }
         }
-        .disabled(chairs.isEmpty)
     }
 
     /// Board › Unlink Introducer: whoever is linked to introduce the youth
     /// (SPEC.md D-23). Dimmed when no one is.
     private func unlink(_ youth: Scout?) -> some View {
         let linked = youth.map { youth in model.event?.adults.filter { $0.supports(youth.id) } ?? [] } ?? []
-        return Menu("Unlink Introducer") {
-            ForEach(linked) { adult in
-                Button(adult.shownFullName) {
-                    if let youth { run { model.setSupporting(false, adultID: adult.id, scoutID: youth.id) } }
+        return SubmenuCommand("Unlink Introducer", applies: !linked.isEmpty) {
+            Menu("Unlink Introducer") {
+                ForEach(linked) { adult in
+                    Button(adult.shownFullName) {
+                        if let youth { run { model.setSupporting(false, adultID: adult.id, scoutID: youth.id) } }
+                    }
                 }
             }
         }
-        .disabled(linked.isEmpty)
     }
 
     private func locate(_ youth: Scout?) -> MenuCommand {

@@ -375,14 +375,15 @@ struct CopyRoomsItems: View {
 
     var body: some View {
         let earlierEvents = event.map { event in event.folder.events().filter { $0 < event.date } } ?? []
-        Menu("Copy Rooms From") {
-            ForEach(earlierEvents.prefix(12), id: \.self) { earlier in
-                Button(Timestamp.shownDate(earlier)) { model.copyRooms(from: earlier) }
-                    .help(earlier)
+        SubmenuCommand("Copy Rooms From", applies: !earlierEvents.isEmpty && model.page.showsRooms) {
+            Menu("Copy Rooms From") {
+                ForEach(earlierEvents.prefix(12), id: \.self) { earlier in
+                    Button(Timestamp.shownDate(earlier)) { model.copyRooms(from: earlier) }
+                        .help(earlier)
+                }
             }
         }
         .fixedSize()
-        .disabled(earlierEvents.isEmpty || !model.page.showsRooms)
         .help("Add an earlier event's rooms, empty, except those already here")
     }
 }
@@ -419,15 +420,16 @@ struct RoomActionButtons: View {
             run(room) { model.present(.swapRooms(roomID: $0.id)) }
         }
         if room != nil || !inContextMenu {
-            Picker("Used For", selection: Binding(
-                get: { room?.boardType },
-                set: { newType in
-                    if let room, let newType { model.setBoardType(newType, forRoom: room.id) }
+            SubmenuCommand("Used For", applies: room != nil) {
+                Picker("Used For", selection: Binding(
+                    get: { room?.boardType },
+                    set: { newType in
+                        if let room, let newType { model.setBoardType(newType, forRoom: room.id) }
+                    }
+                )) {
+                    ForEach(BoardType.allCases) { Text($0.label).tag(Optional($0)) }
                 }
-            )) {
-                ForEach(BoardType.allCases) { Text($0.label).tag(Optional($0)) }
             }
-            .disabled(room == nil)
         }
         if !inContextMenu || room?.isFree == true {
             Divider()

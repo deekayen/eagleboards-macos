@@ -47,14 +47,19 @@ struct SchedulerView: View {
             .inspector(isPresented: inspectorShown) {
                 YouthInspector(event: event, steps: steps)
                     .inspectorColumnWidth(min: 300, ideal: 340, max: 480)
+                    // The inspector's toolbar items stay in the window's toolbar
+                    // while it is collapsed, so a page without it leaves its
+                    // button out.
                     .toolbar {
-                        ToolbarItem {
-                            Button {
-                                model.showsInspector.toggle()
-                            } label: {
-                                Label("Inspector", systemImage: "sidebar.trailing")
+                        if model.page.showsBoard {
+                            ToolbarItem {
+                                Button {
+                                    model.showsInspector.toggle()
+                                } label: {
+                                    Label("Inspector", systemImage: "sidebar.trailing")
+                                }
+                                .help("Show or hide the selected youth's board")
                             }
-                            .help("Show or hide the selected youth's board")
                         }
                     }
             }

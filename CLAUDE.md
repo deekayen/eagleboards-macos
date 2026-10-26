@@ -136,7 +136,8 @@ a native window. See `PROVENANCE.md`.
   it: board commands go through `AppModel.boardYouth`, rooms through
   `selectedRoom`, adults through `selectedAdults`, so a key, a double-click or
   a drop that reaches the model from another page does nothing. Menus keep
-  every item, dimmed (`MenuCommand`). `AppModel.showsInspector` is the
+  every item, dimmed (`MenuCommand`; a submenu is a `SubmenuCommand`, since SwiftUI
+  leaves a disabled `Menu` or `Picker` lit in the menu bar). `AppModel.showsInspector` is the
   operator's choice and no page change writes it
   (`SchedulerPage.inspectorChoice`). Show on Event Page takes a youth
   (Results, Youth) or a room (Rooms) to where the board is. No page has both
