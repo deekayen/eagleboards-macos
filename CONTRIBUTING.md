@@ -188,6 +188,14 @@ below. Run things locally to debug what CI found, or to iterate.
     nothing. A new page answers every question in `SchedulerPage`, and a new
     command asks one of them.
 
+    Edit › Undo and Redo work from every page, so they bring what they
+    changed into view: each undoable change passes a reveal to `AppModel`
+    (`revealBoard(of:)`, `revealRooms(selecting:)`, or `revealAdults(_:)`),
+    which calls `show` with the page `SchedulerPage.revealing(_:)` answers. A
+    board change, linking an introducer included, lands on the Event page; a
+    room change stays on the Event or Rooms page and otherwise lands on the
+    Event page; marking an adult gone home or back lands on the Adults page.
+
 ## Releases
 
 Versions are CalVer: the release date, e.g. `2026.09.22`. Pushing a tag

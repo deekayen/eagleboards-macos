@@ -30,8 +30,8 @@ struct SchedulerPageTests {
     }
 
     @Test func theAdultsAndTheirHistoryAreNeverTheBoardsPages() {
-        // Add to Board, Make Chair and Introduces need a youth's board in
-        // view, and the pages that list adults have none.
+        // Adults are put on a board from the inspector, and the pages that
+        // list adults have none.
         for page in SchedulerPage.allCases where page.listsAdults || page.listsAdultHistory {
             #expect(!page.showsBoard)
         }
@@ -103,5 +103,59 @@ struct SchedulerPageTests {
         chosen = SchedulerPage.event.inspectorChoice(reported: false, was: chosen)
         chosen = SchedulerPage.rooms.inspectorChoice(reported: false, was: chosen)
         #expect(!SchedulerPage.event.showsInspector(chosen: chosen))
+    }
+
+    // MARK: - Where Undo and Redo land
+
+    /// Each page and the page that shows a change to a board, a room, and an
+    /// adult, written out so the answers do not come from the code they test.
+    private static let landings: [(from: SchedulerPage, board: SchedulerPage, rooms: SchedulerPage, adults: SchedulerPage)] = [
+        (.event, .event, .event, .adults),
+        (.results, .event, .event, .adults),
+        (.adults, .event, .event, .adults),
+        (.youth, .event, .event, .adults),
+        (.preRegistered, .event, .event, .adults),
+        (.adultHistory, .event, .event, .adults),
+        (.rooms, .event, .rooms, .adults),
+        (.approvedProposals, .event, .event, .adults),
+    ]
+
+    @Test func theTableCoversEveryPage() {
+        #expect(Self.landings.map(\.from) == SchedulerPage.allCases)
+    }
+
+    @Test func aBoardChangeLandsOnTheEventPageFromEveryPage() {
+        for landing in Self.landings {
+            #expect(landing.from.revealing(.board) == landing.board, "from \(landing.from)")
+        }
+    }
+
+    @Test func aRoomChangeStaysOnAPageThatShowsRoomsAndOtherwiseGoesToTheEventPage() {
+        for landing in Self.landings {
+            #expect(landing.from.revealing(.rooms) == landing.rooms, "from \(landing.from)")
+        }
+    }
+
+    @Test func anAdultChangeLandsOnTheAdultsPageFromEveryPage() {
+        for landing in Self.landings {
+            #expect(landing.from.revealing(.adults) == landing.adults, "from \(landing.from)")
+        }
+    }
+
+    @Test func everyChangeLandsOnAPageThatShowsIt() {
+        for page in SchedulerPage.allCases {
+            #expect(page.revealing(.board).showsBoard)
+            #expect(page.revealing(.rooms).showsRooms)
+            #expect(page.revealing(.adults).listsAdults)
+        }
+    }
+
+    @Test func aPageThatLandedOnShowsTheChangeAndIsNotMovedAgain() {
+        for subject in SchedulerPage.Subject.allCases {
+            for page in SchedulerPage.allCases {
+                let landing = page.revealing(subject)
+                #expect(landing.revealing(subject) == landing)
+            }
+        }
     }
 }

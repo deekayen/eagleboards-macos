@@ -139,10 +139,20 @@ a native window. See `PROVENANCE.md`.
   every item, dimmed (`MenuCommand`). `AppModel.showsInspector` is the
   operator's choice and no page change writes it
   (`SchedulerPage.inspectorChoice`). Show on Event Page takes a youth
-  (Results, Youth) or a room (Rooms) to where the board is. The Adult menu's
-  board items (Add to Board, Remove from Board, Make Chair, Introduces) need
-  an adult picked on the Adults page and a board in view on the Event page,
-  so none can light; they stay, dimmed, so the menu keeps its shape.
+  (Results, Youth) or a room (Rooms) to where the board is. No page has both
+  a table of adults to pick from and a board in view, so the Adult menu does
+  not put an adult on a board, make them chair, or link them as an introducer;
+  the inspector does, and the Board menu has Chair and Unlink Introducer. The
+  Adult menu holds Add Adult…, Sign In for Today, Mark Gone Home, and Mark
+  Back. Undo and Redo work from every page, so they bring the change into view.
+  Every `registerUndo` and `change` call passes a reveal (it has no default),
+  and `changeBoard` reveals the youth's board. A reveal is
+  `AppModel.revealBoard(of:)`, `revealRooms(selecting:)`, or
+  `revealAdults(_:)`; each asks `SchedulerPage.revealing(_:)` for the page and
+  calls `show`. A board change, linking an introducer included, is the Event
+  page's; a room change stays on Event or Rooms and otherwise goes to Event;
+  Mark Gone Home and Mark Back go to Adults. `SchedulerPageTests` pins where
+  each lands from all eight pages.
 - **Accessibility follows Apple's HIG** (CONTRIBUTING.md rule 12). An icon
   beside words is a `Label`; an icon-only control has an
   `.accessibilityLabel` naming what it does and a `.help` tag. A value drawn

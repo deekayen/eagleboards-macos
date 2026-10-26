@@ -8,7 +8,8 @@
 /// the Adults page's table. A selection made on one page is kept for when the
 /// operator comes back to it, but it is never acted on from a page that cannot
 /// show it. Windows' details pane is on its Event page alone, and its Board
-/// menu works only there.
+/// menu works only there. Edit › Undo and Redo work from every page, so they
+/// bring what they changed into view (`revealing(_:)`).
 ///
 /// The questions are here, and not in the views, so each can be tested and a
 /// new page has to answer all of them (the switches have no default).
@@ -24,7 +25,7 @@ public enum SchedulerPage: Hashable, CaseIterable, Sendable {
 
     /// The selected youth's board, in the inspector: the board being drawn
     /// up, the one sitting, or how it went. Every step and change to a board
-    /// belongs to this page, as do the adults' board items in the Adult menu.
+    /// belongs to this page.
     public var showsBoard: Bool {
         switch self {
         case .event: true
@@ -41,7 +42,7 @@ public enum SchedulerPage: Hashable, CaseIterable, Sendable {
     }
 
     /// The event's adults, in a table to select from, for Adult › Mark Gone
-    /// Home, Mark Back and Delete.
+    /// Home, Mark Back, and Delete.
     public var listsAdults: Bool {
         switch self {
         case .adults: true
@@ -70,6 +71,38 @@ public enum SchedulerPage: Hashable, CaseIterable, Sendable {
         case .youth: true
         case .results: status.map { !$0.isWaitingForBoard } ?? false
         case .event, .adults, .preRegistered, .adultHistory, .rooms, .approvedProposals: false
+        }
+    }
+
+    /// What an undone or redone change was made to, which decides the page
+    /// that has it in view.
+    public enum Subject: Hashable, CaseIterable, Sendable {
+        /// A youth's board: a step, its members, or who introduces them. The
+        /// inspector draws all of it.
+        case board
+        /// A room: added, copied, renamed, moved, removed, or given another use.
+        case rooms
+        /// The event's adults: marked gone home or back.
+        case adults
+    }
+
+    /// The page Edit › Undo or Redo of a change to `subject` brings into view
+    /// when it is chosen from this page: this page if it has the subject in
+    /// view, otherwise the page that does. Undo works from every page, and
+    /// without this it would change a board or a room that nothing on the page
+    /// shows, with VoiceOver saying it was done.
+    ///
+    /// A board is the Event page's alone. A room is on the Event page's cards
+    /// and the Rooms page's table, so the change stays on either, and any other
+    /// page goes to the Event page. The event's adults are the Adults page's.
+    /// Linking an adult to a youth as their introducer changes the youth's
+    /// With Them list, so it is a `.board` change, not an `.adults` one.
+    /// Deleting an adult is not on the Undo stack.
+    public func revealing(_ subject: Subject) -> SchedulerPage {
+        switch subject {
+        case .board: showsBoard ? self : .event
+        case .rooms: showsRooms ? self : .event
+        case .adults: listsAdults ? self : .adults
         }
     }
 

@@ -253,7 +253,10 @@ the **Board** menu's steps, **Locate Leader and Parents** among them, are on the
 Event page alone. The **Room** menu works on the Event and Rooms pages, and
 **Adult › Mark Gone Home** and **Mark Back** on the Adults page. Everywhere else
 those items are dimmed, except **Board › Show on Event Page**, which takes a
-youth on Results or Youth to where their board is.
+youth on Results or Youth to where their board is. **Edit › Undo** and
+**Edit › Redo** work from any page. They go to the page that shows what
+changed: the Event page for a board or a room (the Rooms page, if you are on
+it), or the Adults page for adults marked gone home or back.
 
 To delete a youth, a pre-registration, or an adult, select them and press
 **Delete** or choose **Edit › Delete**, or right-click them; that asks first,

@@ -195,15 +195,15 @@ struct AdultStatusLabel: View {
 /// What can be done to adults: the Adult menu, and the context menu on their
 /// rows. Acting on rows that are not selected selects them first.
 ///
-/// The adults to act on are those picked on the Adults page, and the board
-/// items (Add to Board, Remove from Board, Make Chair, Introduces) are for the
-/// youth whose board is in view, which only the Event page has. The menu keeps
-/// every item, dimmed where it does not apply: on the Adults page the board
-/// items have no board, and on the Event page no adult is picked.
+/// The adults to act on are those picked on the Adults page. Putting an adult
+/// on a board, handing them the chair, and linking them to a youth as their
+/// introducer all need the youth's board in view, which is the Event page's
+/// inspector, and the Event page has no table of adults to pick from, so they
+/// are the inspector's and not here.
 ///
-/// The context menu lists only what applies, in three groups: the youth's
-/// board and whether this adult introduces them; Mark Gone Home or Mark
-/// Back; and, for one adult, Delete Adult….
+/// The Adult menu keeps Mark Gone Home and Mark Back, dimmed where they do not
+/// apply. The context menu lists only what applies: Mark Gone Home or Mark Back
+/// and, for one adult, Delete Adult….
 struct AdultActionButtons: View {
     let model: AppModel
     /// Nil acts on the selected adults.
@@ -211,53 +211,24 @@ struct AdultActionButtons: View {
     var inContextMenu = false
 
     var body: some View {
-        let youth = model.boardYouth
-        let draft = youth.flatMap { model.drafts[$0.id] }
         let ids = adultIDs ?? (model.page.listsAdults ? model.selectedAdultIDs : [])
         let adults = model.event?.adults.filter { ids.contains($0.id) } ?? []
         let single = adults.count == 1 ? adults.first : nil
-        let canAdd = draft.map { draft in ids.contains { !draft.memberIDs.contains($0) } } ?? false
-        let canRemove = draft.map { draft in ids.contains { draft.memberIDs.contains($0) } } ?? false
-        let canMakeChair = single.map { model.canMakeChair($0) } ?? false
-        let canLink = single != nil && youth != nil
         let canMarkGoneHome = adults.contains(where: \.isAvailable)
         let canMarkBack = adults.contains(where: \.isDisabledForToday)
-        let forYouth = canAdd || canRemove || canMakeChair || canLink
 
-        command(youth.map { "Add to \($0.first.shownValue)'s Board" } ?? "Add to Board", applies: canAdd,
-                shortcut: KeyboardShortcut("b")) {
-            model.addToDraft(Array(ids))
-        }
-        command("Remove from Board", applies: canRemove) { model.removeFromDraft(ids) }
-        command("Make Chair", applies: canMakeChair) { if let single { model.makeChair(single.id) } }
-        if !inContextMenu {
-            Divider()
-        }
-        // One checked item for the D-23 link, whichever way it goes.
-        if canLink || !inContextMenu {
-            Toggle(youth.map { "Introduces \($0.shownFullName)" } ?? "Introduces Selected Youth", isOn: Binding(
-                get: { youth.map { single?.supports($0.id) == true } ?? false },
-                set: { _ in run { model.toggleSupportLink() } }
-            ))
-            .disabled(!canLink)
-        }
-        if !inContextMenu || (forYouth && (canMarkGoneHome || canMarkBack)) {
-            Divider()
-        }
         command("Mark Gone Home", applies: canMarkGoneHome) { model.setAvailable(false) }
         command("Mark Back", applies: canMarkBack) { model.setAvailable(true) }
         if inContextMenu, let single {
-            if forYouth || canMarkGoneHome || canMarkBack {
+            if canMarkGoneHome || canMarkBack {
                 Divider()
             }
             Button("Delete Adult…", role: .destructive) { model.confirmDeleteAdult(single.id) }
         }
     }
 
-    private func command(
-        _ title: String, applies: Bool, shortcut: KeyboardShortcut? = nil, _ action: @escaping @MainActor () -> Void
-    ) -> MenuCommand {
-        MenuCommand(title, applies: applies, shortcut: shortcut, inContextMenu: inContextMenu) { run(action) }
+    private func command(_ title: String, applies: Bool, _ action: @escaping @MainActor () -> Void) -> MenuCommand {
+        MenuCommand(title, applies: applies, inContextMenu: inContextMenu) { run(action) }
     }
 
     private func run(_ action: () -> Void) {

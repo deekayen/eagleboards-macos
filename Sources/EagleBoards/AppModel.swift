@@ -538,13 +538,6 @@ final class AppModel {
         drafts.setRoom(roomID, for: id)
     }
 
-    /// Can this adult be made chair of the board drawn up for the youth in
-    /// view?
-    func canMakeChair(_ adult: Adult) -> Bool {
-        guard let event, let youth = boardYouth else { return false }
-        return drafts.canMakeChair(adult, for: youth, in: event)
-    }
-
     func makeChair(_ adultID: Adult.ID) {
         guard let event, let youth = boardYouth, let adult = event.adult(id: adultID) else { return }
         drafts.makeChair(adult, for: youth, in: event)
@@ -843,7 +836,7 @@ final class AppModel {
         registerUndo(name, on: event,
                      undo: { try $0.restoreBoard(before) },
                      redo: { try $0.restoreBoard(after) },
-                     reveal: { $0.selectYouth(scoutID) })
+                     reveal: { $0.revealBoard(of: scoutID) })
         sayDone(success)
     }
 
@@ -852,7 +845,7 @@ final class AppModel {
     private func change(_ name: String, failure: String, success: String? = nil,
                         _ forward: @escaping (BoardEvent) throws -> Void,
                         undo backward: @escaping (BoardEvent) throws -> Void,
-                        reveal: @escaping (AppModel) -> Void = { _ in }) -> Bool {
+                        reveal: @escaping (AppModel) -> Void) -> Bool {
         guard let event, attempt(failure, { try forward(event) }) else { return false }
         registerUndo(name, on: event, undo: backward, redo: forward, reveal: reveal)
         sayDone(success)
@@ -867,12 +860,17 @@ final class AppModel {
     }
 
     /// Register `undo`, which when run registers `redo` in turn. A refusal
-    /// -- the room has been given to another board since, say -- is shown,
-    /// and the step stays as it is.
+    /// (the room has been given to another board since, say) is shown, and
+    /// the step stays as it is.
+    ///
+    /// Undo and Redo work from every page, so `reveal` brings what they
+    /// changed into view afterward: `revealBoard(of:)`, `revealRooms(selecting:)`
+    /// or `revealAdults(_:)`, whichever page has it. Every call site names one,
+    /// so a new change has to decide where it is seen.
     private func registerUndo(_ name: String, on event: BoardEvent,
                               undo: @escaping (BoardEvent) throws -> Void,
                               redo: @escaping (BoardEvent) throws -> Void,
-                              reveal: @escaping (AppModel) -> Void = { _ in }) {
+                              reveal: @escaping (AppModel) -> Void) {
         guard let undoManager else { return }
         undoManager.registerUndo(withTarget: self) { model in
             let undoing = model.undoManager?.isUndoing ?? true
@@ -887,12 +885,32 @@ final class AppModel {
         undoManager.setActionName(name)
     }
 
-    /// An undone or redone room change selects the room, while it is there,
-    /// so the operator sees what changed on the Event or Rooms page.
-    private static func revealRoom(_ id: Room.ID) -> (AppModel) -> Void {
-        { model in
-            if model.event?.room(id: id) != nil { model.selectedRoomID = id }
-        }
+    // Undo and Redo work from every page, so what they changed is brought into
+    // view. `show` keeps the selections and the inspector choice, so these
+    // only choose the page (`SchedulerPage.revealing(_:)`) and select what
+    // changed on it.
+
+    /// A youth's board, which only the Event page draws: a step, their members,
+    /// and who introduces them (the With Them list) all show there.
+    private func revealBoard(of scoutID: Scout.ID) {
+        show(page.revealing(.board))
+        selectYouth(scoutID)
+    }
+
+    /// Rooms, on the Rooms page if that is where Undo was chosen, and
+    /// otherwise on the Event page's cards. The room is selected while it is
+    /// there; one that was removed is not, and the page shows it gone.
+    private func revealRooms(selecting id: Room.ID? = nil) {
+        show(page.revealing(.rooms))
+        if let id, event?.room(id: id) != nil { selectedRoomID = id }
+    }
+
+    /// Adults marked gone home or back, on the Adults page, with those changed
+    /// selected so the page shows which.
+    private func revealAdults(_ ids: Set<Adult.ID>) {
+        show(page.revealing(.adults))
+        let changed = ids.filter { event?.adult(id: $0) != nil }
+        if !changed.isEmpty { selectedAdultIDs = changed }
     }
 
     /// After an undo, let go of anything that is no longer there.
@@ -918,7 +936,8 @@ final class AppModel {
         if change(available ? "Mark Back" : "Mark Gone Home",
                   failure: available ? "Could Not Mark \(names) Back" : "Could Not Mark \(names) Gone Home",
                   success: available ? StepSpeech.markedBack(shownNames) : StepSpeech.markedGoneHome(shownNames),
-                  apply(available), undo: apply(!available)), !available {
+                  apply(available), undo: apply(!available),
+                  reveal: { $0.revealAdults(Set(ids)) }), !available {
             drafts.takeOff(Set(ids))
         }
     }
@@ -929,15 +948,11 @@ final class AppModel {
         return adults.count == 1 ? adults.first : nil
     }
 
-    /// Link the selected adult to the youth in view as the one who
-    /// introduces them (SPEC.md D-23), or unlink them -- for the adult who did not check the
-    /// youth at sign-in. Start Review names them from then on. Works for an
-    /// adult on a board too: a Scoutmaster often is by then.
-    func toggleSupportLink() {
-        guard let adult = singleSelectedAdult, let youth = boardYouth else { return }
-        setSupporting(!adult.supports(youth.id), adultID: adult.id, scoutID: youth.id)
-    }
-
+    /// Link an adult to a youth as the one who introduces them (SPEC.md D-23),
+    /// or unlink them: for the adult who did not say so at sign-in. Start
+    /// Review names them from then on. Works for an adult on a board too; a
+    /// Scoutmaster often is by then. The inspector's With Them list links,
+    /// and it or Board › Unlink Introducer unlinks.
     func setSupporting(_ linked: Bool, adultID: Adult.ID, scoutID: Scout.ID) {
         let adult = event?.adult(id: adultID)?.shownFullName ?? "the Adult"
         let youth = event?.scout(id: scoutID)?.shownFullName ?? "the Youth"
@@ -945,7 +960,10 @@ final class AppModel {
                failure: linked ? "Could Not Link \(adult) to \(youth)" : "Could Not Unlink \(adult) from \(youth)",
                success: linked ? StepSpeech.linked(adult, to: youth) : StepSpeech.unlinked(adult, from: youth),
                { try $0.setSupporting(linked, adultID: adultID, scoutID: scoutID) },
-               undo: { try $0.setSupporting(!linked, adultID: adultID, scoutID: scoutID) })
+               undo: { try $0.setSupporting(!linked, adultID: adultID, scoutID: scoutID) },
+               // A change to the youth's With Them list, so the Event page's,
+               // not the Adults page's.
+               reveal: { $0.revealBoard(of: scoutID) })
     }
 
     // MARK: - Rooms
@@ -959,7 +977,7 @@ final class AppModel {
         registerUndo("Add Room", on: event,
                      undo: { try $0.removeRoom(id: id) },
                      redo: { try $0.restoreRoom(added) },
-                     reveal: Self.revealRoom(id))
+                     reveal: { $0.revealRooms(selecting: id) })
         sayDone(StepSpeech.roomAdded(added.name))
     }
 
@@ -980,7 +998,8 @@ final class AppModel {
                              try event.removeRoom(id: room.id)
                          }
                      },
-                     redo: { _ = try $0.copyRooms(fromEvent: earlier) })
+                     redo: { _ = try $0.copyRooms(fromEvent: earlier) },
+                     reveal: { $0.revealRooms() })
         sayDone(StepSpeech.roomsCopied(added.count, from: earlier))
     }
 
@@ -1003,7 +1022,7 @@ final class AppModel {
                   change("Remove Room", failure: "Could Not Remove Room \(room.name)", success: StepSpeech.roomRemoved(room.name),
                          { try $0.removeRoom(id: room.id) },
                          undo: { try $0.restoreRoom(room) },
-                         reveal: Self.revealRoom(room.id))
+                         reveal: { $0.revealRooms(selecting: room.id) })
             else { return }
             tidySelection()
         })
@@ -1018,7 +1037,7 @@ final class AppModel {
         registerUndo("Rename Room", on: event,
                      undo: { try $0.renameRoom(id: id, to: oldName) },
                      redo: { try $0.renameRoom(id: id, to: newName) },
-                     reveal: Self.revealRoom(id))
+                     reveal: { $0.revealRooms(selecting: id) })
         sayDone(StepSpeech.roomRenamed(oldName, to: renamed))
     }
 
@@ -1034,7 +1053,7 @@ final class AppModel {
         let swap: (BoardEvent) throws -> Void = { try $0.swapRooms(firstID, secondID) }
         try swap(event)
         registerUndo("Move Board", on: event, undo: swap, redo: swap, reveal: { model in
-            model.selectedRoomID = model.undoManager?.isUndoing == true ? firstID : secondID
+            model.revealRooms(selecting: model.undoManager?.isUndoing == true ? firstID : secondID)
         })
         selectedRoomID = secondID
         sayDone(StepSpeech.boardMoved(from: first?.name ?? firstID, holding: holding(first),
@@ -1047,7 +1066,7 @@ final class AppModel {
                success: StepSpeech.roomUse(room.name, boardType),
                { try $0.setBoardType(boardType, forRoom: roomID) },
                undo: { try $0.setBoardType(old, forRoom: roomID) },
-               reveal: Self.revealRoom(roomID))
+               reveal: { $0.revealRooms(selecting: roomID) })
     }
 
     // MARK: - SignUpGenius
