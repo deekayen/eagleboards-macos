@@ -264,46 +264,21 @@ final class AppModel {
     // MARK: - The operator's work in progress
 
     /// The main window's pages, chosen in the View menu (SPEC.md P-1, P-6),
-    /// in the Windows version's order. Event holds every youth, the rooms and
-    /// the inspector together (O-3). The rest are a page for each table the
-    /// event keeps: the boards (Results), the event's adults, every youth, the
-    /// SignUpGenius pre-registrations, and the rooms, edited in place; and the
-    /// Adult History CSV, every adult who has ever signed in, read-only. There is no separate records
-    /// window. The inspector stays beside each page.
-    enum Page: Hashable, CaseIterable {
-        case event
-        case results
-        case adults
-        case youth
-        case preRegistered
-        case adultHistory
-        case rooms
-        case approvedProposals
-
-        var title: String {
-            switch self {
-            case .event: "Event"
-            case .results: "Results"
-            case .adults: "Adults"
-            case .youth: "Youth"
-            case .preRegistered: "Pre-Registered"
-            case .adultHistory: "Adult History CSV"
-            case .rooms: "Rooms"
-            case .approvedProposals: "Approved Proposals"
-            }
-        }
-
-        /// A table File › Export List saves. Results has Export Board Results
-        /// instead.
-        var isList: Bool { ![.event, .results, .approvedProposals].contains(self) }
-
-        /// What File › Export List names the saved file, before the event's
-        /// date. The saved file is the CSV, so the page's "CSV" is left out.
-        var exportName: String { self == .adultHistory ? "Adult History" : title }
-    }
+    /// in the Windows version's order. Event holds every youth and the rooms
+    /// together (O-3), and the inspector for the selected youth's board sits
+    /// beside it alone. The rest are a page for each table the event keeps:
+    /// the boards (Results), the event's adults, every youth, the SignUpGenius
+    /// pre-registrations, and the rooms, edited in place; and the Adult History
+    /// CSV, every adult who has ever signed in, read-only. There is no separate
+    /// records window. What each page has in view, and so what a command may act
+    /// on, is `SchedulerPage`'s.
+    typealias Page = SchedulerPage
 
     var page: Page = .event
     var searchText = ""
+    /// Whether the operator wants the inspector, for the Event page, which is
+    /// the only page that has one. Leaving the page takes the inspector away
+    /// without changing this, so it is as they left it on coming back.
     var showsInspector = true
     /// Edit › Find… asked for the toolbar search. The scheduler window takes
     /// it up when it next draws, which may be once Find has opened it.
@@ -318,12 +293,6 @@ final class AppModel {
     /// submitted again: the page selects its first row found and focuses
     /// its table.
     private(set) var searchSubmitted = 0
-    /// A step from a focused inspector button that went away, on the Adult
-    /// History CSV or Approved Proposals page: their AppKit table takes the
-    /// focus, as a SwiftUI page's table does through `SchedulerFocus`.
-    private(set) var plainTableFocusRequests = 0
-
-    func focusPlainTable() { plainTableFocusRequests += 1 }
 
     /// Each table page's order, which a click on a column heading and
     /// View › Sort By both set.
@@ -336,9 +305,14 @@ final class AppModel {
         sorts[page] = sort
     }
 
+    /// Picked on the Event, Results or Youth page, and kept when the page is
+    /// left. A board command acts on it only through `boardYouth`, so never
+    /// from a page that does not show the board.
     var selectedYouthID: Scout.ID?
     /// Picked on the Adults page, and let go when it is left.
     var selectedAdultIDs: Set<Adult.ID> = []
+    /// Picked on the Event page's cards or the Rooms page's table, and kept when
+    /// the page is left. The Room menu acts on it only through `selectedRoom`.
     var selectedRoomID: Room.ID?
     /// Picked on the Adult History CSV page, for Adult › Sign In for Today.
     var selectedHistoryIDs: Set<Adult.ID> = []
@@ -428,13 +402,27 @@ final class AppModel {
     var message: Message?
 
     var selectedYouth: Scout? { selectedYouthID.flatMap { event?.scout(id: $0) } }
-    var selectedRoom: Room? { selectedRoomID.flatMap { event?.room(id: $0) } }
+
+    /// The youth whose board the page shown has in view: the selected youth on
+    /// the Event page, where the inspector is, and no one on any other page.
+    /// Every step and change to a board goes through it, so a key, a
+    /// double-click or a drop that reaches the model from a page without the
+    /// board acts on nothing.
+    var boardYouth: Scout? { page.showsBoard ? selectedYouth : nil }
+
+    /// The room selected, on a page that shows rooms: the Event page's cards or
+    /// the Rooms page's table. A room selected on one of them and left there is
+    /// not the Room menu's on the Adults page.
+    var selectedRoom: Room? { page.showsRooms ? selectedRoomID.flatMap { event?.room(id: $0) } : nil }
+
+    /// The adults picked on the Adults page, while it is the page shown.
     var selectedAdults: [Adult] {
-        guard let event else { return [] }
+        guard let event, page.listsAdults else { return [] }
         return event.adults.filter { selectedAdultIDs.contains($0.id) }
     }
 
-    /// The board drawn up for the selected youth, if they are waiting.
+    /// The board drawn up for the selected youth, if they are waiting, for the
+    /// inspector to show. A command asks `boardYouth` as well.
     var draft: BoardDraft? { selectedYouthID.flatMap { drafts[$0] } }
 
     /// The draft's members, in its order. Someone put on another board since
@@ -456,10 +444,15 @@ final class AppModel {
     /// the search starts empty. The adults picked on the Adults page or the
     /// Adult History CSV page are let go with it, so the Adult menu never
     /// acts on people the page shown does not list.
+    ///
+    /// The youth and the room selected stay selected, and so does the choice
+    /// to show the inspector: coming back to the Event page finds them as they
+    /// were. No command acts on them from a page that cannot show them (see
+    /// `boardYouth` and `selectedRoom`).
     func show(_ newPage: Page) {
         guard newPage != page else { return }
-        if page == .adults { selectedAdultIDs = [] }
-        if page == .adultHistory { selectedHistoryIDs = [] }
+        if page.listsAdults { selectedAdultIDs = [] }
+        if page.listsAdultHistory { selectedHistoryIDs = [] }
         page = newPage
         searchText = ""
     }
@@ -467,7 +460,7 @@ final class AppModel {
     /// Those picked on the Adult History CSV page who have not signed in
     /// today, while it is the page shown.
     var historySelectionToSignIn: Set<Adult.ID> {
-        guard let event, page == .adultHistory else { return [] }
+        guard let event, page.listsAdultHistory else { return [] }
         return selectedHistoryIDs.subtracting(event.adults.map(\.id))
     }
 
@@ -501,7 +494,7 @@ final class AppModel {
     /// Throw away any changes and propose a whole board, whether or not
     /// boards are proposed on selection.
     func suggestBoard() {
-        guard let event, let youth = selectedYouth else { return }
+        guard let event, let youth = boardYouth else { return }
         drafts.suggest(for: youth, in: event, proposing: proposeBoards)
     }
 
@@ -514,27 +507,19 @@ final class AppModel {
     }
 
     func fillDraft() {
-        guard let event, let youth = selectedYouth else { return }
+        guard let event, let youth = boardYouth else { return }
         drafts.fill(for: youth, in: event)
     }
 
     func clearDraft() {
-        guard let id = selectedYouthID else { return }
+        guard let id = boardYouth?.id else { return }
         drafts.clear(id)
     }
 
-    /// Can the selected adults be added to the board being drawn up?
-    var canAddSelectedAdultsToDraft: Bool {
-        guard let id = selectedYouthID, let draft = drafts[id] else { return false }
-        return selectedAdultIDs.contains { !draft.memberIDs.contains($0) }
-    }
-
-    var canRemoveSelectedAdultsFromDraft: Bool {
-        guard let draft else { return false }
-        return selectedAdultIDs.contains { draft.memberIDs.contains($0) }
-    }
-
     func addToDraft(_ adultIDs: [Adult.ID]) {
+        // Adults are put on a board from the inspector, which only the Event
+        // page has.
+        guard page.showsBoard else { return }
         guard let event, let youth = selectedYouth, drafts[youth.id] != nil else {
             message = Message(title: "No board is being drawn up.",
                               text: "Select a youth who is waiting, then add adults to their board.")
@@ -544,24 +529,24 @@ final class AppModel {
     }
 
     func removeFromDraft(_ adultIDs: Set<Adult.ID>) {
-        guard let id = selectedYouthID else { return }
+        guard let id = boardYouth?.id else { return }
         drafts.remove(adultIDs, for: id)
     }
 
     func setDraftRoom(_ roomID: Room.ID?) {
-        guard let id = selectedYouthID else { return }
+        guard let id = boardYouth?.id else { return }
         drafts.setRoom(roomID, for: id)
     }
 
-    /// Can this adult be made chair of the board drawn up for the selected
-    /// youth?
+    /// Can this adult be made chair of the board drawn up for the youth in
+    /// view?
     func canMakeChair(_ adult: Adult) -> Bool {
-        guard let event, let youth = selectedYouth else { return false }
+        guard let event, let youth = boardYouth else { return false }
         return drafts.canMakeChair(adult, for: youth, in: event)
     }
 
     func makeChair(_ adultID: Adult.ID) {
-        guard let event, let youth = selectedYouth, let adult = event.adult(id: adultID) else { return }
+        guard let event, let youth = boardYouth, let adult = event.adult(id: adultID) else { return }
         drafts.makeChair(adult, for: youth, in: event)
     }
 
@@ -609,11 +594,11 @@ final class AppModel {
         }
     }
 
-    /// The step that moves the selected youth's board along, if one can be
-    /// taken now.
+    /// The step that moves the board in view along, if one can be taken now:
+    /// the selected youth's, on the Event page.
     var nextStep: BoardStep? {
         guard sheet == nil else { return nil }
-        return selectedYouth?.status?.nextStep
+        return boardYouth?.status?.nextStep
     }
 
     func performNextStep() {
@@ -626,7 +611,7 @@ final class AppModel {
     }
 
     func beginSeating() {
-        guard let youth = selectedYouth, youth.status?.isWaitingForBoard == true else { return }
+        guard let youth = boardYouth, youth.status?.isWaitingForBoard == true else { return }
         if drafts[youth.id] == nil { selectYouth(youth.id) }
         present(.seatBoard(scoutID: youth.id))
     }
@@ -636,7 +621,11 @@ final class AppModel {
     /// says why.
     @discardableResult
     func seat(scoutID: Scout.ID, inRoom roomID: Room.ID) -> Bool {
-        guard let event, let youth = event.scout(id: scoutID), let room = event.room(id: roomID) else { return false }
+        // The room cards, the only place a youth is dropped, are the Event
+        // page's.
+        guard page.showsBoard, let event, let youth = event.scout(id: scoutID), let room = event.room(id: roomID) else {
+            return false
+        }
         guard youth.status?.isWaitingForBoard == true else {
             message = Message(title: "\(youth.shownFullName) is not waiting.",
                               text: "Only a youth who is waiting for a board can be seated in a room.")
@@ -665,12 +654,12 @@ final class AppModel {
     }
 
     var canChangeMembers: Bool {
-        let status = selectedYouth?.status
+        let status = boardYouth?.status
         return status == .seated || status == .inProgress
     }
 
     func beginChangingMembers() {
-        guard let youth = selectedYouth, canChangeMembers else { return }
+        guard let youth = boardYouth, canChangeMembers else { return }
         present(.changeMembers(scoutID: youth.id))
     }
 
@@ -690,7 +679,7 @@ final class AppModel {
     }
 
     func confirmStartReview() {
-        guard let event, let youth = selectedYouth else { return }
+        guard let event, let youth = boardYouth else { return }
         // A board of review starts with an introduction (SPEC.md D-23): name
         // whom to fetch and where. A project review has none, so it starts at
         // once, as on Windows; Undo takes it back, so there is nothing to
@@ -718,7 +707,7 @@ final class AppModel {
     }
 
     func beginCompleting() {
-        guard let youth = selectedYouth, youth.status == .inProgress else { return }
+        guard let youth = boardYouth, youth.status == .inProgress else { return }
         present(.completeBoard(scoutID: youth.id))
     }
 
@@ -732,12 +721,12 @@ final class AppModel {
         }
     }
 
-    var canPostpone: Bool { selectedYouth?.status?.isWaitingForBoard == true }
+    var canPostpone: Bool { boardYouth?.status?.isWaitingForBoard == true }
 
-    /// Put the selected youth's board off to another event. Undo brings them
-    /// back to the waiting list.
+    /// Put the board in view off to another event. Undo brings them back to
+    /// the waiting list.
     func postpone() {
-        guard let youth = selectedYouth, canPostpone else { return }
+        guard let youth = boardYouth, canPostpone else { return }
         if changeBoard(youth.id, "Postpone", failure: "Could Not Postpone \(youth.shownFullName)'s Board",
                        success: StepSpeech.postponed(youth.shownFullName), { event in
             try event.postponeBoard(scoutID: youth.id)
@@ -747,7 +736,7 @@ final class AppModel {
     }
 
     var canReset: Bool {
-        let status = selectedYouth?.status
+        let status = boardYouth?.status
         return status == .seated || status == .inProgress || status == .verified
     }
 
@@ -755,7 +744,7 @@ final class AppModel {
     /// freed. Undo puts the board back, if nobody has taken the room or a
     /// member since.
     func reset() {
-        guard let youth = selectedYouth, canReset else { return }
+        guard let youth = boardYouth, canReset else { return }
         // The room the board held, from the record before the step.
         let room = youth.status?.holdsRoom == true ? youth.room : ""
         if changeBoard(youth.id, "Reset Board", failure: "Could Not Reset \(youth.shownFullName)'s Board",
@@ -770,7 +759,7 @@ final class AppModel {
     /// parents, with where each one is. Show it, scrolled to them, in the
     /// scheduler window even if it was closed.
     func locateSelectedYouth() {
-        guard selectedYouth != nil else { return }
+        guard boardYouth != nil else { return }
         openScheduler()
         showsInspector = true
         locateRequested = true
@@ -940,12 +929,12 @@ final class AppModel {
         return adults.count == 1 ? adults.first : nil
     }
 
-    /// Link the selected adult to the selected youth as the one who
+    /// Link the selected adult to the youth in view as the one who
     /// introduces them (SPEC.md D-23), or unlink them -- for the adult who did not check the
     /// youth at sign-in. Start Review names them from then on. Works for an
     /// adult on a board too: a Scoutmaster often is by then.
     func toggleSupportLink() {
-        guard let adult = singleSelectedAdult, let youth = selectedYouth else { return }
+        guard let adult = singleSelectedAdult, let youth = boardYouth else { return }
         setSupporting(!adult.supports(youth.id), adultID: adult.id, scoutID: youth.id)
     }
 
@@ -1123,7 +1112,7 @@ final class AppModel {
     func addAdult(_ form: [String: String]) throws {
         guard let event else { return }
         let adult = try event.registerAdult(form)
-        if page == .adults { selectedAdultIDs = [adult.id] }
+        if page.listsAdults { selectedAdultIDs = [adult.id] }
         // Said as a step, and not again as an arrival at the door.
         knownPeople.insert(adult.id)
         sayDone(StepSpeech.signedIn([adult.shownFullName]))
@@ -1319,4 +1308,27 @@ final class AppModel {
             openError = "Could not create \(folder.path): \(error.localizedDescription)"
         }
     }
+}
+
+extension AppModel.Page {
+    var title: String {
+        switch self {
+        case .event: "Event"
+        case .results: "Results"
+        case .adults: "Adults"
+        case .youth: "Youth"
+        case .preRegistered: "Pre-Registered"
+        case .adultHistory: "Adult History CSV"
+        case .rooms: "Rooms"
+        case .approvedProposals: "Approved Proposals"
+        }
+    }
+
+    /// A table File › Export List saves. Results has Export Board Results
+    /// instead.
+    var isList: Bool { ![.event, .results, .approvedProposals].contains(self) }
+
+    /// What File › Export List names the saved file, before the event's
+    /// date. The saved file is the CSV, so the page's "CSV" is left out.
+    var exportName: String { self == .adultHistory ? "Adult History" : title }
 }

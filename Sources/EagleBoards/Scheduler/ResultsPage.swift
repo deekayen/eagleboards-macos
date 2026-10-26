@@ -25,7 +25,9 @@ struct ResultsPage: View {
     ])
 
     var body: some View {
-        let boards = event.scouts.filter { !($0.status?.isWaitingForBoard ?? true) }
+        // The same rule Board › Show on Event Page asks (`SchedulerPage`): a
+        // youth still waiting has no board here yet.
+        let boards = event.scouts.filter { SchedulerPage.results.listsYouth(with: $0.status) }
         let sortOrder = model.sortOrder(for: .results, Self.order)
         let rows = boards
             .filter { matches(model.searchText, $0) }

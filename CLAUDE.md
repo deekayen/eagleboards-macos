@@ -97,10 +97,12 @@ a native window. See `PROVENANCE.md`.
   never copied into the history; `/api/scout-choices` feeds the form's list, which leaves out
   a youth here for a project proposal, since only a board of review has an introduction (D-23).
   Start Review and the inspector's With Them list name supporting adults
-  first. Link an Adult there, and the Adult menu, link or unlink them after
-  sign-in (`BoardEvent.setSupporting`).
-- **The scheduler follows the Mac layout**: list and inspector, with no
-  sidebar (SPEC.md P-1, P-6, as in the Java and Windows versions). The View
+  first. Link an Adult there links them after sign-in, and a row's context
+  menu or Board › Unlink Introducer unlinks them (`BoardEvent.setSupporting`).
+- **The scheduler follows the Mac layout**: the Event page's youth list and
+  room cards with an inspector for the selected youth's board, and a table per
+  other page with no inspector, and no sidebar (SPEC.md P-1, P-6, as in the
+  Java and Windows versions). The View
   menu chooses Event or a page per table (Results, Adults, Youth,
   Pre-Registered, Rooms, and the read-only Adult History CSV), edited in
   place with
@@ -124,6 +126,23 @@ a native window. See `PROVENANCE.md`.
   Room…, which asks first, naming the room, though Undo also takes it back
   (SPEC.md O-2, amended 2026-10-24); a board step
   is undone with `BoardEvent.restoreBoard`.
+- **A command acts only on what the page shown has in view** (CONTRIBUTING.md
+  rule 13). The inspector, the toolbar's next-step button and the Board
+  menu's steps are the Event page's alone; the Room menu is the Event and
+  Rooms pages'; Adult › Mark Gone Home and Mark Back are the Adults page's.
+  `SchedulerPage` answers it (`showsBoard`, `showsRooms`, `listsAdults`,
+  `listsAdultHistory`, `listsYouth(with:)`), with `SchedulerPageTests`. A
+  selection is kept across pages and never acted on from one that cannot show
+  it: board commands go through `AppModel.boardYouth`, rooms through
+  `selectedRoom`, adults through `selectedAdults`, so a key, a double-click or
+  a drop that reaches the model from another page does nothing. Menus keep
+  every item, dimmed (`MenuCommand`). `AppModel.showsInspector` is the
+  operator's choice and no page change writes it
+  (`SchedulerPage.inspectorChoice`). Show on Event Page takes a youth
+  (Results, Youth) or a room (Rooms) to where the board is. The Adult menu's
+  board items (Add to Board, Remove from Board, Make Chair, Introduces) need
+  an adult picked on the Adults page and a board in view on the Event page,
+  so none can light; they stay, dimmed, so the menu keeps its shape.
 - **Accessibility follows Apple's HIG** (CONTRIBUTING.md rule 12). An icon
   beside words is a `Label`; an icon-only control has an
   `.accessibilityLabel` naming what it does and a `.help` tag. A value drawn

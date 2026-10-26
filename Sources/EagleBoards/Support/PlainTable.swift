@@ -26,9 +26,6 @@ struct PlainTable<Row: Identifiable & Equatable>: NSViewRepresentable where Row.
     /// Changed by Return in the toolbar search: the first row is selected,
     /// scrolled to and focused.
     var firstRowRequest = 0
-    /// Changed when a step took away the inspector button that had the
-    /// focus: the table takes it.
-    var focusRequest = 0
 
     func makeCoordinator() -> PlainTableCoordinator { PlainTableCoordinator() }
 
@@ -64,10 +61,8 @@ struct PlainTable<Row: Identifiable & Equatable>: NSViewRepresentable where Row.
         scroll.hasHorizontalScroller = true
         scroll.autohidesScrollers = true
         context.coordinator.table = table
-        // A search submitted, or a step taken, before the page was shown is
-        // not this page's.
+        // A search submitted before the page was shown is not this page's.
         context.coordinator.firstRowRequest = firstRowRequest
-        context.coordinator.focusRequest = focusRequest
         return scroll
     }
 
@@ -94,8 +89,7 @@ struct PlainTable<Row: Identifiable & Equatable>: NSViewRepresentable where Row.
                 order: $sort,
                 doubleClick: doubleClick,
                 menuItems: menuItems,
-                firstRowRequest: firstRowRequest,
-                focusRequest: focusRequest
+                firstRowRequest: firstRowRequest
             ),
             rows: rows
         )
@@ -177,7 +171,6 @@ final class PlainTableCoordinator: NSObject, NSTableViewDataSource, NSTableViewD
         let doubleClick: ((String) -> Void)?
         let menuItems: [PlainMenuItem]
         let firstRowRequest: Int
-        let focusRequest: Int
     }
 
     weak var table: NSTableView?
@@ -188,8 +181,6 @@ final class PlainTableCoordinator: NSObject, NSTableViewDataSource, NSTableViewD
     private var isApplyingSort = false
     /// The last Return in the search this table has gone to the first row for.
     var firstRowRequest = 0
-    /// The last step this table has taken the focus for.
-    var focusRequest = 0
 
     /// Re-sort and redraw only when the rows or their order changed: SwiftUI
     /// asks after every change to the event.
@@ -209,14 +200,6 @@ final class PlainTableCoordinator: NSObject, NSTableViewDataSource, NSTableViewD
             // Not while SwiftUI is updating the view: selecting reports the
             // selection back to it.
             Task { [weak self] in self?.goToFirstRow() }
-        }
-        if model.focusRequest != focusRequest {
-            focusRequest = model.focusRequest
-            // A turn later, once the inspector has dropped the button.
-            Task { [weak self] in
-                guard let table = self?.table else { return }
-                table.window?.makeFirstResponder(table)
-            }
         }
     }
 

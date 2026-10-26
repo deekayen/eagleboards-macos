@@ -121,7 +121,8 @@ is where you work: every youth in one list, stacked **Waiting** (in sign-in
 order), **On a Board** (by room), and **Finished** (the most recent first), each
 with its count, and a card for every room filling the rest of the window, so a
 room's timer is never out of sight. Drag the line between them to widen the
-list. The inspector follows the selected youth on every page.
+list. The inspector follows the selected youth and sits beside the Event page
+alone; the other pages are tables, with no inspector.
 Click a room card, or Tab to the cards, and the arrow keys move from room to
 room; **Return** takes the selected room's next step, as a double-click on its
 card does.
@@ -141,15 +142,12 @@ else on it who may chair reads **Can Chair**.
 
 Change the board in the inspector: click an adult under **Free for a Final
 Board**, or **Free for a Proposal Review**, to add them (**Find an adult**
-narrows the list, and **Return** adds the first one), and the **Remove** button
-(a minus sign in a circle) takes one off. In the **Adults** page you can also
-Command-click several adults and choose **Adult › Add to Board** (**⌘B**), or
-drag them onto the board. To hand the
-chair to someone who reads **Can Chair**, right-click them and choose **Make
-Chair**, choose them from **Board › Chair**, or select them on the **Adults**
-page and choose **Adult › Make Chair**. **Fill the Rest** keeps who you chose
-and adds a chair, if none of them can chair it, and members up to the number
-needed; **Start Over** replaces the whole board with a proposal.
+narrows the list, and **Return** adds the first one) or drag one onto the
+board, and the **Remove** button (a minus sign in a circle) takes one off. To
+hand the chair to someone who reads **Can Chair**, right-click them and choose
+**Make Chair**, or choose them from **Board › Chair**. **Fill the Rest** keeps
+who you chose and adds a chair, if none of them can chair it, and members up to
+the number needed; **Start Over** replaces the whole board with a proposal.
 
 Until you change it, the proposed board keeps up with the event: when an adult
 signs in, goes home, comes back, or leaves a board, it is proposed again.
@@ -193,9 +191,7 @@ inspector lists who introduces the youth, then their leader and parents, under
 If the adult introducing a youth did not say so at sign-in, select the youth
 and use **Link an Adult** under **With Them**, which lists the adults from the
 youth's unit first. To unlink them, right-click them there or choose them from
-**Board › Unlink Introducer**. On the **Adults** page, with the youth still
-selected, **Adult › Introduces** and the youth's name links the selected
-adult, or unlinks them if it has a check.
+**Board › Unlink Introducer**.
 
 ### 5. Complete
 
@@ -245,12 +241,19 @@ window. Click a column heading to sort a page by it, or choose
 | Page | What it holds |
 | --- | --- |
 | **Results** (⌘2) | Every board and its result. Correct a result or its notes here. Double-click a board, or choose **Board › Show on Event Page**, to see it on the Event page. |
-| **Adults** (⌘3) | The event's adults. Promote someone to Chair, mark Wood Badge, or fix a name; a change to a name, unit, contact, or role reaches the adult history too. **Add Adult…** at the foot signs someone in by hand. |
+| **Adults** (⌘3) | The event's adults. Promote someone to Chair, mark Wood Badge, or fix a name; a change to a name, unit, contact, or role reaches the adult history too. **Add Adult…** at the foot signs someone in by hand. Adults are put on a board on the Event page. |
 | **Youth** (⌘4) | Every youth who signed in, in sign-in order. Double-click one, or choose **Board › Show on Event Page**, to see them on the Event page. |
 | **Pre-Registered** (⌘5) | The youth who signed up on SignUpGenius for today. |
 | **Adult History CSV** (⌘6) | Every adult who has ever signed in, across events, read-only, searched by name, email, or unit. **Last Event** has a check for those signed in today; double-click someone, or choose **Adult › Sign In for Today**, to sign them in. |
-| **Rooms** (⌘7) | What each room is used for today, and whose board is in it. Double-click a room, or choose **Show on Event Page** from its right-click menu, to see its card on the Event page. **Add Room…** at the foot adds one, and **Delete** removes a free one; **Edit › Undo** puts it back. |
+| **Rooms** (⌘7) | What each room is used for today, and whose board is in it. Double-click a room, or choose **Show on Event Page** from its right-click menu, to see its card on the Event page. Right-click a room, or select it and choose from the **Room** menu, to **Rename…**, **Move Board to Another Room…**, or set **Used For**. **Add Room…** at the foot adds one, and **Delete** removes a free one; **Edit › Undo** puts it back. |
 | **Approved Proposals** (⌘8) | Every project proposal approved at an earlier event in the data folder, however long ago, for a youth who comes without the signed page: who, their unit, when, the chair, and the other members. Read only. |
+
+A command works only on a page that shows what it acts on. The inspector and
+the **Board** menu's steps, **Locate Leader and Parents** among them, are on the
+Event page alone. The **Room** menu works on the Event and Rooms pages, and
+**Adult › Mark Gone Home** and **Mark Back** on the Adults page. Everywhere else
+those items are dimmed, except **Board › Show on Event Page**, which takes a
+youth on Results or Youth to where their board is.
 
 To delete a youth, a pre-registration, or an adult, select them and press
 **Delete** or choose **Edit › Delete**, or right-click them; that asks first,

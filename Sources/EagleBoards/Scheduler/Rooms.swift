@@ -368,7 +368,7 @@ struct CopyRoomsMenu: View {
 
 /// The Copy Rooms From menu, usable in the menu bar where there is no
 /// environment to read the model from. Dimmed, and still there, with no
-/// event open or none before this one.
+/// event open, none before this one, or a page that shows no rooms.
 struct CopyRoomsItems: View {
     let model: AppModel
     let event: BoardEvent?
@@ -382,15 +382,18 @@ struct CopyRoomsItems: View {
             }
         }
         .fixedSize()
-        .disabled(earlierEvents.isEmpty)
+        .disabled(earlierEvents.isEmpty || !model.page.showsRooms)
         .help("Add an earlier event's rooms, empty, except those already here")
     }
 }
 
 /// What can be done to a room: the Room menu, and the context menu on its
-/// card. The Room menu always lists every item, dimmed with no event open.
-/// A card's menu lists only what applies to that room; Add Room… and Copy
-/// Rooms From concern no one room, so they stay in the Room menu.
+/// card or its row on the Rooms page. The Room menu always lists every item,
+/// dimmed with no event open or on a page that shows no rooms
+/// (`SchedulerPage.showsRooms`: the Event page's cards and the Rooms page's
+/// table), where a room selected on the way is not the one in view. A room's
+/// own menu lists only what applies to it; Add Room… and Copy Rooms From concern
+/// no one room, so they stay in the Room menu.
 struct RoomActionButtons: View {
     let model: AppModel
     let event: BoardEvent?
@@ -399,12 +402,13 @@ struct RoomActionButtons: View {
     var inContextMenu = false
 
     var body: some View {
-        let room = (roomID ?? model.selectedRoomID).flatMap { event?.room(id: $0) }
+        let inView = model.page.showsRooms
+        let room = inView ? (roomID ?? model.selectedRoomID).flatMap { event?.room(id: $0) } : nil
 
         if !inContextMenu {
             Button("Add Room…") { model.present(.addRoom) }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
-                .disabled(event == nil)
+                .disabled(event == nil || !inView)
             CopyRoomsItems(model: model, event: event)
             Divider()
         }

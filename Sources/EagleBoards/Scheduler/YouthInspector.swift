@@ -117,8 +117,8 @@ private struct DraftBoardSections: View {
                 }
                 if members.isEmpty {
                     // The list to add from, by its heading, not by where it is.
-                    Text("No one yet. Click someone under Free for a \(boardType.label), use Fill the Rest, "
-                        + "or drag adults here from the Adults page.")
+                    Text("No one yet. Click someone under Free for a \(boardType.label), drag them here, "
+                        + "or use Fill the Rest.")
                         .foregroundStyle(.secondary)
                 }
             } header: {

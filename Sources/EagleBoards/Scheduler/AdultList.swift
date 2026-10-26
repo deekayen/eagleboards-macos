@@ -2,12 +2,13 @@ import EagleBoardsCore
 import SwiftUI
 
 /// Every adult who has signed in at this event, the Adults page (SPEC.md P-6).
-/// Select several with Command or Shift and add them to the board being drawn
-/// up, or drag them onto it in the inspector. Their details are edited in
-/// place, and it is here that someone is promoted to Chair; a changed cell is
-/// saved as it is left and stays off the Undo stack, and a change to their
-/// name, unit, contact or roles reaches the adult history too. Their room is
-/// read-only: it changes only through the Event page's steps.
+/// Select several with Command or Shift to mark them gone home or back
+/// together. Their details are edited in place, and it is here that someone is
+/// promoted to Chair; a changed cell is saved as it is left and stays off the
+/// Undo stack, and a change to their name, unit, contact or roles reaches the
+/// adult history too. Their room is read-only: it changes only through the
+/// Event page's steps. The page has no inspector and no board in view, so
+/// nothing here puts an adult on a board; that is done on the Event page.
 /// Add Adult…, at the foot of the list, in the Adult menu, or by
 /// double-clicking below the last row, signs in someone who would rather not
 /// use the tablet.
@@ -26,7 +27,6 @@ struct AdultList: View {
 
     var body: some View {
         @Bindable var model = model
-        let draft = model.draft
         let sortOrder = model.sortOrder(for: .adults, Self.order)
         let rows = event.adults
             .filter { matches(model.searchText, $0) }
@@ -35,7 +35,7 @@ struct AdultList: View {
         Table(of: Adult.self, selection: $model.selectedAdultIDs, sortOrder: sortOrder) {
             Group {
                 TableColumn("Status", value: \Adult.room) { adult in
-                    AdultStatusLabel(adult: adult, isOnDraft: draft?.memberIDs.contains(adult.id) == true)
+                    AdultStatusLabel(adult: adult)
                         .adultRowStyle(adult)
                 }
                 .width(min: 80, ideal: 110, max: 150)
@@ -99,9 +99,7 @@ struct AdultList: View {
                 }
             }
         } rows: {
-            ForEach(rows) { adult in
-                TableRow(adult).draggable(DragPayload.adult(adult.id))
-            }
+            ForEach(rows) { TableRow($0) }
         }
         .focused(focus, equals: .table(.adults))
         // Return in the search: the first adult found, with the focus.
@@ -119,11 +117,10 @@ struct AdultList: View {
                 AdultActionButtons(model: model, adultIDs: ids, inContextMenu: true)
             }
         } primaryAction: { ids in
-            // Double-clicking below the last row adds someone.
+            // Double-clicking below the last row adds someone. A row's details
+            // are edited in place, so double-clicking one does nothing more.
             if ids.isEmpty {
                 model.present(.addAdult)
-            } else {
-                model.addToDraft(Array(ids))
             }
         }
         // One adult at a time, as in the context menu, asking first.
@@ -179,7 +176,6 @@ extension View {
 /// only a color.
 struct AdultStatusLabel: View {
     let adult: Adult
-    var isOnDraft = false
 
     var body: some View {
         if adult.isDisabledForToday {
@@ -189,15 +185,6 @@ struct AdultStatusLabel: View {
         } else if adult.isOnBoard {
             Label("Room \(adult.room)", systemImage: "person.3.fill")
                 .help("On the board in room \(adult.room)")
-        } else if isOnDraft {
-            // The tint on the symbol only: accent-colored words fall short of
-            // the contrast text needs.
-            Label {
-                Text("This board")
-            } icon: {
-                Image(systemName: "checkmark.circle.fill").foregroundStyle(.tint)
-            }
-            .help("On the board being drawn up for the selected youth")
         } else {
             Label("Free", systemImage: "circle")
                 .foregroundStyle(.secondary)
@@ -208,9 +195,15 @@ struct AdultStatusLabel: View {
 /// What can be done to adults: the Adult menu, and the context menu on their
 /// rows. Acting on rows that are not selected selects them first.
 ///
-/// The context menu lists only what applies, in three groups: the selected
-/// youth's board and whether this adult introduces them; Mark Gone Home or
-/// Mark Back; and, for one adult, Delete Adult….
+/// The adults to act on are those picked on the Adults page, and the board
+/// items (Add to Board, Remove from Board, Make Chair, Introduces) are for the
+/// youth whose board is in view, which only the Event page has. The menu keeps
+/// every item, dimmed where it does not apply: on the Adults page the board
+/// items have no board, and on the Event page no adult is picked.
+///
+/// The context menu lists only what applies, in three groups: the youth's
+/// board and whether this adult introduces them; Mark Gone Home or Mark
+/// Back; and, for one adult, Delete Adult….
 struct AdultActionButtons: View {
     let model: AppModel
     /// Nil acts on the selected adults.
@@ -218,9 +211,9 @@ struct AdultActionButtons: View {
     var inContextMenu = false
 
     var body: some View {
-        let youth = model.selectedYouth
-        let draft = model.draft
-        let ids = adultIDs ?? model.selectedAdultIDs
+        let youth = model.boardYouth
+        let draft = youth.flatMap { model.drafts[$0.id] }
+        let ids = adultIDs ?? (model.page.listsAdults ? model.selectedAdultIDs : [])
         let adults = model.event?.adults.filter { ids.contains($0.id) } ?? []
         let single = adults.count == 1 ? adults.first : nil
         let canAdd = draft.map { draft in ids.contains { !draft.memberIDs.contains($0) } } ?? false

@@ -149,8 +149,8 @@ below. Run things locally to debug what CI found, or to iterate.
     commit as the key.
 11. **Focus is never left on a control that went away.** After a step taken
     from an inspector button, it moves to the next step's button or to the
-    youth's row (`StepFocus`); a list row that leaves hands it to the row now
-    in its place (`ListFocus`).
+    youth's row in the Event page's list (`StepFocus`); a list row that leaves
+    hands it to the row now in its place (`ListFocus`).
 12. **Accessibility follows Apple's Human Interface Guidelines.** In this
     code that means:
     - An icon beside its words is a SwiftUI `Label`. An icon-only control has
@@ -175,6 +175,18 @@ below. Run things locally to debug what CI found, or to iterate.
       Places are named (the toolbar, the inspector, Free for a Final Board)
       instead of given as directions such as top right or below, and a symbol
       is spelled out: up and down arrows, a minus sign in a circle.
+13. **A command acts only on what the page shown has in view.** The inspector,
+    with the selected youth's board, is beside the Event page alone; rooms are
+    the Event and Rooms pages'; the event's adults are the Adults page's
+    (`SchedulerPage`, tested in `SchedulerPageTests`). The other pages have no
+    inspector and no next-step button, and the menus keep their items,
+    dimmed, as `MenuCommand` does. A selection is kept when the operator
+    leaves its page and is never acted on from a page that cannot show it:
+    board commands go through `AppModel.boardYouth`, room commands through
+    `selectedRoom`, and adult commands through `selectedAdults`, so a key, a
+    double-click or a drop that reaches the model from another page does
+    nothing. A new page answers every question in `SchedulerPage`, and a new
+    command asks one of them.
 
 ## Releases
 

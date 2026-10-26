@@ -162,8 +162,7 @@ struct AdultHistoryPage: View {
                               action: { model.signInFromHistory($0.subtracting(signedIn)) }),
             ],
             takesFocus: true,
-            firstRowRequest: model.searchSubmitted,
-            focusRequest: model.plainTableFocusRequests
+            firstRowRequest: model.searchSubmitted
         )
         .speaksSearchCount(model.searchText, shown: rows.count, total: event.adultHistory.count)
         .overlay {
@@ -228,8 +227,7 @@ struct ApprovedProposalsPage: View {
                 name: "Approved Proposals",
                 selection: $selection,
                 takesFocus: true,
-                firstRowRequest: model.searchSubmitted,
-                focusRequest: model.plainTableFocusRequests
+                firstRowRequest: model.searchSubmitted
             )
             .speaksSearchCount(model.searchText, shown: approvals.count, total: found?.approvals.count ?? 0)
             .overlay {
@@ -250,9 +248,11 @@ struct ApprovedProposalsPage: View {
 }
 
 /// The rooms table: what each room is used for today, and whose board is in
-/// it. The board type is changed in place; the name, and who is in the room,
-/// change from the Event page's room cards (Room › Rename…, Move Board…).
-/// Double-click a room, or choose Show on Event Page, to see its card.
+/// it. The board type is changed in place, and the Room menu, and the room's
+/// right-click menu, work on the room selected here: Rename…, Move Board to
+/// Another Room…, Used For and Remove Room…. Who is in a room is never typed
+/// into the table. Double-click a room, or choose Show on Event Page, to see
+/// its card.
 struct RoomsPage: View {
     @Environment(AppModel.self) private var model
     let event: BoardEvent
@@ -303,17 +303,13 @@ struct RoomsPage: View {
         .accessibilityLabel(model.page.title)
         .speaksSearchCount(model.searchText, shown: rows.count, total: event.rooms.count)
         .contextMenu(forSelectionType: Room.ID.self) { ids in
-            // A context menu lists only what applies: a room in use cannot
-            // be removed.
-            if let id = ids.first, let room = event.room(id: id) {
+            // The Room menu's items for this room, as on its card on the Event
+            // page; a context menu lists only what applies, so a room in use
+            // has no Remove Room….
+            if let id = ids.first, event.room(id: id) != nil {
                 Button("Show on Event Page") { model.showRoomOnEventPage(id) }
-                if room.isFree {
-                    Divider()
-                    Button("Remove Room…") {
-                        model.selectedRoomID = id
-                        model.removeSelectedRoom()
-                    }
-                }
+                Divider()
+                RoomActionButtons(model: model, event: event, roomID: id, inContextMenu: true)
             } else {
                 Button("Add Room…") { model.present(.addRoom) }
             }

@@ -177,7 +177,16 @@ struct EagleBoardsCommands: Commands {
             .keyboardShortcut("f")
             .disabled(helpSearch == nil && model.event == nil)
         }
-        InspectorCommands()
+        // The inspector is the Event page's alone, so its command is dimmed on
+        // every other page, as the Board menu is. SwiftUI's InspectorCommands
+        // has no way to be dimmed for a page, so the item is made here.
+        CommandGroup(after: .toolbar) {
+            Button(model.showsInspector ? "Hide Inspector" : "Show Inspector") {
+                model.showsInspector.toggle()
+            }
+            .keyboardShortcut("i", modifiers: [.command, .control])
+            .disabled(model.event == nil || !model.page.showsBoard)
+        }
         // The pages (SPEC.md P-1, P-6): the event, then a page per table,
         // edited in place. No sidebar chooses them and no records window
         // repeats them; the page shown has a check.

@@ -4,7 +4,8 @@ import SwiftUI
 /// What has the keyboard focus in the scheduler window, where the app moves
 /// it itself: into the page shown, from a step's button that went away to the
 /// next step's, and along the inspector's lists as their rows come and go.
-/// Change Members uses the list cases for its own lists.
+/// Every case but `table` is the Event page's: its youth list and the
+/// inspector's controls. Change Members uses the list cases for its own lists.
 enum SchedulerFocus: Hashable {
     case youthList
     /// A table page's table. Never a cell in it: a letter typed with the
@@ -25,7 +26,7 @@ enum SchedulerFocus: Hashable {
 
     /// The page's list or table. Nil for the Adult History CSV and Approved
     /// Proposals, whose AppKit tables take the focus themselves
-    /// (`PlainTable.takesFocus`, `AppModel.focusPlainTable`).
+    /// (`PlainTable.takesFocus`).
     static func content(of page: AppModel.Page) -> SchedulerFocus? {
         switch page {
         case .event: .youthList
@@ -38,9 +39,11 @@ enum SchedulerFocus: Hashable {
 /// Windows' FocusAfter, for the inspector's step buttons: once a step takes
 /// away the button that had the keyboard focus (Seat Board… once the board
 /// is seated, say), the focus goes on to the next step's control, or to the
-/// youth's row. A step taken any other way, from the youth list, the
-/// toolbar, a menu or a click, leaves the focus where it is. With Keyboard
-/// navigation off no button takes the focus, so none of this runs.
+/// youth's row in the Event page's list. The inspector is on that page alone,
+/// so the focus never has to find its way into another page's table. A step
+/// taken any other way, from the youth list, the toolbar, a menu or a click,
+/// leaves the focus where it is. With Keyboard navigation off no button takes
+/// the focus, so none of this runs.
 @MainActor
 struct StepFocus {
     /// A step waiting on its sheet or question, which the scheduler lands
@@ -63,7 +66,7 @@ struct StepFocus {
         landed: (() -> Bool)? = nil, _ step: () -> Void
     ) {
         let hadFocus = focus.wrappedValue == control
-        let youth = model.selectedYouth
+        let youth = model.boardYouth
         step()
         guard hadFocus, let youth else { return }
         if model.sheet != nil || model.confirmation != nil {
@@ -74,15 +77,8 @@ struct StepFocus {
     }
 
     func move(to target: SchedulerFocus) {
-        // The youth's row is in the youth list on the Event page, and in the
-        // page's table elsewhere.
-        let resolved = target == .youthList ? SchedulerFocus.content(of: model.page) : target
-        guard let resolved else {
-            model.focusPlainTable()
-            return
-        }
         let focus = focus
         // A turn later, once the section holding it is drawn.
-        Task { focus.wrappedValue = resolved }
+        Task { focus.wrappedValue = target }
     }
 }

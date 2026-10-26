@@ -201,6 +201,10 @@ struct BoardTypeText: View {
 /// their row. Acting on a row that is not selected selects it first, so the
 /// inspector shows who the action was for.
 ///
+/// Every command on a board is for the page that shows the board, the Event
+/// page; on any other page the Board menu keeps its items, dimmed, except Show
+/// on Event Page, which a page listing youth takes to where their board is.
+///
 /// The context menu lists only what applies, in three groups: the next step
 /// first, with the board's members and the adults to fetch; the board being
 /// drawn up; then Reset Board and Postpone.
@@ -211,7 +215,9 @@ struct YouthActionButtons: View {
     var inContextMenu = false
 
     var body: some View {
-        let youth = scoutID.flatMap { model.event?.scout(id: $0) } ?? model.selectedYouth
+        let selected = scoutID.flatMap { model.event?.scout(id: $0) } ?? model.selectedYouth
+        // The board in view, if the page shown has one.
+        let youth = model.page.showsBoard ? selected : nil
         let status = youth?.status
         // A sheet up is about this board or a room: a step, a reset, or a
         // postponement now would change it under the sheet.
@@ -242,11 +248,11 @@ struct YouthActionButtons: View {
             // The Results and Youth pages' double-click, in the menu bar, for
             // a youth the page lists: Results leaves out those still waiting,
             // whom the Event page may have selected.
-            let listed = model.page == .youth || (model.page == .results && status?.isWaitingForBoard == false)
-            command("Show on Event Page", applies: youth != nil && listed) {
-                if let youth {
+            let listed = selected.map { model.page.listsYouth(with: $0.status) } ?? false
+            command("Show on Event Page", applies: listed) {
+                if let selected {
                     model.openScheduler()
-                    model.showOnEventPage(youth.id)
+                    model.showOnEventPage(selected.id)
                 }
             }
             locate(youth)

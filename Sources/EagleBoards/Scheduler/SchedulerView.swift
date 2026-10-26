@@ -8,8 +8,11 @@ import SwiftUI
 /// Pre-Registered and Rooms, edited in place, and the read-only Adult History
 /// CSV. There is no sidebar and no
 /// separate records window, so the page has the window's whole width. The
-/// inspector follows the selected youth on every page: the board being drawn
-/// up for them, or how it went.
+/// Event page alone has the inspector, which follows the selected youth: the
+/// board being drawn up for them, or how it went. A command works only on a
+/// page that shows what it acts on (`SchedulerPage`), so the other pages have no
+/// inspector, no next-step button and no board commands, and the Room menu
+/// works on the Event and Rooms pages only.
 ///
 /// Nothing here polls. The event is observed directly, so a youth who
 /// signs in at the door appears the moment the tablet's request lands.
@@ -41,7 +44,7 @@ struct SchedulerView: View {
                 // A window that Find opened a moment ago has no toolbar yet.
                 Task { startSearch() }
             }
-            .inspector(isPresented: $model.showsInspector) {
+            .inspector(isPresented: inspectorShown) {
                 YouthInspector(event: event, steps: steps)
                     .inspectorColumnWidth(min: 300, ideal: 340, max: 480)
                     .toolbar {
@@ -148,6 +151,21 @@ struct SchedulerView: View {
         StepFocus(model: model, focus: $focus, pending: $pendingStep)
     }
 
+    /// The inspector is on screen on the page that shows the selected youth's
+    /// board, if the operator has not hidden it. It goes away with any other
+    /// page, and SwiftUI reports that as a close: only a close on the Event
+    /// page is the operator's choice, so what they chose is there when they
+    /// come back (`SchedulerPage.inspectorChoice`).
+    private var inspectorShown: Binding<Bool> {
+        let shown = model.page.showsInspector(chosen: model.showsInspector)
+        return Binding(
+            get: { shown },
+            // The page and the choice as they are when SwiftUI reports, not
+            // as they were when this binding was made.
+            set: { model.showsInspector = model.page.inspectorChoice(reported: $0, was: model.showsInspector) }
+        )
+    }
+
     /// Into the page shown, as Windows' FocusPage does, at launch and after a
     /// page change, but only when the focus fell to the window: focus left in
     /// the toolbar search, or on a control still shown, stays there. The
@@ -167,7 +185,10 @@ struct SchedulerView: View {
     private func landPendingStep() {
         guard let step = pendingStep else { return }
         pendingStep = nil
-        guard model.selectedYouthID == step.youthID, event.scout(id: step.youthID)?.status != step.status else { return }
+        // The target is the inspector's or the youth list's, the Event page's.
+        guard model.page.showsBoard, model.selectedYouthID == step.youthID,
+              event.scout(id: step.youthID)?.status != step.status
+        else { return }
         steps.move(to: step.target)
     }
 
@@ -196,8 +217,11 @@ struct SchedulerView: View {
         ToolbarItem(placement: .navigation) {
             CheckInStatusButton()
         }
-        ToolbarItem(placement: .primaryAction) {
-            NextStepButton()
+        // The step of the board in view, which only the Event page has.
+        if model.page.showsBoard {
+            ToolbarItem(placement: .primaryAction) {
+                NextStepButton()
+            }
         }
         ToolbarItemGroup(placement: .secondaryAction) {
             Button {
