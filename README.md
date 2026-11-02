@@ -40,6 +40,21 @@ You need three things:
 3. **Your room list**: which rooms you have, and whether each is used for
    project proposal reviews or for final boards.
 
+### Opening it the first time
+
+Eagle Boards is signed on the Mac that built it but is not notarized by Apple,
+so on any other Mac, macOS stops it the first time. Opening it takes two steps:
+
+1. Open the app. macOS says it cannot verify Eagle Boards. Close that message.
+2. Open **System Settings › Privacy & Security**, scroll to the Security
+   section, click **Open Anyway** beside Eagle Boards, and confirm with your
+   password.
+
+On macOS 14, right-clicking the app and choosing **Open** also works; macOS 15
+and later dropped that. Each downloaded copy asks once.
+
+### Choosing the data folder
+
 The first time Eagle Boards opens, it asks where to keep its data. Choose
 **Use Documents › Eagle Boards**, or a folder of your own. If you used the
 Java Eagle Board Scheduler, choose the folder it ran in, the one holding
