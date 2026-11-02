@@ -4,6 +4,11 @@ import Foundation
 /// selected, then changed by hand in the inspector (SPEC.md D-10).
 public struct BoardDraft: Sendable, Equatable {
     public var roomID: Room.ID?
+    /// The operator chose `roomID`, so it is theirs: kept while it is free,
+    /// whatever kind of room it is. A room the app proposed follows the
+    /// event instead, and is withdrawn when it is switched to the other board
+    /// type (SPEC.md D-24).
+    public var roomChosenByOperator: Bool
     /// Who chairs it: the suggestion's or Fill the Rest's chair, or the
     /// member the operator made chair. Nil once that member is taken off, and
     /// on a board drawn up by hand; `chair(among:for:)` then falls back to
@@ -18,10 +23,11 @@ public struct BoardDraft: Sendable, Equatable {
     public var isEdited: Bool
 
     public init(
-        roomID: Room.ID? = nil, chairID: Adult.ID? = nil, memberIDs: [Adult.ID] = [], problems: [String] = [],
-        isEdited: Bool = false
+        roomID: Room.ID? = nil, roomChosenByOperator: Bool = false, chairID: Adult.ID? = nil,
+        memberIDs: [Adult.ID] = [], problems: [String] = [], isEdited: Bool = false
     ) {
         self.roomID = roomID
+        self.roomChosenByOperator = roomChosenByOperator
         self.chairID = chairID
         self.memberIDs = memberIDs
         self.problems = problems
@@ -108,20 +114,24 @@ public struct BoardDrafts: Sendable, Equatable {
 
     /// Something a proposal is made from has changed (`fingerprint(of:)`).
     /// Proposals are dropped and the selected youth's is made again. It
-    /// keeps its room while that room is there and free, whether the
-    /// operator or the suggestion chose it, so a room freed earlier in the
-    /// list does not move it; otherwise it takes the suggestion's. The
-    /// operator's boards, and the frozen one, are left alone.
+    /// keeps its room while that room is there and free, so a room freed
+    /// earlier in the list does not move it, unless the suggestion chose it
+    /// and it has since been switched to the other board type (D-24);
+    /// otherwise it takes the suggestion's. The operator's boards, and the
+    /// frozen one, are left alone.
     @MainActor
     public mutating func refresh(selected youth: Scout?, in event: BoardEvent, proposing: Bool = true) {
-        let roomID = youth.flatMap { byYouth[$0.id]?.roomID }
+        let earlier = youth.flatMap { byYouth[$0.id] }
         byYouth = byYouth.filter { isKept($0.key) }
         guard let youth, youth.id != frozenID, youth.status?.isWaitingForBoard == true, byYouth[youth.id] == nil else {
             return
         }
         var draft = Self.proposal(for: youth, in: event, whole: proposing)
-        if let roomID, event.room(id: roomID)?.isFree == true {
+        if let earlier, let roomID = earlier.roomID, let room = event.room(id: roomID), room.isFree,
+            earlier.roomChosenByOperator || room.boardType == youth.boardType
+        {
             draft.roomID = roomID
+            draft.roomChosenByOperator = earlier.roomChosenByOperator
             draft.dropNoFreeRoomProblems()
         }
         byYouth[youth.id] = draft
@@ -253,10 +263,13 @@ public struct BoardDrafts: Sendable, Equatable {
 
     /// Choose the board's room. Who sits on it is unchanged, so a proposal
     /// stays one and goes on following the event, in this room while it is
-    /// free.
+    /// free. The room is the operator's from now on, whatever its type: the
+    /// seating review warns of a room of the other type, and the operator can
+    /// seat anyway (D-24).
     public mutating func setRoom(_ roomID: Room.ID?, for scoutID: Scout.ID) {
         guard var draft = byYouth[scoutID], draft.roomID != roomID else { return }
         draft.roomID = roomID
+        draft.roomChosenByOperator = roomID != nil
         if roomID != nil {
             draft.dropNoFreeRoomProblems()
         }

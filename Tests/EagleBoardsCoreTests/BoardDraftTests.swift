@@ -186,7 +186,63 @@ struct BoardDraftTests {
 
         _ = try signInMembers(2)
         drafts.refresh(selected: try youth(youthA), in: event, proposing: false)
-        #expect(drafts[youthA] == BoardDraft(roomID: "ROOM:102"))
+        #expect(drafts[youthA] == BoardDraft(roomID: "ROOM:102", roomChosenByOperator: true))
+    }
+
+    // MARK: - A proposed board only takes a room of its own type (D-24)
+
+    @Test func aProposedRoomSwitchedToTheOtherTypeIsWithdrawnAndProposedAgain() throws {
+        var drafts = BoardDrafts()
+        drafts.select(try youth(youthA), in: event)
+        #expect(drafts[youthA]?.roomID == "ROOM:101")
+
+        try event.setBoardType(.projectReview, forRoom: "ROOM:101")
+        try refresh(&drafts, selected: youthA)
+        #expect(drafts[youthA]?.roomID == "ROOM:102")
+        #expect(drafts[youthA]?.roomChosenByOperator == false)
+    }
+
+    @Test func withNoRoomOfItsTypeFreeNoRoomIsProposed() throws {
+        var drafts = BoardDrafts()
+        drafts.select(try youth(youthA), in: event)
+        try event.setBoardType(.projectReview, forRoom: "ROOM:101")
+        try event.setBoardType(.projectReview, forRoom: "ROOM:102")
+        try refresh(&drafts, selected: youthA)
+        #expect(drafts[youthA]?.roomID == nil)
+        #expect(drafts[youthA]?.problems.contains(BoardSuggestion.noFreeRoom(for: .finalBoard)) == true)
+    }
+
+    @Test func aRoomSwitchedToTheYouthsTypeIsProposedAtOnce() throws {
+        try event.setBoardType(.projectReview, forRoom: "ROOM:101")
+        try event.setBoardType(.projectReview, forRoom: "ROOM:102")
+        var drafts = BoardDrafts()
+        drafts.select(try youth(youthA), in: event)
+        #expect(drafts[youthA]?.roomID == nil)
+
+        try event.setBoardType(.finalBoard, forRoom: "ROOM:102")
+        try refresh(&drafts, selected: youthA)
+        #expect(drafts[youthA]?.roomID == "ROOM:102")
+    }
+
+    @Test func aRoomTheOperatorChoseIsKeptEvenAfterItIsSwitchedToTheOtherType() throws {
+        var drafts = BoardDrafts()
+        drafts.select(try youth(youthA), in: event)
+        drafts.setRoom("ROOM:102", for: youthA)
+
+        try event.setBoardType(.projectReview, forRoom: "ROOM:102")
+        try refresh(&drafts, selected: youthA)
+        #expect(drafts[youthA]?.roomID == "ROOM:102")
+        #expect(drafts[youthA]?.roomChosenByOperator == true)
+    }
+
+    @Test func withProposalsOffAProposedRoomSwitchedToTheOtherTypeIsWithdrawnToo() throws {
+        var drafts = BoardDrafts()
+        drafts.select(try youth(youthA), in: event, proposing: false)
+        #expect(drafts[youthA]?.roomID == "ROOM:101")
+
+        try event.setBoardType(.projectReview, forRoom: "ROOM:101")
+        drafts.refresh(selected: try youth(youthA), in: event, proposing: false)
+        #expect(drafts[youthA]?.roomID == "ROOM:102")
     }
 
     @Test func aProposedAdultWhoGoesHomeOrIsSeatedElsewhereDropsOut() throws {
