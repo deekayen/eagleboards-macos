@@ -31,7 +31,7 @@ public enum BoardStatus: String, CaseIterable, Sendable {
         }
     }
 
-    /// Can a board be seated for a youth in this state?
+    /// True when a board can be seated for a youth in this state.
     public var isWaitingForBoard: Bool {
         self == .registered || self == .verified
     }
@@ -46,7 +46,7 @@ public enum BoardStatus: String, CaseIterable, Sendable {
         self == .seated || self == .inProgress
     }
 
-    /// Can Reset Board undo this state? A sitting board can, and so can the
+    /// True when Reset Board can undo this state: a sitting board, or the
     /// legacy `Verified` status.
     public var isResettable: Bool {
         holdsRoom || self == .verified

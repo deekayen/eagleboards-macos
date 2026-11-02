@@ -22,6 +22,7 @@ public struct EventError: LocalizedError, Equatable, Sendable {
 @MainActor
 @Observable
 public final class BoardEvent {
+    /// The data folder that holds the event folders, the adult history, and the settings.
     public let folder: DataFolder
     /// `YYYY-MM-DD`, the name of this event's folder.
     public let date: String
@@ -34,7 +35,9 @@ public final class BoardEvent {
     public private(set) var adults: [Adult] = []
     /// Every adult who has ever signed in (`Master_AdultHistory.csv`).
     public private(set) var adultHistory: [Adult] = []
+    /// The event's rooms (`rooms.csv`).
     public private(set) var rooms: [Room] = []
+    /// The timer and refresh settings (`config.properties`).
     public private(set) var config: Config = .standard
     /// This open found no adult history in the data folder and started a new,
     /// empty one (SPEC.md D-9), which the app says, naming where. False on
@@ -79,14 +82,21 @@ public final class BoardEvent {
         }
     }
 
+    /// The current time from the injected clock; tests fix it.
     public var now: Date { clock() }
 
     // MARK: - Files
 
+    /// The six data files an event keeps.
     public enum Table: CaseIterable, Sendable {
         case youth, scheduledYouth, adults, adultHistory, rooms, config
     }
 
+    /// The file that stores a table.
+    ///
+    /// - Parameter table: the table to locate.
+    /// - Returns: the table's file URL, in the event's folder except for the
+    ///   adult history and the settings, which sit in the data folder.
     public func url(of table: Table) -> URL {
         switch table {
         case .youth: folder.youthURL(event: date)
@@ -117,9 +127,13 @@ public final class BoardEvent {
 
     // MARK: - Lookups
 
+    /// The youth with this ID among those who have signed in, or nil.
     public func scout(id: String) -> Scout? { scouts.first { $0.id == id } }
+    /// The adult with this ID among today's sign-ins, or nil.
     public func adult(id: String) -> Adult? { adults.first { $0.id == id } }
+    /// The room with this ID, or nil.
     public func room(id: String) -> Room? { rooms.first { $0.id == id } }
+    /// The room with this name, or nil.
     public func room(named name: String) -> Room? { rooms.first { $0.name == name } }
 
     /// The youth whose board is in this room right now.
@@ -154,6 +168,13 @@ public final class BoardEvent {
     /// Adults in the history matching every word of `query` in their name,
     /// email or unit, sorted by last name, then first: what the Add Adult
     /// sheet offers to fill itself in from. An empty query matches no one.
+    ///
+    /// - Parameters:
+    ///   - query: words to match, all of which must appear in the name, email
+    ///     or unit.
+    ///   - limit: the most matches returned, taken from the start of the
+    ///     sorted list; pass `.max` to count every match.
+    /// - Returns: the matching adults, at most `limit` of them.
     public func historyMatches(for query: String, limit: Int = 8) -> [Adult] {
         let words = query.split(whereSeparator: \.isWhitespace).map(String.init)
         guard !words.isEmpty else { return [] }
@@ -1064,9 +1085,9 @@ public final class BoardEvent {
             + "Take them off it with Board › Change Members… first, or reset or complete that board."
     }
 
-    /// Link an adult to a youth as the one who introduces them (SPEC.md D-23), or
-    /// unlink them after sign-in, for the adult who did not
-    /// check the youth at sign-in. Writes the same Supporting column. Linking
+    /// Links an adult to a youth as the one who introduces them (SPEC.md D-23),
+    /// or removes the link after sign-in, for the adult who did not check the
+    /// youth at sign-in. Writes the same Supporting column. Linking
     /// needs a youth who is signed in or RSVP'd; clearing a stale link does not.
     ///
     /// - Parameters:
@@ -1174,7 +1195,8 @@ public final class BoardEvent {
     /// is made to the same adult in the history too, so someone promoted to
     /// Chair today is a chair the next time they sign in. Wood Badge, whom
     /// they introduce and their room belong to this event alone. The
-    /// history itself is read-only: a sign-in writes it, and this reaches it.
+    /// operator cannot edit the history directly: only a sign-in writes it, and
+    /// this call writes just the `signInColumns` into it.
     ///
     /// - Parameter edited: the adult's record with the changes made. Its `id`
     ///   picks the record it replaces.

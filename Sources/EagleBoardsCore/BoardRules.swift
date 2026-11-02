@@ -407,15 +407,12 @@ public struct ChangeMembersReview: Sendable {
 /// The board the scheduler proposes when a waiting youth is selected: a
 /// chair, enough members to make a board, and a free room of the right kind.
 ///
-/// It used to take the first qualified chair and the first adults whose role
-/// was Member, in sign-in order. A Final board's Member is often a project
-/// chair, so the first Final board of the event could take both project
-/// chairs and leave every project review without one; and it ignored the
-/// troops of the youth still waiting.
-///
-/// Now every legal board is considered -- one qualified chair plus the
-/// working number of members, none from the youth's unit -- and the one
-/// chosen is, in order:
+/// Every legal board is considered: one qualified chair plus the working
+/// number of members, none from the youth's unit. A first-fit pick in sign-in
+/// order is not used, because a Final board's Member is often a project chair
+/// and the first Final board of the event could take both project chairs and
+/// leave every project review without one. The troops of the youth still
+/// waiting count too. The board chosen is, in order:
 ///
 ///  1. the one leaving the most of the `waiting` youth (the OTHER waiting
 ///     youth, in queue order) able to get a full board at once from the
@@ -703,11 +700,18 @@ public enum AdultLocator {
         }
     }
 
+    /// Finds the adults to fetch for a youth: those linked as introducers, then their leader, then their parents.
+    ///
     /// A leader is an adult whose last name appears in the youth's Leader
     /// field and who is in the same unit (or whose first name appears there
     /// too). A parent is an adult in the same unit with the youth's last name.
-    /// The adults linked to this youth, who introduce them (SPEC.md D-23), come first,
-    /// and are not guessed at again.
+    /// The adults linked to this youth, who introduce them (SPEC.md D-23), are
+    /// not matched again as leader or parent.
+    ///
+    /// - Parameters:
+    ///   - scout: The youth to find adults for.
+    ///   - adults: The adults who signed in.
+    /// - Returns: Matches with introducers first, then leaders, then parents.
     public static func locate(for scout: Scout, among adults: [Adult]) -> [Match] {
         let leaderText = scout.leader.lowercased()
         let scoutLast = scout.last.lowercased()

@@ -44,6 +44,10 @@ refuses to publish an app that contains a data file or the key.
   a request URL or puts one in an error message.
 - CI reads it from the `SUG_KEY` repository secret, only to check that the API
   still answers, and never prints what comes back.
+- The app is signed ad hoc, so each new build has a different code identity to
+  the keychain. After an update, macOS asks again for access to the key; click
+  **Always Allow**. A Developer ID signature would avoid the prompt, but
+  releases are not notarized.
 
 ## Network exposure
 

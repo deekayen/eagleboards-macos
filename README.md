@@ -302,6 +302,9 @@ Eagle Boards keeps it in your macOS keychain. When today's event opens, it impor
 the sign-up: youth become pre-registrations and adults join the history. Use
 **File › Import Sign-Ups from SignUpGenius** to do it again.
 
+The app is signed ad hoc, so after you install a new version macOS asks once
+for access to the key in your keychain. Click **Always Allow**.
+
 ## After the event
 
 **File › Export Board Results** saves every board and its result as a

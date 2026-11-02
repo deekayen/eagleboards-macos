@@ -3,6 +3,7 @@ import Foundation
 /// A board being drawn up for a waiting youth: proposed when they are
 /// selected, then changed by hand in the inspector (SPEC.md D-10).
 public struct BoardDraft: Sendable, Equatable {
+    /// The room chosen or proposed for the board; nil when none.
     public var roomID: Room.ID?
     /// The operator chose `roomID`, so it is theirs: kept while it is free,
     /// whatever kind of room it is. A room the app proposed follows the
@@ -79,7 +80,7 @@ public struct BoardDrafts: Sendable, Equatable {
 
     public subscript(scoutID: Scout.ID) -> BoardDraft? { byYouth[scoutID] }
 
-    /// Is this youth's board left alone by a refresh and by selecting them?
+    /// True when a refresh and selecting the youth leave their board alone.
     private func isKept(_ scoutID: Scout.ID) -> Bool {
         guard let draft = byYouth[scoutID] else { return false }
         return draft.isEdited || scoutID == frozenID
@@ -227,6 +228,13 @@ public struct BoardDrafts: Sendable, Equatable {
         byYouth[scoutID] = draft
     }
 
+    /// Takes adults off the youth's board, clears the chair if they held it,
+    /// and makes the board the operator's.
+    ///
+    /// - Parameters:
+    ///   - adultIDs: The adults to take off.
+    ///   - scoutID: The youth whose draft board changes; nothing happens when
+    ///     the youth has no draft.
     public mutating func remove(_ adultIDs: Set<Adult.ID>, for scoutID: Scout.ID) {
         guard var draft = byYouth[scoutID] else { return }
         draft.memberIDs.removeAll { adultIDs.contains($0) }
@@ -240,9 +248,15 @@ public struct BoardDrafts: Sendable, Equatable {
         byYouth[scoutID] = draft
     }
 
-    /// Can `adult` be made chair of this youth's board: on it, Chair for
-    /// this kind of board, and not the one chairing it already
-    /// (`BoardDraft.chair(among:for:)`)?
+    /// True when `adult` is on this youth's board, has the Chair role for this
+    /// kind of board, and is not already its chair (`BoardDraft.chair(among:for:)`).
+    ///
+    /// - Parameters:
+    ///   - adult: The adult who would chair.
+    ///   - youth: The youth whose draft board is checked; false when they have
+    ///     no draft or no board type.
+    ///   - event: The event that holds the signed-in adults.
+    /// - Returns: Whether `makeChair` would change the chair.
     @MainActor
     public func canMakeChair(_ adult: Adult, for youth: Scout, in event: BoardEvent) -> Bool {
         guard let draft = byYouth[youth.id], let boardType = youth.boardType,
@@ -252,7 +266,14 @@ public struct BoardDrafts: Sendable, Equatable {
         return draft.chair(among: members, for: boardType) != adult.id
     }
 
-    /// Make Chair: D-12 counts changing the chair as the operator's change.
+    /// Makes `adult` the chair of the youth's draft board when `canMakeChair`
+    /// allows it, and marks the draft as the operator's own (D-12 counts
+    /// changing the chair as the operator's change).
+    ///
+    /// - Parameters:
+    ///   - adult: The adult to make chair.
+    ///   - youth: The youth whose draft board changes.
+    ///   - event: The event that holds the signed-in adults.
     @MainActor
     public mutating func makeChair(_ adult: Adult, for youth: Scout, in event: BoardEvent) {
         guard canMakeChair(adult, for: youth, in: event) else { return }
@@ -283,6 +304,8 @@ public struct BoardDrafts: Sendable, Equatable {
         byYouth[scoutID] = nil
     }
 
+    /// Drops every draft, as when the scheduler's selection is cleared
+    /// (`AppModel.clearSchedulerSelection`).
     public mutating func removeAll() {
         byYouth = [:]
     }

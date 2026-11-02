@@ -102,9 +102,9 @@ extension PersonRecord {
         set { self["Flags"] = newValue }
     }
 
-    /// As stored, with the files' `~` for a comma: BoardEvent writes it into
-    /// a room's Scout and Leaders columns and a youth's BoardChair and
-    /// BoardMembers.
+    /// The first and last name joined by a space, as stored, with the files'
+    /// `~` for a comma: BoardEvent writes it into a room's Scout and Leaders
+    /// columns and a youth's BoardChair and BoardMembers.
     public var fullName: String { "\(first) \(last)" }
 
     /// The name as the screen shows it, with its commas (SPEC.md D-1).
