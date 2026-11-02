@@ -68,8 +68,12 @@ public enum CheckInServer {
     ///   - host: `0.0.0.0` for every network, `127.0.0.1` for this Mac only,
     ///     or one network's address, served with 127.0.0.1 beside it.
     ///   - port: `0` picks a free port, reported through `onRunning`.
+    ///   - event: the event whose sign-in pages are served.
+    ///   - onRunning: called with the port actually bound once the server is
+    ///     listening; with a pinned address, once the 127.0.0.1 listener is up.
     /// - Throws: `PortInUse` when `host` is one address and another program
-    ///   serves every network at `port`.
+    ///   serves every network at `port`, and any error from binding the
+    ///   listener, such as a refused or busy port.
     public static func run(
         event: BoardEvent,
         host: String = SignInListening.anyAddress,

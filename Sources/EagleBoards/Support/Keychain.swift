@@ -35,14 +35,23 @@ enum SignUpGeniusKeychain {
         return key
     }
 
-    /// Store `key`, or remove the stored one when `key` is empty.
+    /// Store `key`, or remove the stored one when `key` is empty. A key
+    /// already stored is updated in place, so a refused write (a locked
+    /// keychain, a denied prompt) leaves the working key where it was.
+    /// - Returns: Whether the keychain now holds what was asked for.
     @discardableResult
     static func write(_ key: String) -> Bool {
         let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
-        SecItemDelete(query as CFDictionary)
-        guard !trimmed.isEmpty else { return true }
+        guard !trimmed.isEmpty else {
+            let status = SecItemDelete(query as CFDictionary)
+            return status == errSecSuccess || status == errSecItemNotFound
+        }
+        let data = Data(trimmed.utf8)
+        let update = [kSecValueData as String: data]
+        let status = SecItemUpdate(query as CFDictionary, update as CFDictionary)
+        guard status == errSecItemNotFound else { return status == errSecSuccess }
         var item = query
-        item[kSecValueData as String] = Data(trimmed.utf8)
+        item[kSecValueData as String] = data
         item[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlocked
         return SecItemAdd(item as CFDictionary, nil) == errSecSuccess
     }

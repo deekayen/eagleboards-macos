@@ -46,6 +46,12 @@ public enum BoardStatus: String, CaseIterable, Sendable {
         self == .seated || self == .inProgress
     }
 
+    /// Can Reset Board undo this state? A sitting board can, and so can the
+    /// legacy `Verified` status.
+    public var isResettable: Bool {
+        holdsRoom || self == .verified
+    }
+
     /// What the screen calls it, the same word in all three versions (SPEC.md
     /// D-13): badges, their accessibility labels, the Youth page's Status
     /// menu and alerts. The data files keep the raw value.

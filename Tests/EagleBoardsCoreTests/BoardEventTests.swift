@@ -1425,7 +1425,8 @@ struct BoardEventTests {
         refused("an unknown youth") {
             try event.setSupporting(true, adultID: member(1), scoutID: "SCOUT:Nobody:Here:0")
         }
-        try event.setSupporting(false, adultID: member(1), scoutID: "SCOUT:Nobody:Here:0")  // clearing a stale link is fine
+        // Clearing a stale link is fine.
+        try event.setSupporting(false, adultID: member(1), scoutID: "SCOUT:Nobody:Here:0")
     }
 
     // SPEC.md D-23. Start Review on a board of review names whoever

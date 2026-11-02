@@ -15,7 +15,14 @@ struct EditableText: View {
     @FocusState private var isFocused: Bool
     @Environment(\.rowIsItalic) private var rowIsItalic
 
-    /// - Parameter name: what the field holds, for VoiceOver.
+    /// Creates a text cell that shows `value` and calls `save` when the edit
+    /// ends.
+    ///
+    /// - Parameters:
+    ///   - value: the text to show.
+    ///   - name: what the field holds, for VoiceOver.
+    ///   - save: stores the edited text; returns false when the change is
+    ///     refused, which restores `value`.
     init(_ value: String, name: String, save: @escaping (String) -> Bool) {
         self.value = value
         self.name = name

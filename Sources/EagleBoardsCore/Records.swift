@@ -148,6 +148,7 @@ extension PersonRecord {
     }
 }
 
+/// Shortens a unit name such as `Troop1776` for display.
 public enum UnitLabel {
     public static func short(_ unitName: String) -> String {
         guard let firstDigit = unitName.firstIndex(where: \.isNumber),
@@ -174,6 +175,8 @@ public enum UnitLabel {
 
 // MARK: - Youth
 
+/// A youth's row in `scouts.csv` or `scouts_scheduled.csv`: one sign-in and
+/// the board that follows it.
 public struct Scout: PersonRecord {
     public static let recordType = "SCOUT"
     public static let columns = [
@@ -368,6 +371,7 @@ public struct Scout: PersonRecord {
 
 // MARK: - Adults
 
+/// An adult volunteer's row in `adults.csv` or `Master_AdultHistory.csv`.
 public struct Adult: PersonRecord {
     public static let recordType = "ADULT"
     public static let columns = [
@@ -497,6 +501,8 @@ public struct Adult: PersonRecord {
 
 // MARK: - Rooms
 
+/// A room's row in `rooms.csv`. Youth and adults refer to a room by `name`,
+/// not `id`.
 public struct Room: EventRecord {
     public static let recordType = "ROOM"
     public static let columns = ["Type", "ID", "Room", "BoardType", "Scout", "Leaders", "RegTime"]

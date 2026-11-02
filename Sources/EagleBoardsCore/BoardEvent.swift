@@ -584,7 +584,7 @@ public final class BoardEvent {
             throw EventError("There is no youth '\(earlier.id)'.")
         }
         let current = scouts[scoutIndex]
-        let holdsRoom: (Scout) -> Bool = { $0.status == .seated || $0.status == .inProgress }
+        let holdsRoom: (Scout) -> Bool = { $0.status?.holdsRoom == true }
         let currentRoom = holdsRoom(current) ? current.room : nil
 
         var roomIndex: Int?
@@ -731,6 +731,9 @@ public final class BoardEvent {
         "Room \(room.name) already has \(room.scoutName.shownValue)'s board. Choose a free room."
     }
 
+    /// Remove a room that has no board in it.
+    ///
+    /// - Throws: `EventError` when the id is unknown or a board holds the room.
     public func removeRoom(id: String) throws {
         guard let index = rooms.firstIndex(where: { $0.id == id }) else {
             throw EventError("There is no room '\(id)'.")
@@ -768,6 +771,10 @@ public final class BoardEvent {
         try save(.rooms, .youth, .adults)
     }
 
+    /// Change which kind of board the room is used for. A board already in
+    /// the room keeps its own type.
+    ///
+    /// - Throws: `EventError` when the id is unknown.
     public func setBoardType(_ boardType: BoardType, forRoom id: String) throws {
         guard let index = rooms.firstIndex(where: { $0.id == id }) else {
             throw EventError("There is no room '\(id)'.")
@@ -928,12 +935,20 @@ public final class BoardEvent {
         }
     }
 
+    /// Delete a youth's row. An id nobody has changes nothing.
+    ///
+    /// - Parameters:
+    ///   - id: the youth's id.
+    ///   - scheduled: `true` deletes from the pre-registered table, where no
+    ///     board can be sitting, so the active-board check is skipped.
+    /// - Throws: `EventError` when the youth is seated or in review, so the
+    ///   board must be reset or completed first.
     public func deleteYouth(id: String, scheduled: Bool = false) throws {
         if scheduled {
             scheduledScouts.removeAll { $0.id == id }
             try save(.scheduledYouth)
         } else {
-            if let scout = scout(id: id), scout.status == .seated || scout.status == .inProgress {
+            if let scout = scout(id: id), scout.status?.holdsRoom == true {
                 throw EventError(
                     "\(scout.shownFullName)'s board is active in room \(scout.room). Reset or complete that board first."
                 )
@@ -974,6 +989,8 @@ public final class BoardEvent {
         try save(.adults)
     }
 
+    /// Replace the event's settings with `edited`'s. A blank value falls back
+    /// to the standard one, as `Config(fields:)` merges over `Config.defaults`.
     public func updateConfig(_ edited: Config) throws {
         config = Config(fields: edited.fields)
         try save(.config)

@@ -206,6 +206,9 @@ final class AppModel {
         return URL(string: "http://127.0.0.1:\(runningPort)/")
     }
 
+    /// Restart the sign-in station on the current port and network. Returns at
+    /// once; watch `serverState` for `.running` or `.failed`. While serving, the
+    /// Mac is kept awake (the display may still sleep).
     func startServer() {
         stopServer()
         guard let event else { return }
@@ -237,6 +240,7 @@ final class AppModel {
         )
     }
 
+    /// Stop the sign-in station and let the Mac sleep again.
     func stopServer() {
         if let serverTask {
             serverTask.cancel()
@@ -637,7 +641,12 @@ final class AppModel {
         return true
     }
 
-    /// Seat Board's sheet, which shows a refusal inside itself.
+    /// Seat the youth's board in the room and register Undo. Selects the room,
+    /// drops the youth's draft board, and asks for notification permission so
+    /// the room timer can speak up later.
+    ///
+    /// - Throws: `EventError` with the refusal the Seat Board sheet shows in
+    ///   place.
     func seat(scoutID: String, roomID: String, chairID: String, memberIDs: [String]) throws {
         let name = event?.scout(id: scoutID)?.shownFullName ?? ""
         let room = event?.room(id: roomID)?.name ?? ""
@@ -650,8 +659,7 @@ final class AppModel {
     }
 
     var canChangeMembers: Bool {
-        let status = boardYouth?.status
-        return status == .seated || status == .inProgress
+        boardYouth?.status?.holdsRoom == true
     }
 
     func beginChangingMembers() {
@@ -659,7 +667,10 @@ final class AppModel {
         present(.changeMembers(scoutID: youth.id))
     }
 
-    /// Change Members' sheet, which shows a refusal inside itself.
+    /// Replace the sitting board's chair and members and register Undo.
+    ///
+    /// - Throws: `EventError` with the refusal the Change Members sheet shows
+    ///   in place.
     func changeMembers(scoutID: String, chairID: String, memberIDs: [String]) throws {
         var success: String?
         if let event, let youth = event.scout(id: scoutID) {
@@ -711,7 +722,11 @@ final class AppModel {
         present(.completeBoard(scoutID: youth.id))
     }
 
-    /// Complete's sheet, which shows a refusal inside itself.
+    /// Complete the sitting board with its result and notes, free the room, and
+    /// register Undo.
+    ///
+    /// - Throws: `EventError` with the refusal the Complete sheet shows in
+    ///   place.
     func complete(scoutID: String, result: BoardResult, notes: String) throws {
         // From the record before the step, which frees the room.
         let youth = event?.scout(id: scoutID)
@@ -739,8 +754,7 @@ final class AppModel {
     }
 
     var canReset: Bool {
-        let status = boardYouth?.status
-        return status == .seated || status == .inProgress || status == .verified
+        boardYouth?.status?.isResettable == true
     }
 
     /// Undo seating: the youth waits again and the room and members are
@@ -1131,8 +1145,12 @@ final class AppModel {
         return saved
     }
 
+    /// Merge today's SignUpGenius sign-ups into the open event and report what
+    /// came in. A second call while one is running does nothing, and a result
+    /// that arrives after the operator opened another event is dropped, since
+    /// merging it would rewrite the adult history from the old event.
     func importSignUps() async {
-        guard let event else { return }
+        guard let event, !isImporting else { return }
         guard signUpGeniusAllowed else {
             message = Message(
                 title: "SignUpGenius is off.",
@@ -1151,6 +1169,7 @@ final class AppModel {
         do {
             let signup = try await client.findActiveSignup(today: event.date)
             let entries = try await client.filledSlots(signupID: signup.id)
+            guard self.event === event else { return }
             let summary = try event.mergeSignUps(entries, month: String(event.date.prefix(7)))
             showImportReport(Message(title: "Imported \(signup.title)", text: summary.report))
         } catch {

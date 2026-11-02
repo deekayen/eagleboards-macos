@@ -98,7 +98,7 @@ enum QueueGroup {
     func holds(_ youth: Scout) -> Bool {
         switch self {
         case .waiting: youth.status?.isWaitingForBoard ?? true
-        case .onBoard: youth.status == .seated || youth.status == .inProgress
+        case .onBoard: youth.status?.holdsRoom ?? false
         case .finished: youth.status?.isFinished ?? false
         }
     }
@@ -157,7 +157,7 @@ private struct YouthRow: View {
 
     private var detail: String {
         var parts = [youth.regNum, youth.unitDisplay]
-        if youth.status == .seated || youth.status == .inProgress {
+        if youth.status?.holdsRoom == true {
             parts.append("Room \(youth.room)")
         } else {
             parts.append(youth.boardType?.label ?? youth.boardTypeText)
@@ -226,13 +226,13 @@ struct YouthActionButtons: View {
         // postponement now would change it under the sheet.
         let idle = model.sheet == nil
         let waiting = status?.isWaitingForBoard == true
-        let canReset = idle && (status == .seated || status == .inProgress || status == .verified)
+        let canReset = idle && status?.isResettable == true
         let canPostpone = idle && waiting
 
         step(.seat, status: status, idle: idle) { model.beginSeating() }
         step(.startReview, status: status, idle: idle) { model.confirmStartReview() }
         step(.complete, status: status, idle: idle) { model.beginCompleting() }
-        command("Change Members…", applies: idle && (status == .seated || status == .inProgress)) {
+        command("Change Members…", applies: idle && status?.holdsRoom == true) {
             model.beginChangingMembers()
         }
         if inContextMenu {

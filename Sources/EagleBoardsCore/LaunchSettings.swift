@@ -3,11 +3,11 @@ import Foundation
 /// What the app starts with: the saved preferences, and the environment
 /// variables a developer uses to run it against a scratch folder.
 ///
-///   EAGLEBOARDS_DATA_FOLDER      open this folder instead of the saved one
-///   EAGLEBOARDS_PORT             serve sign-in on this port
-///   EAGLEBOARDS_NETWORK          serve sign-in on this interface (`en0`), or `all`
-///   EAGLEBOARDS_SIGNUPGENIUS=1   with a scratch folder, still use SignUpGenius
-///   EAGLEBOARDS_APPEARANCE       dark or light, for this run alone
+/// - `EAGLEBOARDS_DATA_FOLDER`: open this folder instead of the saved one.
+/// - `EAGLEBOARDS_PORT`: serve sign-in on this port.
+/// - `EAGLEBOARDS_NETWORK`: serve sign-in on this interface (`en0`), or `all`.
+/// - `EAGLEBOARDS_SIGNUPGENIUS=1`: with a scratch folder, still use SignUpGenius.
+/// - `EAGLEBOARDS_APPEARANCE`: `dark` or `light`, for this run alone.
 ///
 /// The app otherwise follows the system's appearance (SPEC.md D-16).
 /// EAGLEBOARDS_APPEARANCE lets a screenshot run show dark or light without

@@ -128,6 +128,9 @@ public struct SignInListening: Equatable, Sendable {
         return interfaces > 1 || unavailableChoice != nil || (isEveryNetwork && interfaces == 1)
     }
 
+    /// Resolves the saved network choice to the address the sign-in station
+    /// listens on.
+    ///
     /// - Parameters:
     ///   - choice: the saved BSD name, `everyNetwork`, or nil (or empty) for
     ///     the default, `preferred`.

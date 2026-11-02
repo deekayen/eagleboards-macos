@@ -3,8 +3,9 @@ import Foundation
 /// The two date shapes the data files use, parsed and written by hand so they
 /// never depend on the machine's locale.
 ///
-///   RegTime / LastUpdateTime   `2026-09-22_19:05-0400`   (Java `yyyy-MM-dd_HH:mmZ`)
-///   event folder name          `2026-09-22`
+/// - `RegTime` and `LastUpdateTime`: `2026-09-22_19:05-0400` (Java
+///   `yyyy-MM-dd_HH:mmZ`).
+/// - Event folder name: `2026-09-22`.
 public enum Timestamp {
     private static let calendar = Calendar(identifier: .gregorian)
 

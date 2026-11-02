@@ -670,9 +670,9 @@ public enum RoomTimer {
     /// The clock is the youth's minutes since last update, so it restarts by
     /// itself at each transition and times the two phases apart:
     ///
-    ///   Seated      the board is convening. One cap, `ConveneRedMins`, and no
-    ///               yellow: it is a limit, not a target.
-    ///   InProgress  the youth is in the room. Yellow and red per board type.
+    /// - Seated: the board is convening. One cap, `ConveneRedMins`, and no
+    ///   yellow: it is a limit, not a target.
+    /// - InProgress: the youth is in the room. Yellow and red per board type.
     ///
     /// A limit of 0 is off, and each is off by itself: with no yellow a
     /// review is on time until it is overdue, and with no red it runs long

@@ -9,6 +9,10 @@ import Foundation
 /// there is no other way to keep them from breaking the row. Columns the
 /// record type does not know are dropped on read; missing ones read as empty.
 public enum CSVFile {
+    /// Reads the records in the file at `url`.
+    ///
+    /// - Returns: The records, or an empty array when the file does not exist,
+    ///   which is how a fresh event starts.
     public static func read<Record: EventRecord>(_ type: Record.Type, from url: URL) throws -> [Record] {
         guard FileManager.default.fileExists(atPath: url.path) else { return [] }
         return parse(type, text: try readText(at: url))
@@ -44,6 +48,8 @@ public enum CSVFile {
         return text
     }
 
+    /// Writes `records` to `url`, header row first. The write is atomic, so a
+    /// reader never sees half a file.
     public static func write<Record: EventRecord>(_ records: [Record], to url: URL) throws {
         try Data(render(records).utf8).write(to: url, options: .atomic)
     }
@@ -89,6 +95,10 @@ extension String {
 /// header comment, then every column in order, values written verbatim.
 /// Saving does not keep hand-written comments, as it never did.
 public enum PropertiesFile {
+    /// Reads `config.properties`.
+    ///
+    /// - Returns: The file's settings, or `Config.standard` when the file does
+    ///   not exist.
     public static func read(from url: URL) throws -> Config {
         guard FileManager.default.fileExists(atPath: url.path) else { return .standard }
         return Config(fields: parse(try CSVFile.readText(at: url)))
@@ -136,6 +146,7 @@ public enum PropertiesFile {
         return text
     }
 
+    /// Writes `config` to `url`. The write is atomic.
     public static func write(_ config: Config, to url: URL) throws {
         try Data(render(config).utf8).write(to: url, options: .atomic)
     }
