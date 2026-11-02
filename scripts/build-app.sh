@@ -31,6 +31,39 @@ bin_dir=$(swift build -c release --arch arm64 --show-bin-path)
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$bin_dir/EagleBoards" "$APP/Contents/MacOS/Eagle Boards"
+exe="$APP/Contents/MacOS/Eagle Boards"
+
+# Swift libraries the binary loads through @rpath. SwiftPM leaves an absolute
+# rpath into this Mac's Xcode toolchain, which exists on the build machine and
+# on no other, so a Mac without it fails at launch with "Library not loaded".
+# Copy each such library into Contents/Frameworks, drop the absolute rpaths,
+# and point the binary at Frameworks after /usr/lib/swift, where macOS 26 and
+# later keep their own copy. Apple: Notarizing macOS software before
+# distribution, "Prepare your software for notarization" (every executable
+# the app loads is signed and inside the bundle).
+rpaths=$(otool -l "$exe" | awk '/cmd LC_RPATH/ {getline; getline; print $2}')
+rpath_libs=$(otool -L "$exe" | awk '/@rpath\// {print $1}')
+for lib in $rpath_libs; do
+    name="${lib#@rpath/}"
+    found=""
+    while IFS= read -r dir; do
+        case "$dir" in /*) [ -f "$dir/$name" ] && { found="$dir/$name"; break; } ;; esac
+    done <<< "$rpaths"
+    if [ -z "$found" ]; then
+        # Resolved from the system (/usr/lib/swift) or beside the binary.
+        [ -f "/usr/lib/swift/$name" ] || echo "note: $name is not found in any absolute rpath; the OS must provide it"
+        continue
+    fi
+    mkdir -p "$APP/Contents/Frameworks"
+    cp "$found" "$APP/Contents/Frameworks/$name"
+    echo "== bundled $name from $found"
+done
+while IFS= read -r dir; do
+    case "$dir" in /Applications/*|/Library/*|/Users/*) install_name_tool -delete_rpath "$dir" "$exe" ;; esac
+done <<< "$rpaths"
+if [ -d "$APP/Contents/Frameworks" ]; then
+    install_name_tool -add_rpath "@executable_path/../Frameworks" "$exe"
+fi
 # The sign-in pages. CheckInAssets looks here before anywhere else.
 cp -R "$bin_dir/EagleBoards_CheckInServer.bundle" "$APP/Contents/Resources/"
 
@@ -62,17 +95,38 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>NSUserNotificationAlertStyle</key> <string>alert</string>
     <key>NSLocalNetworkUsageDescription</key>
     <string>Eagle Boards serves the sign-in page to tablets at the door over your local network.</string>
+    <key>NSDesktopFolderUsageDescription</key>
+    <string>Eagle Boards keeps each event's sign-ins and results in the data folder you choose.</string>
+    <key>NSDocumentsFolderUsageDescription</key>
+    <string>Eagle Boards keeps each event's sign-ins and results in the data folder you choose.</string>
+    <key>NSDownloadsFolderUsageDescription</key>
+    <string>Eagle Boards keeps each event's sign-ins and results in the data folder you choose.</string>
+    <key>NSRemovableVolumesUsageDescription</key>
+    <string>Eagle Boards keeps each event's sign-ins and results in the data folder you choose.</string>
+    <key>NSNetworkVolumesUsageDescription</key>
+    <string>Eagle Boards keeps each event's sign-ins and results in the data folder you choose.</string>
 </dict>
 </plist>
 PLIST
 
 echo "== signing"
+# Code inside the bundle is signed before the bundle. With the Hardened
+# Runtime, library validation only loads a library signed by the app's own
+# team, so the identity must match.
 if [ -n "${SIGNING_IDENTITY:-}" ]; then
+    for dylib in "$APP"/Contents/Frameworks/*.dylib; do
+        [ -e "$dylib" ] || continue
+        codesign --force --options runtime --timestamp --sign "$SIGNING_IDENTITY" "$dylib"
+    done
     codesign --force --options runtime --timestamp --sign "$SIGNING_IDENTITY" "$APP"
 else
+    for dylib in "$APP"/Contents/Frameworks/*.dylib; do
+        [ -e "$dylib" ] || continue
+        codesign --force --sign - "$dylib"
+    done
     codesign --force --sign - "$APP"
 fi
-codesign --verify --strict --verbose=1 "$APP"
+codesign --verify --deep --strict --verbose=1 "$APP"
 
 echo "== built $APP"
 lipo -archs "$APP/Contents/MacOS/Eagle Boards"

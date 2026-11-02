@@ -106,7 +106,19 @@ jobs:
           # Apple silicon only; Intel Macs are not supported.
           [ "$archs" = "arm64" ] || { echo "::error::expected arm64 only"; exit 1; }
           plutil -lint "$app/Contents/Info.plist"
-          codesign --verify --strict --verbose=1 "$app"
+          codesign --verify --deep --strict --verbose=1 "$app"
+          # The smoke test below runs on the machine that built the app, so a
+          # library found only through that machine's Xcode would pass it and
+          # fail on every other Mac. Nothing may load from outside the bundle.
+          exe="$app/Contents/MacOS/Eagle Boards"
+          if otool -l "$exe" | awk '/cmd LC_RPATH/ {getline; getline; print $2}' | grep -E '^/(Applications|Library|Users)/'; then
+            echo "::error::the binary keeps an rpath into the build machine"
+            exit 1
+          fi
+          for lib in $(otool -L "$exe" | awk '/@rpath\// {print $1}'); do
+            [ -f "$app/Contents/Frameworks/${lib#@rpath/}" ] \
+              || { echo "::error::$lib is loaded through @rpath but is not in Contents/Frameworks"; exit 1; }
+          done
           # The icon unpacks, with every size macOS asks for.
           iconutil -c iconset "$app/Contents/Resources/AppIcon.icns" -o "$RUNNER_TEMP/AppIcon.iconset"
           [ "$(ls "$RUNNER_TEMP/AppIcon.iconset" | grep -c '\.png$')" = 10 ] \
