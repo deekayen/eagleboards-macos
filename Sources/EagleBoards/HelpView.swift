@@ -17,13 +17,11 @@ struct HelpView: View {
                     VStack(alignment: .leading, spacing: 18) {
                         // Headings for VoiceOver's rotor, at the levels Windows' Help uses.
                         Text("Running an Eagle Boards event").font(.largeTitle.bold())
-                            .accessibilityAddTraits(.isHeader)
-                            .accessibilityHeading(.h1)
+                            .heading(.h1)
                         ForEach(sections) { section in
                             VStack(alignment: .leading, spacing: 8) {
                                 Text(section.title).font(.title2.bold())
-                                    .accessibilityAddTraits(.isHeader)
-                                    .accessibilityHeading(.h2)
+                                    .heading(.h2)
                                 ForEach(section.items, id: \.self) { bullet($0) }
                             }
                         }

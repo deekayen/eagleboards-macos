@@ -417,7 +417,7 @@ private struct FreeAdultsSection: View {
                 let lhsChairs = lhs.canChair(boardType)
                 let rhsChairs = rhs.canChair(boardType)
                 if lhsChairs != rhsChairs { return lhsChairs }
-                return (lhs.last, lhs.first) < (rhs.last, rhs.first)
+                return Adult.byName(lhs, rhs)
             }
 
         Section {
@@ -601,7 +601,7 @@ private struct WithThemSection: View {
         let people = AdultLocator.locate(for: youth, among: event.adults)
         let others = event.adults
             .filter { !$0.supports(youth.id) }
-            .sorted { ($0.last, $0.first) < ($1.last, $1.first) }
+            .sorted(by: Adult.byName)
         // The youth's own leaders are usually who introduces them, so their
         // unit comes first, out of a list of every adult at the event.
         let ownUnit = youth.unitName.isEmpty ? [] : others.filter { $0.unitName == youth.unitName }

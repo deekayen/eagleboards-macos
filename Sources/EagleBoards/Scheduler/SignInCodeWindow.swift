@@ -17,8 +17,7 @@ struct SignInCodeWindow: View {
                     VStack(spacing: 6) {
                         Text("Sign in for Eagle Boards")
                             .font(.largeTitle.bold())
-                            .accessibilityAddTraits(.isHeader)
-                            .accessibilityHeading(.h1)
+                            .heading(.h1)
                         if let note = model.servedEventNote {
                             Text("Signing in \(note)")
                                 .font(.title2)

@@ -287,7 +287,10 @@ final class AppModel {
     /// on, is `SchedulerPage`'s.
     typealias Page = SchedulerPage
 
-    var page: Page = .event
+    /// The page shown. Only `show(_:)` sets it, because leaving the Adults or
+    /// Adult History page also clears that page's selection (CONTRIBUTING.md
+    /// rule 13).
+    private(set) var page: Page = .event
     var searchText = ""
     /// Whether the operator wants the inspector, for the Event page, which is
     /// the only page that has one. Leaving the page takes the inspector away

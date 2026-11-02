@@ -24,6 +24,10 @@ enum SignUpGeniusKeychain {
         return SecItemCopyMatching(lookup as CFDictionary, nil) == errSecSuccess
     }
 
+    /// Reads the stored key. Unlike `exists()`, this asks for the secret, so
+    /// macOS may show a keychain access prompt.
+    ///
+    /// - Returns: The key, or nil when none is stored or it is empty.
     static func read() -> String? {
         var lookup = query
         lookup[kSecReturnData as String] = true

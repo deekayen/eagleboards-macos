@@ -457,6 +457,8 @@ struct AddAdultSheet: View {
         phone = ""
         finalBoard = nil
         projectReview = nil
+        woodBadge = false
+        problem = nil
         // A turn later, once the search is drawn again.
         Task { field = .search }
     }

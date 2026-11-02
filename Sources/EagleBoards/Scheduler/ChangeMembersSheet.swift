@@ -217,7 +217,7 @@ private struct FreeAdultsToAddSection: View {
                 let lhsChairs = lhs.canChair(boardType)
                 let rhsChairs = rhs.canChair(boardType)
                 if lhsChairs != rhsChairs { return lhsChairs }
-                return (lhs.last, lhs.first) < (rhs.last, rhs.first)
+                return Adult.byName(lhs, rhs)
             }
 
         Section {
