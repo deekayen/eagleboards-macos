@@ -12,11 +12,22 @@ public enum BoardRules {
     /// Guide to Advancement 8.0.0.3: a board of review has no fewer than three
     /// and no more than six members. Three is the district's working size.
     public static let boardMinimum = 3
+    /// The most members either kind of board may have. A larger board is
+    /// `SizeVerdict.tooMany` and is refused.
     public static let boardMaximum = 6
     /// A project proposal review is not a board of review (GTA 9.0.2.4); this
     /// district runs it with two, under the same ceiling of six.
     public static let projectMinimum = 2
 
+    /// How a member count stands against the size rules: no fewer than the
+    /// board type's minimum and no more than `boardMaximum` (Guide to
+    /// Advancement 8.0.0.3).
+    ///
+    /// `tooFew` and `tooMany` block seating a board and changing its members,
+    /// and nothing overrides them. `overPreferred` is the only verdict the
+    /// operator may go ahead past: `memberReview` reports it as a warning to
+    /// confirm. An empty board is reported by its own problem ("No one is on
+    /// the board yet"), so `memberReview` adds no `tooFew` message for it.
     public enum SizeVerdict: Equatable, Sendable {
         /// Below the minimum: refused.
         case tooFew
@@ -24,25 +35,62 @@ public enum BoardRules {
         case tooMany
         /// Legal, but more than the working size, so worth confirming.
         case overPreferred
+        /// Exactly the minimum, the working size, with nothing to report.
         case ok
     }
 
+    /// The fewest members a board of this kind may have, and the size the
+    /// review asks for before it warns of more.
+    ///
+    /// - Parameter boardType: The kind of board being sized.
+    /// - Returns: `projectMinimum` for `.projectReview`, `boardMinimum` for
+    ///   every other kind.
     public static func minimumMembers(for boardType: BoardType) -> Int {
         boardType == .projectReview ? projectMinimum : boardMinimum
     }
 
+    /// Judges a member count for a board of review, whose minimum is
+    /// `boardMinimum` (Guide to Advancement 8.0.0.3).
+    ///
+    /// - Parameter count: The number of members on the board. Any integer is
+    ///   accepted; zero and negative counts are `.tooFew`.
+    /// - Returns: `.tooFew` below `boardMinimum`, `.ok` at it,
+    ///   `.overPreferred` above it up to `boardMaximum`, and `.tooMany`
+    ///   above `boardMaximum`.
     public static func checkBoardSize(_ count: Int) -> SizeVerdict {
         verdict(count: count, minimum: boardMinimum)
     }
 
+    /// Judges a member count for a project proposal review, whose minimum is
+    /// `projectMinimum` (see GTA 9.0.2.4 above), under the same ceiling as a
+    /// board of review.
+    ///
+    /// - Parameter count: The number of members on the review. Any integer is
+    ///   accepted; zero and negative counts are `.tooFew`.
+    /// - Returns: `.tooFew` below `projectMinimum`, `.ok` at it,
+    ///   `.overPreferred` above it up to `boardMaximum`, and `.tooMany`
+    ///   above `boardMaximum`.
     public static func checkProjectSize(_ count: Int) -> SizeVerdict {
         verdict(count: count, minimum: projectMinimum)
     }
 
+    /// Judges a member count against the minimum for `boardType`, as
+    /// `checkBoardSize` or `checkProjectSize` would. This is the check
+    /// `memberReview` uses.
+    ///
+    /// - Parameters:
+    ///   - count: The number of members on the board. Any integer is
+    ///     accepted; zero and negative counts are `.tooFew`.
+    ///   - boardType: The kind of board, which picks the minimum through
+    ///     `minimumMembers(for:)`.
+    /// - Returns: The verdict for `count`, as described on `SizeVerdict`.
     public static func checkSize(_ count: Int, for boardType: BoardType) -> SizeVerdict {
         verdict(count: count, minimum: minimumMembers(for: boardType))
     }
 
+    /// The test the three checks share, applied in this order: below
+    /// `minimum` is `.tooFew`, above `boardMaximum` is `.tooMany`, above
+    /// `minimum` is `.overPreferred`, and anything else is `.ok`.
     private static func verdict(count: Int, minimum: Int) -> SizeVerdict {
         if count < minimum { return .tooFew }
         if count > boardMaximum { return .tooMany }
@@ -183,8 +231,41 @@ public struct SeatingReview: Sendable {
         public var id: String { title }
     }
 
+    /// Whether the board may be seated: true when `blockingProblems` is empty.
+    /// Warnings do not prevent it.
     public var canSeat: Bool { blockingProblems.isEmpty }
 
+    /// Reviews seating `scout`'s board with `members` in `room`, gathering
+    /// every problem in one pass so the sheet can show them together. Nothing
+    /// is thrown; each problem lands in `blockingProblems` (nothing overrides
+    /// these) or in `warnings` (the operator acknowledges each one).
+    ///
+    /// The checks run in this order:
+    ///
+    /// 1. Status. `registered` and `verified` pass. `seated`, `inProgress`,
+    ///    `completed`, `postponed`, and a status the app does not recognize
+    ///    each add a blocking problem naming the youth, and the review goes on.
+    /// 2. Board type. A youth with none adds `noBoardType(_:)` as a blocking
+    ///    problem and the review ends there: steps 3 and 4 do not run, and
+    ///    `qualifiedChairs` stays empty.
+    /// 3. Members, through `BoardRules.memberReview` with no room already
+    ///    held. Blocking: an empty board, a member who has gone home, a member
+    ///    already on a board, a member whose role for this board type is
+    ///    Unavailable, no member from outside the youth's unit, no member who
+    ///    can chair, and a count that is `tooFew` or `tooMany`. Warnings: some
+    ///    members from the youth's unit while another is from outside it, and
+    ///    a count that is `overPreferred`.
+    /// 4. Room. Blocking: no room chosen ("Choose a free room."), or a room
+    ///    that is not free (`BoardEvent.roomIsTaken`). Warning: a free room
+    ///    whose board type is not the youth's.
+    ///
+    /// - Parameters:
+    ///   - scout: The youth to seat. Its status, board type, unit name, and
+    ///     name as shown are read.
+    ///   - members: The adults chosen for the board, the chair among them.
+    ///     An empty list is a blocking problem, not an error.
+    ///   - room: The room chosen for the board, or nil when none is chosen,
+    ///     which blocks.
     public init(scout: Scout, members: [Adult], room: Room?) {
         let scoutName = scout.shownFullName
 
@@ -274,8 +355,34 @@ public struct ChangeMembersReview: Sendable {
     public private(set) var warnings: [SeatingReview.Warning] = []
     public private(set) var qualifiedChairs: [Adult] = []
 
+    /// Whether the new members may be applied: true when `blockingProblems`
+    /// is empty. Warnings do not prevent it.
     public var canApply: Bool { blockingProblems.isEmpty }
 
+    /// Reviews changing who sits on `scout`'s board to `members`. Nothing is
+    /// thrown; each problem lands in `blockingProblems` (nothing overrides
+    /// these) or in `warnings` (the operator confirms each one).
+    ///
+    /// The checks run in this order:
+    ///
+    /// 1. Status. Only `seated` and `inProgress` pass; any other status adds
+    ///    one blocking problem and the review ends there.
+    /// 2. Board type. A youth with none adds a blocking problem and the
+    ///    review ends there.
+    /// 3. Members, through `BoardRules.memberReview` with the board's own
+    ///    room as the room already held, so a member already in that room
+    ///    is not counted as on another board. The blocking problems and
+    ///    warnings are the ones `SeatingReview` lists for its members step.
+    ///
+    /// There is no room check, since the board keeps its room.
+    ///
+    /// - Parameters:
+    ///   - scout: The youth whose board is being changed. Its status, board
+    ///     type, unit name, room, and name as shown are read.
+    ///   - members: Everyone who would be on the board after the change, the
+    ///     chair among them, not only the adults being added. An empty list
+    ///     is a blocking problem ("No one is left on the board"), not an
+    ///     error.
     public init(scout: Scout, members: [Adult]) {
         let scoutName = scout.shownFullName
 

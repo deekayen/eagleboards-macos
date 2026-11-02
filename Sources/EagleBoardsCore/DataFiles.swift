@@ -6,18 +6,52 @@ import Foundation
 /// The CSV dialect is deliberately simple and has no quoting: a header row of
 /// column names, then one row per record split on every comma. On write, a
 /// comma inside a value becomes `~` and a line break becomes `+`, because
-/// there is no other way to keep them from breaking the row. Columns the
+/// there is no other way to keep them from breaking the row. That covers
+/// every character `parse` reads as the end of a line, not only `\n` and `\r`,
+/// so a name posted with U+2028 cannot split into two records on the next
+/// open (Apple Secure Coding Guide, "Validating Input": data and delimiters
+/// must be kept apart). Columns the
 /// record type does not know are dropped on read; missing ones read as empty.
 public enum CSVFile {
     /// Reads the records in the file at `url`.
     ///
     /// - Returns: The records, or an empty array when the file does not exist,
     ///   which is how a fresh event starts.
+    /// - Throws: The file system's error when the file exists but cannot be
+    ///   read, such as a refused permission or a symbolic link whose target is
+    ///   gone, so a folder that is only unreachable is never mistaken for a new
+    ///   event.
     public static func read<Record: EventRecord>(_ type: Record.Type, from url: URL) throws -> [Record] {
-        guard FileManager.default.fileExists(atPath: url.path) else { return [] }
+        guard !isMissing(at: url) else { return [] }
         return parse(type, text: try readText(at: url))
     }
 
+    /// Whether nothing is there at `url`. Only a clear "no such file" counts:
+    /// a file that cannot be examined, or a symbolic link pointing nowhere, is
+    /// not missing, so a caller does not create a new file over it. The link
+    /// itself is examined, not its target (Apple Secure Coding Guide, "Race
+    /// Conditions and Secure File Operations": watch out for symbolic links).
+    static func isMissing(at url: URL) -> Bool {
+        do {
+            _ = try FileManager.default.attributesOfItem(atPath: url.path)
+            return false
+        } catch let error as CocoaError where error.code == .fileReadNoSuchFile {
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    /// Reads a data file's text and splits it into records.
+    ///
+    /// The first line names the columns. A blank line is skipped, a column the
+    /// record type does not know is dropped, and a record with no `Type`
+    /// takes the record type's own.
+    ///
+    /// - Parameters:
+    ///   - type: The record type to build from each row.
+    ///   - text: The whole file, with rows ended by any line break.
+    /// - Returns: One record per row, in file order.
     public static func parse<Record: EventRecord>(_ type: Record.Type, text: String) -> [Record] {
         let lines = text.split(whereSeparator: \.isNewline)
         guard let headerLine = lines.first else { return [] }
@@ -40,6 +74,8 @@ public enum CSVFile {
         }
     }
 
+    /// The file's text for `records`: the header row, then one row each, with
+    /// commas and line breaks in a value replaced as the type comment says.
     public static func render<Record: EventRecord>(_ records: [Record]) -> String {
         var text = Record.columns.joined(separator: ",") + "\n"
         for record in records {
@@ -50,20 +86,38 @@ public enum CSVFile {
 
     /// Writes `records` to `url`, header row first. The write is atomic, so a
     /// reader never sees half a file.
+    ///
+    /// - Throws: The file system's error when the file cannot be written.
     public static func write<Record: EventRecord>(_ records: [Record], to url: URL) throws {
         try Data(render(records).utf8).write(to: url, options: .atomic)
     }
 
-    /// Keep a value on one line and in one column.
+    /// The characters `String.split(whereSeparator: \.isNewline)` ends a line
+    /// at, other than the pair `\r\n`, which `flatten` treats as two.
+    private static let lineBreaks: Set<Unicode.Scalar> = [
+        "\n", "\r", "\u{000B}", "\u{000C}", "\u{0085}", "\u{2028}", "\u{2029}",
+    ]
+
+    /// Keep a value on one line and in one column: a comma becomes `~` and
+    /// each line break character becomes `+`.
     static func flatten(_ value: String) -> String {
-        value
-            .replacingOccurrences(of: ",", with: "~")
-            .replacingOccurrences(of: "\n", with: "+")
-            .replacingOccurrences(of: "\r", with: "+")
+        var flattened = String.UnicodeScalarView()
+        for scalar in value.unicodeScalars {
+            if scalar == "," {
+                flattened.append("~")
+            } else if lineBreaks.contains(scalar) {
+                flattened.append("+")
+            } else {
+                flattened.append(scalar)
+            }
+        }
+        return String(flattened)
     }
 
     /// Files written by the Java app on Windows may be in the Windows code page
     /// rather than UTF-8; accept either.
+    ///
+    /// - Throws: The file system's error when the file cannot be read.
     static func readText(at url: URL) throws -> String {
         let data = try Data(contentsOf: url)
         return String(data: data, encoding: .utf8)
@@ -99,11 +153,22 @@ public enum PropertiesFile {
     ///
     /// - Returns: The file's settings, or `Config.standard` when the file does
     ///   not exist.
+    ///
+    /// - Throws: The file system's error when the file exists but cannot be
+    ///   read.
     public static func read(from url: URL) throws -> Config {
-        guard FileManager.default.fileExists(atPath: url.path) else { return .standard }
+        guard !CSVFile.isMissing(at: url) else { return .standard }
         return Config(fields: parse(try CSVFile.readText(at: url)))
     }
 
+    /// Reads `key=value` lines into a dictionary the way `java.util.Properties`
+    /// does for these files: `#` and `!` start a comment line, `=`, `:` or
+    /// whitespace ends the key, and a line ending in an odd number of
+    /// backslashes continues on the next.
+    ///
+    /// - Parameter text: The whole file.
+    /// - Returns: Each key with its unescaped value. A later line for the same
+    ///   key replaces an earlier one.
     public static func parse(_ text: String) -> [String: String] {
         var values: [String: String] = [:]
         var pendingLine = ""
@@ -137,6 +202,8 @@ public enum PropertiesFile {
         return values
     }
 
+    /// The file's text for `config`: a header comment, then every column in
+    /// order with its value written verbatim.
     public static func render(_ config: Config) -> String {
         var text = "# Eagle Board Scheduler configuration\n"
         text += "# Edit the values after each '='. Lines starting with # are comments.\n\n"
@@ -147,6 +214,8 @@ public enum PropertiesFile {
     }
 
     /// Writes `config` to `url`. The write is atomic.
+    ///
+    /// - Throws: The file system's error when the file cannot be written.
     public static func write(_ config: Config, to url: URL) throws {
         try Data(render(config).utf8).write(to: url, options: .atomic)
     }

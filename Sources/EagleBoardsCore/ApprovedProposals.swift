@@ -88,7 +88,7 @@ extension DataFolder {
         var eventsRead: [String] = []
         var unreadable: [ApprovedProposals.Unreadable] = []
         for event in events().filter({ $0 < date }).sorted()
-        where FileManager.default.fileExists(atPath: youthURL(event: event).path) {
+        where !CSVFile.isMissing(at: youthURL(event: event)) {
             do {
                 let youth = try CSVFile.read(Scout.self, from: youthURL(event: event))
                 eventsRead.append(event)

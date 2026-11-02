@@ -43,12 +43,26 @@ public final class BoardEvent {
 
     @ObservationIgnored private let clock: @Sendable () -> Date
 
-    /// Opens (creating if needed) the event's folder inside `folder`.
+    /// Opens (creating if needed) the event's folder inside `folder`, and reads
+    /// every data file into memory. A file that does not exist reads as empty
+    /// (as the standard settings, for the config), and each one still missing
+    /// after the read is written out.
+    ///
+    /// - Parameters:
+    ///   - folder: the data folder that holds the event folders, the adult
+    ///     history, and the settings.
+    ///   - date: the event's date as `YYYY-MM-DD`, which names its folder.
+    ///     Nothing here checks the format.
+    ///   - clock: the source of the current time. The default is the system
+    ///     clock; tests pass a fixed one.
+    /// - Throws: the Foundation error when the event folder cannot be created
+    ///   or a data file that exists cannot be read, and `EventError` ("Could
+    ///   not save ...") when writing a missing file fails.
     public init(folder: DataFolder, date: String, clock: @escaping @Sendable () -> Date = { Date() }) throws {
         self.folder = folder
         self.date = date
         self.clock = clock
-        createdAdultHistory = !FileManager.default.fileExists(atPath: folder.adultHistoryURL.path)
+        createdAdultHistory = CSVFile.isMissing(at: folder.adultHistoryURL)
 
         try FileManager.default.createDirectory(at: folder.eventFolder(date), withIntermediateDirectories: true)
         scouts = try CSVFile.read(Scout.self, from: folder.youthURL(event: date))
@@ -60,7 +74,7 @@ public final class BoardEvent {
 
         // Leave a complete, readable folder behind even if nothing happens
         // at this event -- the Java app created every file at startup too.
-        for table in Table.allCases where !FileManager.default.fileExists(atPath: url(of: table).path) {
+        for table in Table.allCases where CSVFile.isMissing(at: url(of: table)) {
             try save(table)
         }
     }
@@ -178,6 +192,18 @@ public final class BoardEvent {
     /// cannot move a youth's board along or change their result. A youth who
     /// matches a pre-registration (by ID or email) gets a `P` number, anyone
     /// else a `W` for walk-in; the number counts sign-ins within that group.
+    ///
+    /// - Parameter form: the check-in form's answers by column name. Only
+    ///   `Scout.signInColumns`, `BoardType`, and `ID` are read, each trimmed of
+    ///   surrounding whitespace, and a missing key reads as empty. Any other
+    ///   key is ignored. `BoardType` must name a board type for a youth with no
+    ///   record at this event yet; for one already signed in, it is not
+    ///   checked.
+    /// - Returns: the event's record for the youth after this sign-in.
+    /// - Throws: `EventError` when the first or last name is blank ("Please
+    ///   enter a first and last name."), when a youth with no record yet has
+    ///   no valid board type ("Please choose Final Board or Proposal
+    ///   Review."), or when `scouts.csv` cannot be written.
     @discardableResult
     public func registerYouth(_ form: [String: String]) throws -> Scout {
         var incoming = Scout.blank(at: now)
@@ -226,6 +252,20 @@ public final class BoardEvent {
     /// The event's record is created or updated, and so is the adult's permanent
     /// history record, which gains today's date. Signing in again does not
     /// take them off a board they are already sitting on.
+    ///
+    /// - Parameter form: the check-in form's answers by column name. Only
+    ///   `Adult.signInColumns` and `ID` are read for the record, each trimmed
+    ///   of surrounding whitespace, and a missing key reads as empty. A
+    ///   `ProjectReview` or `FinalBoard` value that is not a `BoardRole` is
+    ///   treated as blank, so it cannot overwrite a role already on file.
+    ///   `WoodBadge` counts only when it is `Y`; `Supporting` holds the IDs of
+    ///   the youth the adult came to introduce.
+    /// - Returns: the event's record for the adult after this sign-in. Its
+    ///   `flags` is `P` when the adult history already had them and `W` when
+    ///   this sign-in added them to it.
+    /// - Throws: `EventError` when the first or last name is blank ("Please
+    ///   enter a first and last name."), or when `adults.csv` or the adult
+    ///   history cannot be written.
     @discardableResult
     public func registerAdult(_ form: [String: String]) throws -> Adult {
         var incoming = Adult.blank(at: now)
@@ -306,6 +346,26 @@ public final class BoardEvent {
     /// This is the hard backstop for the composition rules. The Seat Board
     /// sheet explains them first, but a request that skipped the sheet must
     /// still be refused here.
+    ///
+    /// - Parameters:
+    ///   - roomID: the ID of a free room.
+    ///   - scoutID: the ID of a youth who is waiting (Registered or Verified)
+    ///     and holds no room other than this one.
+    ///   - chairID: the ID of the adult who chairs. The adult must be among
+    ///     `memberIDs` and qualified to chair this youth's board type.
+    ///   - memberIDs: the IDs of the adults on the board. Blank entries and
+    ///     repeats are dropped before counting. The count must reach
+    ///     `BoardRules.minimumMembers(for:)` for the board type and stay within
+    ///     `BoardRules.boardMaximum` (Guide to Advancement 8.0.0.3).
+    /// - Throws: `EventError` when the room or youth is unknown; when the room
+    ///   already has a board; when the youth is not waiting, is assigned to
+    ///   another room, or has no board type; or when the board fails the
+    ///   composition checks: no members, an unknown adult, one who has gone
+    ///   home, one on another board, or one who said no thanks to this board
+    ///   type; no member from outside the youth's unit; too few or too many
+    ///   members; a chair who is blank, unknown, not among the members, or not
+    ///   qualified for this board type. Also thrown when `scouts.csv`,
+    ///   `rooms.csv`, or `adults.csv` cannot be written.
     public func seatBoard(roomID: String, scoutID: String, chairID: String, memberIDs: [String]) throws {
         guard let roomIndex = rooms.firstIndex(where: { $0.id == roomID }) else {
             throw EventError("There is no room '\(roomID)'.")
@@ -357,6 +417,21 @@ public final class BoardEvent {
     /// board already holds, and a member taken off is freed. The room timer
     /// is left running -- this corrects the board already convening or in
     /// review, not a new step in its lifecycle.
+    ///
+    /// - Parameters:
+    ///   - scoutID: the ID of the youth whose board is Seated or InProgress.
+    ///   - chairID: the ID of the adult who chairs, among `memberIDs` and
+    ///     qualified for the board type.
+    ///   - memberIDs: the IDs of the adults who would be on the board. Blank
+    ///     entries and repeats are dropped before counting, and the count is
+    ///     held to the same limits as in `seatBoard`. Members already on this
+    ///     board are not refused for sitting in its room.
+    /// - Throws: `EventError` when the youth is unknown, is not Seated or
+    ///   InProgress, has no board type, or holds a room that is not on the
+    ///   room list ("Room ... was not found."); when the new board fails the
+    ///   composition checks listed under `seatBoard`, worded as what "would be
+    ///   left"; or when `scouts.csv`, `rooms.csv`, or `adults.csv` cannot be
+    ///   written.
     public func changeMembers(scoutID: String, chairID: String, memberIDs: [String]) throws {
         guard let scoutIndex = scouts.firstIndex(where: { $0.id == scoutID }) else {
             throw EventError("There is no youth '\(scoutID)'.")
@@ -400,6 +475,21 @@ public final class BoardEvent {
     /// left. Duplicate IDs count once. The refusals use the screen's words
     /// (the board type as shown, "gone home", a count with no "(s)") and end
     /// with what to do, as Windows' `CheckComposition` does.
+    ///
+    /// - Parameters:
+    ///   - scout: the youth the board is for.
+    ///   - boardType: the kind of board, which sets the minimum size and which
+    ///     adult roles count.
+    ///   - chairID: the ID of the proposed chair.
+    ///   - memberIDs: the IDs of the proposed members.
+    ///   - currentRoom: the room the board already holds, or nil for a new
+    ///     board.
+    /// - Returns: the members and the chair as `Adult` records.
+    /// - Throws: `EventError` for no members, an unknown adult, an adult who
+    ///   has gone home, is on another board, or said no thanks to this board
+    ///   type, no member from outside the youth's unit, a count below the
+    ///   minimum or above `BoardRules.boardMaximum`, or a chair who is blank,
+    ///   unknown, not among the members, or not qualified to chair the type.
     private func checkedBoard(
         for scout: Scout, boardType: BoardType, chairID: String, memberIDs: [String], sittingIn currentRoom: String?
     ) throws -> (members: [Adult], chair: Adult) {
@@ -490,6 +580,11 @@ public final class BoardEvent {
     }
 
     /// Bring the youth into the room and begin the review.
+    ///
+    /// - Parameter scoutID: the ID of a youth whose board is Seated.
+    /// - Throws: `EventError` when the youth is unknown or the board is not
+    ///   Seated ("... board has not been seated"), or when `scouts.csv` cannot
+    ///   be written.
     public func startReview(scoutID: String) throws {
         guard let index = scouts.firstIndex(where: { $0.id == scoutID }) else {
             throw EventError("There is no youth '\(scoutID)'.")
@@ -508,6 +603,15 @@ public final class BoardEvent {
     /// Only a review in progress can be completed. A Seated board has not
     /// seen the youth yet, and completing it would record a result for a
     /// review that never happened.
+    ///
+    /// - Parameters:
+    ///   - scoutID: the ID of a youth whose review is InProgress.
+    ///   - result: the board's decision, stored as its raw value.
+    ///   - notes: the board's notes, stored as given.
+    /// - Throws: `EventError` when the youth is unknown, the review has not
+    ///   started ("... review has not started"), or the youth's room is not on
+    ///   the room list ("Room ... was not found."); or when `scouts.csv`,
+    ///   `rooms.csv`, or `adults.csv` cannot be written.
     public func completeBoard(scoutID: String, result: BoardResult, notes: String) throws {
         guard let scoutIndex = scouts.firstIndex(where: { $0.id == scoutID }) else {
             throw EventError("There is no youth '\(scoutID)'.")
@@ -531,6 +635,12 @@ public final class BoardEvent {
     }
 
     /// Put a waiting youth's board off to another event.
+    ///
+    /// - Parameter scoutID: the ID of a youth who is waiting (Registered or
+    ///   Verified).
+    /// - Throws: `EventError` when the youth is unknown or is not waiting
+    ///   ("Only a youth still waiting can be postponed"), or when `scouts.csv`
+    ///   cannot be written.
     public func postponeBoard(scoutID: String) throws {
         guard let index = scouts.firstIndex(where: { $0.id == scoutID }) else {
             throw EventError("There is no youth '\(scoutID)'.")
@@ -547,6 +657,12 @@ public final class BoardEvent {
 
     /// Undo seating: the youth goes back to waiting, and the room and the
     /// members are free again.
+    ///
+    /// - Parameter scoutID: the ID of a youth whose status is Seated,
+    ///   InProgress, or Verified.
+    /// - Throws: `EventError` when the youth is unknown or has any other
+    ///   status ("Only a seated board or one in review can be reset"), or when
+    ///   `scouts.csv`, `rooms.csv`, or `adults.csv` cannot be written.
     public func resetBoard(scoutID: String) throws {
         guard let scoutIndex = scouts.firstIndex(where: { $0.id == scoutID }) else {
             throw EventError("There is no youth '\(scoutID)'.")
@@ -579,6 +695,15 @@ public final class BoardEvent {
     /// Refused when the room or a member has been given to another board, or
     /// a member has gone home, since: the event has moved on, and undoing
     /// would put someone on two boards at once.
+    ///
+    /// - Parameter earlier: the youth's record as it stood before the step.
+    ///   Its `id` picks the record to restore.
+    /// - Throws: `EventError` when the youth is unknown. When `earlier` held a
+    ///   room, also when that room is no longer on the list, has been given to
+    ///   another board, or when a member on `earlier`'s board is unknown, has
+    ///   gone home, or is on another board now. Each of those refusals ends
+    ///   "Change the board by hand instead." Also thrown when `scouts.csv`,
+    ///   `rooms.csv`, or `adults.csv` cannot be written.
     public func restoreBoard(_ earlier: Scout) throws {
         guard let scoutIndex = scouts.firstIndex(where: { $0.id == earlier.id }) else {
             throw EventError("There is no youth '\(earlier.id)'.")
@@ -671,6 +796,10 @@ public final class BoardEvent {
 
     /// A room name as typed, trimmed, or the reason it cannot be used.
     /// `excludedID` is the room being renamed, which may keep its own name.
+    ///
+    /// - Throws: `EventError` when the trimmed name is empty, contains a
+    ///   comma, equals `disabledForTodayMarker` in any letter case, or is
+    ///   already another room's name.
     private func checkedRoomName(_ rawName: String, excluding excludedID: Room.ID? = nil) throws -> String {
         let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else {
@@ -690,7 +819,17 @@ public final class BoardEvent {
         return name
     }
 
-    /// Returns the new room's ID.
+    /// Add an empty room to the event's list, for one kind of board.
+    ///
+    /// - Parameters:
+    ///   - rawName: the room's name as typed. It is trimmed, and must not be
+    ///     empty, contain a comma, equal `disabledForTodayMarker` in any
+    ///     letter case, or match another room's name.
+    ///   - boardType: the kind of board the room is used for.
+    /// - Returns: the new room's ID, `ROOM:<name>`, with a `-2` or higher
+    ///   suffix when that ID is already taken.
+    /// - Throws: `EventError` for a name that breaks one of those rules, or
+    ///   when `rooms.csv` cannot be written.
     @discardableResult
     public func addRoom(named rawName: String, boardType: BoardType) throws -> Room.ID {
         let name = try checkedRoomName(rawName)
@@ -706,6 +845,12 @@ public final class BoardEvent {
     /// Put back a room that was removed, with its own ID, name and use: what
     /// Undo of Remove Room and Redo of Add Room do. Refused when another room
     /// has that ID or that name since.
+    ///
+    /// - Parameter room: the room as it was removed, with its own ID, name,
+    ///   and board type.
+    /// - Throws: `EventError` when another room has `room`'s name ("There's
+    ///   already a room ...") or its ID ("... has taken its place since"), or
+    ///   when `rooms.csv` cannot be written.
     public func restoreRoom(_ room: Room) throws {
         guard self.room(named: room.name) == nil else {
             throw EventError("There's already a room \(room.name). Rename or remove it first.")
@@ -733,7 +878,9 @@ public final class BoardEvent {
 
     /// Remove a room that has no board in it.
     ///
-    /// - Throws: `EventError` when the id is unknown or a board holds the room.
+    /// - Parameter id: the ID of the room to remove.
+    /// - Throws: `EventError` when the id is unknown or a board holds the room,
+    ///   or when `rooms.csv` cannot be written.
     public func removeRoom(id: String) throws {
         guard let index = rooms.firstIndex(where: { $0.id == id }) else {
             throw EventError("There is no room '\(id)'.")
@@ -752,6 +899,15 @@ public final class BoardEvent {
     /// no longer exists, the Java app's failure when its Admin page renamed
     /// a room under a board. The board's timer is not restarted; renaming is
     /// not a step in its review.
+    ///
+    /// - Parameters:
+    ///   - id: the ID of the room to rename.
+    ///   - rawName: the new name as typed. It is trimmed and held to the rules
+    ///     under `addRoom`, except that the room may keep its own name. A name
+    ///     equal to the current one changes nothing and does not throw.
+    /// - Throws: `EventError` when the id is unknown, the name breaks one of
+    ///   those rules, or `rooms.csv`, `scouts.csv`, or `adults.csv` cannot be
+    ///   written.
     public func renameRoom(id: String, to rawName: String) throws {
         guard let index = rooms.firstIndex(where: { $0.id == id }) else {
             throw EventError("There is no room '\(id)'.")
@@ -774,7 +930,11 @@ public final class BoardEvent {
     /// Change which kind of board the room is used for. A board already in
     /// the room keeps its own type.
     ///
-    /// - Throws: `EventError` when the id is unknown.
+    /// - Parameters:
+    ///   - boardType: the kind of board the room is used for from now on.
+    ///   - id: the ID of the room.
+    /// - Throws: `EventError` when the id is unknown, or when `rooms.csv`
+    ///   cannot be written.
     public func setBoardType(_ boardType: BoardType, forRoom id: String) throws {
         guard let index = rooms.firstIndex(where: { $0.id == id }) else {
             throw EventError("There is no room '\(id)'.")
@@ -785,6 +945,14 @@ public final class BoardEvent {
 
     /// Swap everything between two rooms: the youth, the members and the
     /// names on the cards. Either room may be empty, which makes this a move.
+    ///
+    /// - Parameters:
+    ///   - firstID: the ID of one room.
+    ///   - secondID: the ID of the other room, which must differ from `firstID`.
+    /// - Throws: `EventError` when the two IDs are the same ("Pick two
+    ///   different rooms."), when either is unknown, when either room is
+    ///   assigned to more than one youth, or when `rooms.csv`, `scouts.csv`,
+    ///   or `adults.csv` cannot be written.
     public func swapRooms(_ firstID: String, _ secondID: String) throws {
         guard firstID != secondID else {
             throw EventError("Pick two different rooms.")
@@ -824,8 +992,17 @@ public final class BoardEvent {
     /// (by name), empty, so the room list does not have to be typed in every
     /// month.
     ///
-    /// Returns the IDs of the rooms added, in the earlier event's order, for
-    /// Undo to remove.
+    /// Each room added keeps its board type from the earlier event. A room
+    /// with no name in the earlier list is skipped.
+    ///
+    /// - Parameter earlierEvent: the date of the earlier event, `YYYY-MM-DD`,
+    ///   whose folder holds the rooms file to read. A folder with no rooms
+    ///   file adds nothing.
+    /// - Returns: the IDs of the rooms added, in the earlier event's order, for
+    ///   Undo to remove.
+    /// - Throws: the Foundation error when the earlier event's rooms file
+    ///   exists but cannot be read, and `EventError` when `rooms.csv` cannot
+    ///   be written.
     @discardableResult
     public func copyRooms(fromEvent earlierEvent: String) throws -> [Room.ID] {
         let earlierRooms = try CSVFile.read(Room.self, from: folder.roomsURL(event: earlierEvent))
@@ -848,6 +1025,16 @@ public final class BoardEvent {
 
     /// Mark Back or Mark Gone Home: bring an adult back, or stand them down
     /// for the event.
+    ///
+    /// - Parameters:
+    ///   - available: `true` brings the adult back, which needs them marked
+    ///     gone home; `false` marks them gone home, which needs them off any
+    ///     board.
+    ///   - adultID: the ID of the adult.
+    /// - Throws: `EventError` when the adult is unknown, is not marked gone
+    ///   home and `available` is `true`, is already marked gone home and
+    ///   `available` is `false`, or is on a board and `available` is `false`;
+    ///   or when `adults.csv` cannot be written.
     public func setAvailable(_ available: Bool, adultID: String) throws {
         guard let index = adults.firstIndex(where: { $0.id == adultID }) else {
             throw EventError("There is no adult '\(adultID)'.")
@@ -881,6 +1068,14 @@ public final class BoardEvent {
     /// unlink them after sign-in, for the adult who did not
     /// check the youth at sign-in. Writes the same Supporting column. Linking
     /// needs a youth who is signed in or RSVP'd; clearing a stale link does not.
+    ///
+    /// - Parameters:
+    ///   - linked: `true` links the adult to the youth, `false` unlinks them.
+    ///   - adultID: the ID of the adult at this event.
+    ///   - scoutID: the ID of the youth.
+    /// - Throws: `EventError` when the adult is unknown, when `linked` is
+    ///   `true` and the youth is neither signed in nor pre-registered, or when
+    ///   `adults.csv` cannot be written.
     public func setSupporting(_ linked: Bool, adultID: String, scoutID: String) throws {
         guard let index = adults.firstIndex(where: { $0.id == adultID }) else {
             throw EventError("There is no adult '\(adultID)'.")
@@ -904,6 +1099,18 @@ public final class BoardEvent {
     /// youth (Java event test section 18), but never to Seated or In review,
     /// and a board that is sitting keeps its status until Reset or Complete
     /// (section 25).
+    ///
+    /// - Parameters:
+    ///   - edited: the youth's record with the changes made. Its `id` picks the
+    ///     record it replaces.
+    ///   - scheduled: `true` replaces a pre-registration, which skips the
+    ///     status checks, and `false` replaces a youth who has signed in.
+    /// - Throws: `EventError` when no such record exists ("That
+    ///   pre-registration no longer exists." or "That youth no longer
+    ///   exists."). For a youth who has signed in, also when the status would
+    ///   change to Seated or In review, or when it would change for a youth
+    ///   whose board holds a room. Also thrown when `scouts_scheduled.csv` or
+    ///   `scouts.csv` cannot be written.
     public func updateYouth(_ edited: Scout, scheduled: Bool = false) throws {
         var record = edited
         record.refreshDerivedFields()
@@ -942,7 +1149,8 @@ public final class BoardEvent {
     ///   - scheduled: `true` deletes from the pre-registered table, where no
     ///     board can be sitting, so the active-board check is skipped.
     /// - Throws: `EventError` when the youth is seated or in review, so the
-    ///   board must be reset or completed first.
+    ///   board must be reset or completed first, or when the youth file
+    ///   cannot be written.
     public func deleteYouth(id: String, scheduled: Bool = false) throws {
         if scheduled {
             scheduledScouts.removeAll { $0.id == id }
@@ -967,6 +1175,12 @@ public final class BoardEvent {
     /// Chair today is a chair the next time they sign in. Wood Badge, whom
     /// they introduce and their room belong to this event alone. The
     /// history itself is read-only: a sign-in writes it, and this reaches it.
+    ///
+    /// - Parameter edited: the adult's record with the changes made. Its `id`
+    ///   picks the record it replaces.
+    /// - Throws: `EventError` when the event has no such adult ("That adult no
+    ///   longer exists."), or when `adults.csv` or the adult history cannot be
+    ///   written.
     public func updateAdult(_ edited: Adult) throws {
         var record = edited
         record.refreshDerivedFields()
@@ -980,7 +1194,13 @@ public final class BoardEvent {
         try save(.adults, .adultHistory)
     }
 
-    /// Take an adult off the event's list. The adult history keeps them.
+    /// Take an adult off the event's list. The adult history keeps them. An id
+    /// nobody has changes nothing.
+    ///
+    /// - Parameter id: the ID of the adult.
+    /// - Throws: `EventError` when the adult is on a board, which must be
+    ///   changed, reset, or completed first, or when `adults.csv` cannot be
+    ///   written.
     public func deleteAdult(id: String) throws {
         if let adult = adult(id: id), adult.isOnBoard {
             throw EventError(Self.onABoard(adult))
@@ -991,6 +1211,9 @@ public final class BoardEvent {
 
     /// Replace the event's settings with `edited`'s. A blank value falls back
     /// to the standard one, as `Config(fields:)` merges over `Config.defaults`.
+    ///
+    /// - Parameter edited: the settings with the changes made.
+    /// - Throws: `EventError` when `config.properties` cannot be written.
     public func updateConfig(_ edited: Config) throws {
         config = Config(fields: edited.fields)
         try save(.config)
@@ -998,14 +1221,29 @@ public final class BoardEvent {
 
     // MARK: - SignUpGenius
 
+    /// How many SignUpGenius entries `mergeSignUps` did each thing with. Every
+    /// entry falls under at most one count, and an entry the import did not
+    /// recognize as an adult slot is treated as a youth.
     public struct SignUpImportSummary: Sendable, Equatable {
+        /// Adults with no history record under their email, added to the
+        /// adult history as Members for both board types.
         public var addedAdults = 0
+        /// Adults whose email matched exactly one history record. Counted
+        /// whether or not the entry carried a phone number to update.
         public var updatedAdults = 0
+        /// Adults left alone because their email matched more than one history
+        /// record.
         public var skippedDuplicateAdults = 0
+        /// Youth added to the event's pre-registrations.
         public var addedYouth = 0
+        /// Youth left alone because a pre-registration already has their
+        /// email.
         public var alreadyScheduledYouth = 0
+        /// Entries, adult or youth, whose date does not fall in the month
+        /// being imported.
         public var outsideThisMonth = 0
 
+        /// Creates a summary; every count starts at zero.
         public init(
             addedAdults: Int = 0, updatedAdults: Int = 0, skippedDuplicateAdults: Int = 0,
             addedYouth: Int = 0, alreadyScheduledYouth: Int = 0, outsideThisMonth: Int = 0
@@ -1018,8 +1256,11 @@ public final class BoardEvent {
             self.outsideThisMonth = outsideThisMonth
         }
 
-        /// What the import reports, in words: a line for youth, one for
-        /// adults, and one for any adults it could not match.
+        /// What the import reports, in words: a line for youth (added, and how
+        /// many were already pre-registered), a line for adults (added to the
+        /// history, and updated), and a third line only when some adults were
+        /// skipped because their email is on more than one history record.
+        /// `outsideThisMonth` is not reported.
         public var report: String {
             var lines = [
                 "\(addedYouth) youth pre-registered, \(alreadyScheduledYouth) already \(alreadyScheduledYouth == 1 ? "was" : "were").",
@@ -1039,7 +1280,17 @@ public final class BoardEvent {
     /// as the Java app did, so two board events in one month both import. An
     /// adult is matched to the history by email: one match gets their phone
     /// updated, none adds them as a Member for both board types, and more than
-    /// one is left alone rather than guessed at.
+    /// one is left alone rather than guessed at. A youth is pre-registered
+    /// unless a pre-registration already has their email.
+    ///
+    /// - Parameters:
+    ///   - entries: the SignUpGenius sign-ups to merge.
+    ///   - month: the month to import, `YYYY-MM`. An entry is used when its
+    ///     start date begins with this text; nothing here checks the format.
+    /// - Returns: how many entries were added, updated, skipped, or left out
+    ///   for another month.
+    /// - Throws: `EventError` when the adult history or `scouts_scheduled.csv`
+    ///   cannot be written.
     @discardableResult
     public func mergeSignUps(_ entries: [SignUpEntry], month: String) throws -> SignUpImportSummary {
         var summary = SignUpImportSummary()

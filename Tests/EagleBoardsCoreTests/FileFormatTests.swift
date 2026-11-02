@@ -76,6 +76,58 @@ struct FileFormatTests {
         #expect(rendered.contains("Strong answers~ good eye contact+Adjourn? No."))
     }
 
+    /// Every character `parse` ends a line at, not only the two the Java app
+    /// knew, must be kept out of a value, or a name posted from a tablet splits
+    /// into two records the next time the file is read.
+    @Test(arguments: ["\u{000B}", "\u{000C}", "\u{0085}", "\u{2028}", "\u{2029}", "\r\n"])
+    func everyLineBreakInANameStaysOneRecord(lineBreak: String) throws {
+        var youth = Scout.blank(at: Date())
+        youth.first = "Jan\(lineBreak)Evil"
+        youth.last = "Doe"
+        youth.assignIDIfNeeded()
+        let reread = CSVFile.parse(Scout.self, text: CSVFile.render([youth]))
+        #expect(reread.count == 1)
+        #expect(reread.first?.last == "Doe")
+    }
+
+    @Test func aFileThatExistsButCannotBeReadIsNotTakenForANewEvent() throws {
+        let scratch = try ScratchFolder()
+        let file = scratch.url.appending(path: "scouts.csv")
+        try scratch.write("Type,ID\n", to: "scouts.csv")
+        try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: file.path)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: file.path) }
+        #expect(throws: (any Error).self) { try CSVFile.read(Scout.self, from: file) }
+    }
+
+    @Test func aSymbolicLinkToNowhereIsNotTakenForAMissingFile() throws {
+        let scratch = try ScratchFolder()
+        let link = scratch.url.appending(path: "Master_AdultHistory.csv")
+        try FileManager.default.createSymbolicLink(
+            at: link, withDestinationURL: scratch.url.appending(path: "unmounted/Master_AdultHistory.csv"))
+        #expect(throws: (any Error).self) { try CSVFile.read(Adult.self, from: link) }
+        #expect(throws: (any Error).self) { try PropertiesFile.read(from: link) }
+    }
+
+    /// The adult history is permanent. A link to a volume that is not mounted
+    /// must stop the event from opening, not be replaced by a new empty file.
+    @MainActor
+    @Test func anEventDoesNotReplaceAnAdultHistoryLinkedToNowhere() throws {
+        let scratch = try ScratchFolder()
+        let history = scratch.dataFolder.adultHistoryURL
+        try FileManager.default.createSymbolicLink(
+            at: history, withDestinationURL: scratch.url.appending(path: "unmounted/Master_AdultHistory.csv"))
+        #expect(throws: (any Error).self) { try BoardEvent(folder: scratch.dataFolder, date: "2026-10-24") }
+        let stillALink = try FileManager.default.destinationOfSymbolicLink(atPath: history.path)
+        #expect(stillALink.hasSuffix("unmounted/Master_AdultHistory.csv"))
+    }
+
+    @Test func aFileThatIsNotThereReadsAsEmpty() throws {
+        let scratch = try ScratchFolder()
+        let missing = scratch.url.appending(path: "scouts.csv")
+        #expect(try CSVFile.read(Scout.self, from: missing).isEmpty)
+        #expect(try PropertiesFile.read(from: missing) == .standard)
+    }
+
     /// SPEC.md D-1: the file keeps a comma as "~" and a line break as "+",
     /// and the screen shows them as they were typed.
     @Test func aNameWithACommaReadsBackStoredAndIsShownWithIt() throws {

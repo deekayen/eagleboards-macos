@@ -18,6 +18,7 @@ public enum CheckInServer {
     public static func router(for event: BoardEvent) -> Router<BasicRequestContext> {
         let router = Router()
         router.middlewares.add(SecurityHeaders())
+        router.middlewares.add(SameOriginPosts())
 
         for page in CheckInAssets.pages {
             router.get(RouterPath(page.path)) { _, _ in
@@ -65,10 +66,10 @@ public enum CheckInServer {
     /// Serve `event` until the surrounding task is cancelled.
     ///
     /// - Parameters:
+    ///   - event: the event whose sign-in pages are served.
     ///   - host: `0.0.0.0` for every network, `127.0.0.1` for this Mac only,
     ///     or one network's address, served with 127.0.0.1 beside it.
     ///   - port: `0` picks a free port, reported through `onRunning`.
-    ///   - event: the event whose sign-in pages are served.
     ///   - onRunning: called with the port actually bound once the server is
     ///     listening; with a pinned address, once the 127.0.0.1 listener is up.
     /// - Throws: `PortInUse` when `host` is one address and another program
@@ -228,6 +229,9 @@ public enum CheckInServer {
     }
 
     /// `OK.` or the refusal in words, as the sign-in pages expect.
+    ///
+    /// A refusal the rules raise (`EventError`) is the tablet's to read and
+    /// answers 400; any other failure answers 500 with the system's wording.
     private static func outcome(_ action: () async throws -> some Any) async -> Response {
         do {
             _ = try await action()
@@ -253,11 +257,19 @@ enum FormFields {
     /// The biggest body a sign-in could need, with room to spare.
     static let maximumBodyBytes = 16 * 1024
 
+    /// Reads the request's body as form fields.
+    ///
+    /// - Throws: Hummingbird's 413 response when the body is larger than
+    ///   `maximumBodyBytes`.
     static func decode(_ request: Request) async throws -> [String: String] {
         let body = try await request.body.collect(upTo: maximumBodyBytes)
         return parse(String(buffer: body))
     }
 
+    /// Splits `name=value&name=value` into a dictionary, undoing percent
+    /// encoding and `+` for a space. A name given twice keeps its first
+    /// value, and a pair with no name is dropped; nothing here limits how
+    /// many fields there are beyond the body's size.
     static func parse(_ text: String) -> [String: String] {
         var fields: [String: String] = [:]
         for pair in text.split(separator: "&", omittingEmptySubsequences: true) {
@@ -274,6 +286,38 @@ enum FormFields {
     private static func decodeComponent(_ component: Substring) -> String {
         let spaced = component.replacingOccurrences(of: "+", with: " ")
         return spaced.removingPercentEncoding ?? spaced
+    }
+}
+
+/// Refuses a POST that another web site's page sent. A browser attaches an
+/// `Origin` header to every cross-site form post, and the sign-in pages' own
+/// posts carry the address they were served from, so a post whose `Origin` is
+/// not the server's own `Host` is not from a sign-in page (Apple Secure
+/// Coding Guide, "Validating Input and Interprocess Communication": the
+/// other process is untrusted). A post with no `Origin`, as curl or a script
+/// sends, is let through: only a browser can be made to act for someone else.
+struct SameOriginPosts<Context: RequestContext>: RouterMiddleware {
+    func handle(_ request: Request, context: Context, next: (Request, Context) async throws -> Response) async throws
+        -> Response
+    {
+        guard request.method == .post, let origin = request.headers[.origin] else {
+            return try await next(request, context)
+        }
+        let host = request.head.authority ?? ""
+        guard Self.isSameOrigin(origin, host: host) else {
+            return Response(status: .forbidden, body: .init(byteBuffer: .init(string: "Forbidden\n")))
+        }
+        return try await next(request, context)
+    }
+
+    /// Whether `origin` (`http://192.168.0.10:8080`) names the same host and
+    /// port as the request's `Host` header (`192.168.0.10:8080`).
+    static func isSameOrigin(_ origin: String, host: String) -> Bool {
+        guard let from = URLComponents(string: origin), let fromHost = from.host?.lowercased(),
+            let to = URLComponents(string: "http://" + host), let toHost = to.host?.lowercased()
+        else { return false }
+        let fromPort = from.port ?? (from.scheme == "https" ? 443 : 80)
+        return fromHost == toHost && fromPort == (to.port ?? 80)
     }
 }
 

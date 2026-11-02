@@ -27,13 +27,17 @@ struct CheckInServerTests {
         }
     }
 
-    private func send(_ uri: String, method: HTTPRequest.Method = .get, form: String? = nil) async throws -> Reply {
+    private func send(
+        _ uri: String, method: HTTPRequest.Method = .get, form: String? = nil, headers extra: HTTPFields = [:]
+    ) async throws -> Reply {
         let application = Application(router: CheckInServer.router(for: event))
         return try await application.test(.router) { client in
+            var headers: HTTPFields = form == nil ? [:] : [.contentType: "application/x-www-form-urlencoded"]
+            for field in extra { headers[field.name] = field.value }
             let response = try await client.execute(
                 uri: uri,
                 method: method,
-                headers: form == nil ? [:] : [.contentType: "application/x-www-form-urlencoded"],
+                headers: headers,
                 body: form.map { ByteBuffer(string: $0) }
             )
             return Reply(status: response.status, headers: response.headers, body: String(buffer: response.body))
@@ -54,6 +58,51 @@ struct CheckInServerTests {
         #expect(reply.body.contains(marker))
         #expect(reply.headers[.cacheControl] == "no-store")
         #expect(reply.headers[.init("X-Frame-Options")!] == "DENY")
+    }
+
+    /// A page on another web site can make a browser post a form to a Mac on
+    /// the venue network. The browser names that site in `Origin`, which is
+    /// not the address the Mac was reached at (the router test client reaches it
+    /// as `localhost`), so the post is refused and no
+    /// record is written. A sign-in page's own post, and a post with no
+    /// `Origin` at all (curl, the CI smoke test), go through.
+    @Test func aPostFromAnotherSiteIsRefusedAndWritesNothing() async throws {
+        let form = "First=Casey&Last=Crosssite&UnitType=Troop&Unit=1&BoardType=Final&Email=NONE"
+        let refused = try await send(
+            "/register-youth", method: .post, form: form,
+            headers: [.origin: "https://evil.example"])
+        #expect(refused.status == .forbidden)
+        #expect(await event.scouts.isEmpty)
+
+        let nullOrigin = try await send(
+            "/register-youth", method: .post, form: form,
+            headers: [.origin: "null"])
+        #expect(nullOrigin.status == .forbidden)
+
+        let samePage = try await send(
+            "/register-youth", method: .post, form: form,
+            headers: [.origin: "http://localhost"])
+        #expect(samePage.status == .ok)
+        #expect(await event.scouts.count == 1)
+    }
+
+    @Test func aPostWithNoOriginStillWorks() async throws {
+        let form = "First=Casey&Last=Curl&UnitType=Troop&Unit=1&BoardType=Final&Email=NONE"
+        let reply = try await send("/register-youth", method: .post, form: form)
+        #expect(reply.status == .ok)
+    }
+
+    @Test(arguments: [
+        ("http://192.168.0.10:8080", "192.168.0.10:8080", true),
+        ("http://localhost:8080", "LOCALHOST:8080", true),
+        ("http://192.168.0.10", "192.168.0.10", true),
+        ("http://192.168.0.10:8080", "192.168.0.10:9090", false),
+        ("http://evil.example", "192.168.0.10:8080", false),
+        ("null", "192.168.0.10:8080", false),
+        ("", "192.168.0.10:8080", false),
+    ])
+    func anOriginMustNameTheHostAndPortItWasServedFrom(origin: String, host: String, same: Bool) {
+        #expect(SameOriginPosts<BasicRequestContext>.isSameOrigin(origin, host: host) == same)
     }
 
     /// The operator's screens are windows in the Mac app. None of the Java

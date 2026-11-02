@@ -68,6 +68,14 @@ final class AppModel {
 
     /// Open an event, or throw why not, for the Open Another Event sheet,
     /// which says it inside the sheet: an alert would wait behind it.
+    ///
+    /// - Parameters:
+    ///   - folder: The data folder that holds the event's folder.
+    ///   - name: The event's date, which names its folder inside `folder`.
+    /// - Throws: The error `BoardEvent.init(folder:date:)` throws when the
+    ///   event's folder cannot be created or one of its files cannot be read
+    ///   or written. The Open Another Event sheet shows it in place, and the
+    ///   event that was open stays open.
     func openOrThrow(folder: DataFolder, event name: String) throws {
         let opened = try BoardEvent(folder: folder, date: name)
         stopServer()
@@ -859,6 +867,10 @@ final class AppModel {
     /// itself: an alert would wait behind the sheet until it closed, and the
     /// sheet's button would seem to do nothing. `success` is said once the
     /// step and its Undo are in place.
+    ///
+    /// - Throws: `EventError("That youth is no longer on the list.")` when
+    ///   `scoutID` is not on the open event's list, or whatever `step` throws.
+    ///   The calling sheet shows either one in place.
     private func changeBoardOrThrow(
         _ scoutID: Scout.ID, _ name: String, success: String? = nil,
         _ step: (BoardEvent) throws -> Void
@@ -1080,6 +1092,15 @@ final class AppModel {
     }
 
     /// Rename a room, for the Rename sheet. The room keeps its ID.
+    ///
+    /// - Parameters:
+    ///   - id: The room's ID. With no event open or no such room, nothing
+    ///     happens.
+    ///   - newName: The new name, trimmed of surrounding whitespace.
+    /// - Throws: `EventError` when the name is empty, contains a comma, is
+    ///   the gone-home marker, or is another room's name, and when the
+    ///   room files cannot be saved. The Rename sheet shows the refusal in
+    ///   place.
     func renameRoom(_ id: Room.ID, to newName: String) throws {
         guard let event, let oldName = event.room(id: id)?.name else { return }
         try event.renameRoom(id: id, to: newName)
@@ -1097,6 +1118,15 @@ final class AppModel {
     /// sheet, which shows a refusal inside itself. Swapping again undoes it,
     /// and selects the room the board was moved from; a redo selects the one
     /// it went to, as the move did.
+    ///
+    /// - Parameters:
+    ///   - firstID: The ID of the room the board is in.
+    ///   - secondID: The ID of the other room, which may be empty. It must
+    ///     differ from `firstID`.
+    /// - Throws: `EventError` when the two IDs are the same, when either
+    ///   room does not exist, when either room is assigned to more than one
+    ///   youth, and when the room files cannot be saved. The Move Board
+    ///   sheet shows the refusal in place.
     func swapRooms(_ firstID: Room.ID, _ secondID: Room.ID) throws {
         guard let event else { return }
         // Who was in each room before the move, for what is said after it.
@@ -1195,6 +1225,13 @@ final class AppModel {
     /// the Adults page is shown; elsewhere the Adult menu would act on them
     /// unseen. Like a sign-in at the door, it is not undone; Delete Adult
     /// takes a mistake off the event's list.
+    ///
+    /// - Parameter form: The sign-in answers by column name, as
+    ///   `Adult.handSignInForm` builds them. `First` and `Last` must not be
+    ///   empty once trimmed.
+    /// - Throws: `EventError("Please enter a first and last name.")` when
+    ///   either name is empty, and `EventError` when the adult files cannot
+    ///   be saved. The Add Adult sheet shows the refusal in place.
     func addAdult(_ form: [String: String]) throws {
         guard let event else { return }
         let adult = try event.registerAdult(form)

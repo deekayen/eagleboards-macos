@@ -51,7 +51,18 @@ public struct SignUpGeniusClient: Sendable {
     }
 
     /// The active sign-up whose title mentions both "eagle" and "board" and
-    /// whose date range covers `today` (`YYYY-MM-DD`).
+    /// whose date range covers `today`.
+    ///
+    /// The first match in the order SignUpGenius lists the active sign-ups wins.
+    ///
+    /// - Parameter today: The day to match, as `YYYY-MM-DD`. It is compared as
+    ///   text against the first ten characters of each sign-up's start and end
+    ///   dates, so any other format matches nothing.
+    /// - Returns: The matching sign-up's ID and title.
+    /// - Throws: An `EventError`, worded for the operator, when SignUpGenius
+    ///   can't be reached, refuses the request (a 401 or 403 means the API key
+    ///   was not accepted), sends a reply that isn't a JSON object, or lists no
+    ///   active sign-up that matches, in which case the message names `today`.
     public func findActiveSignup(today: String) async throws -> Signup {
         let json = try await fetch(path: "signups/created/active/")
         let candidates = (json["data"] as? [[String: Any]]) ?? []
@@ -73,6 +84,14 @@ public struct SignUpGeniusClient: Sendable {
     }
 
     /// Every filled slot in the sign-up.
+    ///
+    /// - Parameter signupID: The sign-up's ID, as `findActiveSignup(today:)`
+    ///   returns it in `Signup.id`.
+    /// - Returns: One entry per filled slot, in the order SignUpGenius reports
+    ///   them. The array is empty when the report holds no slots.
+    /// - Throws: An `EventError`, worded for the operator, when SignUpGenius
+    ///   can't be reached, refuses the request (a 401 or 403 means the API key
+    ///   was not accepted), or sends a reply that isn't a JSON object.
     public func filledSlots(signupID: String) async throws -> [SignUpEntry] {
         let json = try await fetch(path: "signups/report/filled/\(signupID)/")
         let data = json["data"] as? [String: Any]
