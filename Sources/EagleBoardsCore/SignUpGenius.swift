@@ -11,7 +11,9 @@ public struct SignUpEntry: Sendable, Equatable {
     /// The sign-up's custom questions, in order: unit, phone, leader.
     public var customAnswers: [String]
 
-    public init(startDate: String, firstName: String, lastName: String, item: String, email: String, customAnswers: [String]) {
+    public init(
+        startDate: String, firstName: String, lastName: String, item: String, email: String, customAnswers: [String]
+    ) {
         self.startDate = startDate
         self.firstName = firstName
         self.lastName = lastName
@@ -35,7 +37,9 @@ public struct SignUpGeniusClient: Sendable {
     public let session: URLSession
     public let baseURL: URL
 
-    public init(apiKey: String, session: URLSession = .shared, baseURL: URL = URL(string: "https://api.signupgenius.com/v2/k")!) {
+    public init(
+        apiKey: String, session: URLSession = .shared, baseURL: URL = URL(string: "https://api.signupgenius.com/v2/k")!
+    ) {
         self.apiKey = apiKey
         self.session = session
         self.baseURL = baseURL
@@ -60,7 +64,8 @@ public struct SignUpGeniusClient: Sendable {
             let startDay = String(Self.text(signup["startdatestring"]).prefix(10))
             let endDay = String(Self.text(signup["enddatestring"]).prefix(10))
             if today >= startDay, today <= endDay,
-               lowercasedTitle.contains("eagle"), lowercasedTitle.contains("board") {
+                lowercasedTitle.contains("eagle"), lowercasedTitle.contains("board")
+            {
                 return Signup(id: Self.text(signup["signupid"]), title: title)
             }
         }
@@ -96,8 +101,9 @@ public struct SignUpGeniusClient: Sendable {
             // the Mac keeps no log, so it is the only clue there is.
             let reason = error.localizedDescription
             let ended = reason.last.map { ".!?".contains($0) } ?? false
-            throw EventError("Couldn't reach SignUpGenius: \(reason)\(ended ? "" : ".") "
-                + "Check the internet connection, and then import again.")
+            throw EventError(
+                "Couldn't reach SignUpGenius: \(reason)\(ended ? "" : ".") "
+                    + "Check the internet connection, and then import again.")
         }
         if let http = response.1 as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
             throw EventError(Self.problem(forStatus: http.statusCode))

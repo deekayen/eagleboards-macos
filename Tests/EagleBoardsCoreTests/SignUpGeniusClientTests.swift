@@ -23,7 +23,8 @@ final class StubbedSignUpGenius: URLProtocol, @unchecked Sendable {
             return
         }
         let body = Self.bodies.first { url.path.contains($0.key) }?.value
-        let response = HTTPURLResponse(url: url, statusCode: body == nil ? Self.refusal : 200, httpVersion: nil, headerFields: nil)!
+        let response = HTTPURLResponse(
+            url: url, statusCode: body == nil ? Self.refusal : 200, httpVersion: nil, headerFields: nil)!
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: Data((body ?? "{}").utf8))
         client?.urlProtocolDidFinishLoading(self)
@@ -43,11 +44,11 @@ struct SignUpGeniusClientTests {
     @Test func findsTheEagleBoardSignUpCoveringTodayEvenOnItsFirstDay() async throws {
         StubbedSignUpGenius.bodies = [
             "created/active": """
-                {"data": [
-                  {"signupid": 111, "title": "Spring Campout", "startdatestring": "2026-09-01 08:00:00", "enddatestring": "2026-09-30 17:00:00"},
-                  {"signupid": 222, "title": "Eagle Board of Review - September", "startdatestring": "2026-09-22 18:30:00", "enddatestring": "2026-09-22 21:00:00"}
-                ]}
-                """,
+            {"data": [
+              {"signupid": 111, "title": "Spring Campout", "startdatestring": "2026-09-01 08:00:00", "enddatestring": "2026-09-30 17:00:00"},
+              {"signupid": 222, "title": "Eagle Board of Review - September", "startdatestring": "2026-09-22 18:30:00", "enddatestring": "2026-09-22 21:00:00"}
+            ]}
+            """
         ]
         let client = SignUpGeniusClient(apiKey: "test-key", session: StubbedSignUpGenius.session)
         let signup = try await client.findActiveSignup(today: "2026-09-22")
@@ -61,13 +62,13 @@ struct SignUpGeniusClientTests {
     @Test func readsFilledSlotsAndTheirCustomAnswers() async throws {
         StubbedSignUpGenius.bodies = [
             "report/filled/222": """
-                {"data": {"signup": [
-                  {"startdatestring": "2026-09-22 19:00:00", "firstname": "jan", "lastname": "doe", "item": "Eagle Board of Review",
-                   "email": "jan@example.org", "customfields": [{"value": "Troop 1776"}, {"value": 7705550100}, {"value": "lee leader"}]},
-                  {"startdatestring": "2026-09-22 19:00:00", "firstname": "Morgan", "lastname": "Member", "item": "Adult Board Member",
-                   "email": "morgan@example.org"}
-                ]}}
-                """,
+            {"data": {"signup": [
+              {"startdatestring": "2026-09-22 19:00:00", "firstname": "jan", "lastname": "doe", "item": "Eagle Board of Review",
+               "email": "jan@example.org", "customfields": [{"value": "Troop 1776"}, {"value": 7705550100}, {"value": "lee leader"}]},
+              {"startdatestring": "2026-09-22 19:00:00", "firstname": "Morgan", "lastname": "Member", "item": "Adult Board Member",
+               "email": "morgan@example.org"}
+            ]}}
+            """
         ]
         let client = SignUpGeniusClient(apiKey: "test-key", session: StubbedSignUpGenius.session)
         let entries = try await client.filledSlots(signupID: "222")
@@ -88,8 +89,10 @@ struct SignUpGeniusClientTests {
             _ = try await client.findActiveSignup(today: "2026-09-22")
             Issue.record("expected a refusal")
         } catch {
-            #expect(error.localizedDescription
-                == "SignUpGenius didn't accept the API key. Check the key in Settings › SignUpGenius, and then import again.")
+            #expect(
+                error.localizedDescription
+                    == "SignUpGenius didn't accept the API key. Check the key in Settings › SignUpGenius, and then import again."
+            )
             #expect(!error.localizedDescription.contains("secret-looking-key"))
         }
     }
@@ -106,7 +109,9 @@ struct SignUpGeniusClientTests {
             _ = try await client.findActiveSignup(today: "2026-09-22")
             Issue.record("expected a refusal")
         } catch {
-            #expect(error.localizedDescription == "SignUpGenius couldn't send the sign-ups just now. Try the import again later.")
+            #expect(
+                error.localizedDescription
+                    == "SignUpGenius couldn't send the sign-ups just now. Try the import again later.")
             #expect(!error.localizedDescription.contains("API key") && !error.localizedDescription.contains("503"))
         }
     }
@@ -122,11 +127,13 @@ struct SignUpGeniusClientTests {
             Issue.record("expected a refusal")
         } catch {
             let text = error.localizedDescription
-            let opening = "Couldn't reach SignUpGenius: ", ending = " Check the internet connection, and then import again."
+            let opening = "Couldn't reach SignUpGenius: "
+            let ending = " Check the internet connection, and then import again."
             #expect(text.hasPrefix(opening) && text.hasSuffix(ending))
             let reason = text.dropFirst(opening.count).dropLast(ending.count)
-            #expect(reason.count > 1 && reason.last.map { ".!?".contains($0) } == true && !reason.hasSuffix(".."),
-                    "the system's reason, ended once")
+            #expect(
+                reason.count > 1 && reason.last.map { ".!?".contains($0) } == true && !reason.hasSuffix(".."),
+                "the system's reason, ended once")
             #expect(!text.contains("secret-looking-key"))
         }
     }
@@ -149,7 +156,10 @@ struct SignUpGeniusClientTests {
     @Test func noSignUpForTheDayNamesTheDay() async throws {
         StubbedSignUpGenius.bodies = ["created/active": #"{"data": []}"#]
         let client = SignUpGeniusClient(apiKey: "test-key", session: StubbedSignUpGenius.session)
-        await #expect(throws: EventError("SignUpGenius has no active Eagle board sign-up covering \(Timestamp.shownDate("2026-09-22")).")) {
+        await #expect(
+            throws: EventError(
+                "SignUpGenius has no active Eagle board sign-up covering \(Timestamp.shownDate("2026-09-22")).")
+        ) {
             try await client.findActiveSignup(today: "2026-09-22")
         }
     }

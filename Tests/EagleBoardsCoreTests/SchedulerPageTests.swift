@@ -8,9 +8,10 @@ import Testing
 struct SchedulerPageTests {
     @Test func theViewMenuListsTheEightPagesInOrder() {
         // Command-1 to Command-8 follow this order (SPEC.md P-3, P-6).
-        #expect(SchedulerPage.allCases == [
-            .event, .results, .adults, .youth, .preRegistered, .adultHistory, .rooms, .approvedProposals,
-        ])
+        #expect(
+            SchedulerPage.allCases == [
+                .event, .results, .adults, .youth, .preRegistered, .adultHistory, .rooms, .approvedProposals,
+            ])
     }
 
     @Test func onlyTheEventPageShowsTheSelectedYouthsBoard() {
@@ -109,16 +110,17 @@ struct SchedulerPageTests {
 
     /// Each page and the page that shows a change to a board, a room, and an
     /// adult, written out so the answers do not come from the code they test.
-    private static let landings: [(from: SchedulerPage, board: SchedulerPage, rooms: SchedulerPage, adults: SchedulerPage)] = [
-        (.event, .event, .event, .adults),
-        (.results, .event, .event, .adults),
-        (.adults, .event, .event, .adults),
-        (.youth, .event, .event, .adults),
-        (.preRegistered, .event, .event, .adults),
-        (.adultHistory, .event, .event, .adults),
-        (.rooms, .event, .rooms, .adults),
-        (.approvedProposals, .event, .event, .adults),
-    ]
+    private static let landings:
+        [(from: SchedulerPage, board: SchedulerPage, rooms: SchedulerPage, adults: SchedulerPage)] = [
+            (.event, .event, .event, .adults),
+            (.results, .event, .event, .adults),
+            (.adults, .event, .event, .adults),
+            (.youth, .event, .event, .adults),
+            (.preRegistered, .event, .event, .adults),
+            (.adultHistory, .event, .event, .adults),
+            (.rooms, .event, .rooms, .adults),
+            (.approvedProposals, .event, .event, .adults),
+        ]
 
     @Test func theTableCoversEveryPage() {
         #expect(Self.landings.map(\.from) == SchedulerPage.allCases)

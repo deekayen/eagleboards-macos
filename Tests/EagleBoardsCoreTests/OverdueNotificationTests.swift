@@ -15,9 +15,10 @@ struct OverdueNotificationTests {
     }
 
     @Test func theFooterSaysWhatHappensInFrontAndBehind() {
-        #expect(OverdueNotification.settingsFooter
+        #expect(
+            OverdueNotification.settingsFooter
                 == "Eagle Boards posts a notification once when a room goes overdue. With Eagle Boards in front, it goes "
-                    + "away after 10 seconds; behind another app, the Alerts style keeps it on screen until you close it.")
+                + "away after 10 seconds; behind another app, the Alerts style keeps it on screen until you close it.")
     }
 
     // MARK: - Which boards are announced
@@ -25,8 +26,10 @@ struct OverdueNotificationTests {
     let config = Config.standard
     let clock = Date(timeIntervalSince1970: 1_790_118_300)
 
-    private func board(_ first: String, room: String, _ status: BoardStatus, _ boardType: BoardType = .finalBoard,
-                       minutesAgo: Int) -> Scout {
+    private func board(
+        _ first: String, room: String, _ status: BoardStatus, _ boardType: BoardType = .finalBoard,
+        minutesAgo: Int
+    ) -> Scout {
         var youth = Scout(fields: [
             "Type": "SCOUT", "ID": "SCOUT:Doe:\(first)", "First": first, "Last": "Doe", "UnitName": "Troop1234",
             "BoardType": boardType.rawValue, "Status": status.rawValue,
@@ -37,9 +40,11 @@ struct OverdueNotificationTests {
     }
 
     private func check(_ announced: Set<String>?, _ youth: [Scout], minutesLater: Int = 0)
-        -> (announced: Set<String>, posts: [OverdueNotification.Post]) {
-        OverdueNotification.check(announced: announced, youth: youth, config: config,
-                                  now: clock.addingTimeInterval(TimeInterval(minutesLater * 60)))
+        -> (announced: Set<String>, posts: [OverdueNotification.Post])
+    {
+        OverdueNotification.check(
+            announced: announced, youth: youth, config: config,
+            now: clock.addingTimeInterval(TimeInterval(minutesLater * 60)))
     }
 
     /// As the rooms read aloud: opening an event, or opening it again after a
@@ -53,19 +58,29 @@ struct OverdueNotificationTests {
     }
 
     @Test func aBoardGoingOverdueIsAnnouncedOnce() {
-        let youth = [board("Jane", room: "101", .inProgress, minutesAgo: 40), board("Bill", room: "102", .seated, minutesAgo: 10)]
+        let youth = [
+            board("Jane", room: "101", .inProgress, minutesAgo: 40),
+            board("Bill", room: "102", .seated, minutesAgo: 10),
+        ]
         let start = check(nil, youth)
         #expect(check(start.announced, youth, minutesLater: 4).posts.isEmpty, "running long is not overdue")
         let overdue = check(start.announced, youth, minutesLater: 5)
-        #expect(overdue.posts == [OverdueNotification.Post(
-            id: RoomTimerSpeech.key(for: youth[0]), title: "Room 101 is overdue", body: "Jane Doe's review has run 45 minutes.")])
+        #expect(
+            overdue.posts == [
+                OverdueNotification.Post(
+                    id: RoomTimerSpeech.key(for: youth[0]), title: "Room 101 is overdue",
+                    body: "Jane Doe's review has run 45 minutes.")
+            ])
         #expect(check(overdue.announced, youth, minutesLater: 6).posts.isEmpty, "still overdue: not posted again")
         let convening = check(overdue.announced, youth, minutesLater: 20)
         #expect(convening.posts.map(\.body) == ["Bill Doe's board has been convening for 30 minutes."])
     }
 
     @Test func onlySittingBoardsAreTimed() {
-        let youth = [board("Jane", room: "101", .completed, minutesAgo: 10), board("Bill", room: "", .registered, minutesAgo: 10)]
+        let youth = [
+            board("Jane", room: "101", .completed, minutesAgo: 10),
+            board("Bill", room: "", .registered, minutesAgo: 10),
+        ]
         let start = check(nil, youth)
         #expect(check(start.announced, youth, minutesLater: 120).posts.isEmpty)
     }
@@ -87,30 +102,36 @@ struct OverdueNotificationTests {
     }
 
     @Test func bannersGoAwayUntilSetToAlerts() {
-        #expect(OverdueNotification.Style.banners.note
-                == "Overdue notifications go away on their own until Eagle Boards is set to Alerts in System Settings › Notifications.")
+        #expect(
+            OverdueNotification.Style.banners.note
+                == "Overdue notifications go away on their own until Eagle Boards is set to Alerts in System Settings › Notifications."
+        )
         #expect(OverdueNotification.Style.banners.canChangeInSystemSettings)
     }
 
     @Test func noneShowsNothingOnScreen() {
-        #expect(OverdueNotification.Style.notShown.note
-                == "Overdue notifications do not show on screen until Eagle Boards is set to Alerts in System Settings › Notifications.")
+        #expect(
+            OverdueNotification.Style.notShown.note
+                == "Overdue notifications do not show on screen until Eagle Boards is set to Alerts in System Settings › Notifications."
+        )
         #expect(OverdueNotification.Style.notShown.canChangeInSystemSettings)
     }
 
     @Test func offIsSaidTheSameWay() {
-        #expect(OverdueNotification.Style.off.note
+        #expect(
+            OverdueNotification.Style.off.note
                 == "Notifications are off for Eagle Boards, so overdue notifications do not show until they are allowed, "
-                    + "with the Alerts style, in System Settings › Notifications.")
+                + "with the Alerts style, in System Settings › Notifications.")
         #expect(OverdueNotification.Style.off.canChangeInSystemSettings)
     }
 
     /// System Settings does not list Eagle Boards before macOS has asked, so
     /// there is no button to take the operator there.
     @Test func beforeMacOSAsksThereIsNothingToChange() {
-        #expect(OverdueNotification.Style.notAsked.note
+        #expect(
+            OverdueNotification.Style.notAsked.note
                 == "macOS asks whether to allow notifications once the first board is seated. Overdue notifications "
-                    + "stay on screen if Eagle Boards is then set to Alerts in System Settings › Notifications.")
+                + "stay on screen if Eagle Boards is then set to Alerts in System Settings › Notifications.")
         #expect(!OverdueNotification.Style.notAsked.canChangeInSystemSettings)
     }
 }

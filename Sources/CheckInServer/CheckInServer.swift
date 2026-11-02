@@ -100,7 +100,9 @@ public enum CheckInServer {
             var ports = pinnedPorts.makeAsyncIterator()
             if let bound = await ports.next() {
                 group.addTask {
-                    try await serve(responder, host: SignInListening.loopback, port: bound) { _ in await onRunning(bound) }
+                    try await serve(responder, host: SignInListening.loopback, port: bound) { _ in
+                        await onRunning(bound)
+                    }
                 }
             }
             // One that fails, or stops, takes the other with it.
@@ -161,7 +163,9 @@ public enum CheckInServer {
     /// No DOB (SPEC.md D-7) and no Phone (D-8): one already on a
     /// pre-registration stays in the file but is never sent to the tablet.
     static let youthPrefillColumns = ["ID", "Last", "First", "UnitType", "Unit", "BoardType", "Leader"]
-    static let adultPrefillColumns = ["ID", "Last", "First", "Phone", "UnitType", "Unit", "FinalBoard", "ProjectReview"]
+    static let adultPrefillColumns = [
+        "ID", "Last", "First", "Phone", "UnitType", "Unit", "FinalBoard", "ProjectReview",
+    ]
 
     private static func pick<Record: EventRecord>(_ columns: [String], from record: Record) -> [String: String] {
         Dictionary(uniqueKeysWithValues: columns.map { ($0, record[$0]) })
@@ -182,7 +186,9 @@ public enum CheckInServer {
         init(event: BoardEvent) {
             refreshSeconds = event.config.refreshSeconds
             youth = event.scouts.map {
-                Youth(time: Timestamp.hourMinute(ofRecordStamp: $0.regTime), last: $0.last, first: $0.first, unitType: $0.unitType, unit: $0.unit)
+                Youth(
+                    time: Timestamp.hourMinute(ofRecordStamp: $0.regTime), last: $0.last, first: $0.first,
+                    unitType: $0.unitType, unit: $0.unit)
             }
             adults = event.adults.map {
                 Adult(last: $0.last, first: $0.first, unitType: $0.unitType, unit: $0.unit)
@@ -269,7 +275,9 @@ enum FormFields {
 
 /// Headers that keep a shared tablet from holding on to what it was shown.
 struct SecurityHeaders<Context: RequestContext>: RouterMiddleware {
-    func handle(_ request: Request, context: Context, next: (Request, Context) async throws -> Response) async throws -> Response {
+    func handle(_ request: Request, context: Context, next: (Request, Context) async throws -> Response) async throws
+        -> Response
+    {
         var response = try await next(request, context)
         response.headers[.cacheControl] = "no-store"
         response.headers[.init("X-Content-Type-Options")!] = "nosniff"

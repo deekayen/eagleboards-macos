@@ -38,8 +38,9 @@ struct SignInNetworkTests {
         #expect(chosen.selection == "en7")
 
         let renumbered = SignInNetwork(interface: "en7", kind: "Ethernet", ipv4: "10.0.0.77")
-        #expect(SignInListening(choice: "en7", among: [wifi, renumbered]).host == "10.0.0.77",
-                "saved by BSD name, so a new DHCP address is followed")
+        #expect(
+            SignInListening(choice: "en7", among: [wifi, renumbered]).host == "10.0.0.77",
+            "saved by BSD name, so a new DHCP address is followed")
     }
 
     @Test func everyNetworkListensOnAllOfThem() {
@@ -57,17 +58,20 @@ struct SignInNetworkTests {
         #expect(gone.host == "192.168.1.20" && gone.network == wifi)
         #expect(gone.unavailableChoice == "en7")
         #expect(gone.selection == "en7", "the menu shows what is saved, so choosing Wi-Fi there replaces it")
-        #expect(gone.problem == "Ethernet (en7), chosen for sign-in in Settings › General, has no address. "
-            + "Until it has one, or until you choose another network there, "
-            + "the sign-in station is on Wi-Fi (en0), 192.168.1.20.")
+        #expect(
+            gone.problem == "Ethernet (en7), chosen for sign-in in Settings › General, has no address. "
+                + "Until it has one, or until you choose another network there, "
+                + "the sign-in station is on Wi-Fi (en0), 192.168.1.20.")
 
         let alone = SignInListening(choice: "en7", among: [])
         #expect(alone.host == "127.0.0.1")
-        #expect(alone.problem == "en7, chosen for sign-in in Settings › General, has no address. "
-            + "Until it has one, or until you choose another network there, only this Mac can open the sign-in page.",
-                "named by its BSD name when System Settings does not list it")
+        #expect(
+            alone.problem == "en7, chosen for sign-in in Settings › General, has no address. "
+                + "Until it has one, or until you choose another network there, only this Mac can open the sign-in page.",
+            "named by its BSD name when System Settings does not list it")
 
-        #expect(SignInListening(choice: "en7", among: [ethernet]).unavailableChoice == nil, "back once it has an address")
+        #expect(
+            SignInListening(choice: "en7", among: [ethernet]).unavailableChoice == nil, "back once it has an address")
     }
 
     @Test func theMenuHasEachInterfaceTheChoiceWithNoAddressAndEveryNetwork() {
@@ -76,8 +80,9 @@ struct SignInNetworkTests {
         #expect(menu.map(\.tag) == ["en0", "en7", "all"])
 
         let gone = SignInListening(choice: "en7", among: [wifi, vpn], kinds: ["en7": "Ethernet"])
-        #expect(gone.menu(among: [wifi, vpn]).map(\.label)
-            == ["Wi-Fi (en0), 192.168.1.20", "utun3, 10.8.0.2", "Ethernet (en7), No Address", "Every Network"])
+        #expect(
+            gone.menu(among: [wifi, vpn]).map(\.label)
+                == ["Wi-Fi (en0), 192.168.1.20", "utun3, 10.8.0.2", "Ethernet (en7), No Address", "Every Network"])
         #expect(gone.menu(among: [wifi, vpn]).map(\.tag).contains(gone.selection), "the selection is always an item")
     }
 
@@ -88,10 +93,12 @@ struct SignInNetworkTests {
         #expect(!SignInListening(choice: nil, among: [wifi]).showsMenu(among: [wifi]))
         #expect(!SignInListening(choice: "en0", among: [wifi]).showsMenu(among: [wifi]))
         #expect(!SignInListening(choice: nil, among: []).showsMenu(among: []))
-        #expect(SignInListening(choice: "all", among: [wifi]).showsMenu(among: [wifi]),
-                "Every Network saved at an earlier event can be turned back to the one network")
+        #expect(
+            SignInListening(choice: "all", among: [wifi]).showsMenu(among: [wifi]),
+            "Every Network saved at an earlier event can be turned back to the one network")
         #expect(!SignInListening(choice: "all", among: []).showsMenu(among: []))
-        #expect(SignInListening(choice: "en7", among: [wifi]).showsMenu(among: [wifi]), "a chosen network with no address")
+        #expect(
+            SignInListening(choice: "en7", among: [wifi]).showsMenu(among: [wifi]), "a chosen network with no address")
         #expect(SignInListening(choice: "en7", among: []).showsMenu(among: []))
     }
 
@@ -101,7 +108,8 @@ struct SignInNetworkTests {
         let bridge = SignInNetwork(interface: "bridge100", kind: "Thunderbolt Bridge", ipv4: "192.168.2.1")
         let alias = SignInNetwork(interface: "en0", kind: "Wi-Fi", ipv4: "192.168.1.21", isWiFi: true)
         #expect([vpn, bridge, ethernet, alias, wifi].venueNetworksFirst == [alias, wifi, ethernet, bridge, vpn])
-        #expect([vpn, ethernet].venueNetworksFirst.first == ethernet, "Ethernet before a VPN, whatever the order given")
+        #expect(
+            [vpn, ethernet].venueNetworksFirst.first == ethernet, "Ethernet before a VPN, whatever the order given")
         #expect([SignInNetwork]().venueNetworksFirst.isEmpty)
     }
 
@@ -125,7 +133,8 @@ struct SignInNetworkSettingTests {
         defaults.set("en7", forKey: LaunchSettings.Keys.signInNetwork)
         #expect(LaunchSettings(environment: [:], defaults: defaults).signInNetwork == "en7")
         #expect(LaunchSettings(environment: ["EAGLEBOARDS_NETWORK": "all"], defaults: defaults).signInNetwork == "all")
-        #expect(LaunchSettings(environment: ["EAGLEBOARDS_NETWORK": ""], defaults: defaults).signInNetwork == "en7",
-                "an empty variable is not a choice")
+        #expect(
+            LaunchSettings(environment: ["EAGLEBOARDS_NETWORK": ""], defaults: defaults).signInNetwork == "en7",
+            "an empty variable is not a choice")
     }
 }

@@ -38,8 +38,9 @@ struct YouthList: View {
         }
         .overlay {
             if event.scouts.isEmpty {
-                ContentUnavailableView("No Youth Yet", systemImage: "person.crop.circle.badge.clock",
-                                       description: Text("Youth appear here the moment they sign in at the tablet."))
+                ContentUnavailableView(
+                    "No Youth Yet", systemImage: "person.crop.circle.badge.clock",
+                    description: Text("Youth appear here the moment they sign in at the tablet."))
             }
         }
     }
@@ -149,7 +150,9 @@ private struct YouthRow: View {
     }
 
     private func timer(_ minutes: Int?) -> RoomTimer.State? {
-        minutes.flatMap { RoomTimer.state(status: youth.status, boardType: youth.boardType, minutes: $0, config: event.config) }
+        minutes.flatMap {
+            RoomTimer.state(status: youth.status, boardType: youth.boardType, minutes: $0, config: event.config)
+        }
     }
 
     private var detail: String {
@@ -272,8 +275,9 @@ struct YouthActionButtons: View {
         _ step: BoardStep, status: BoardStatus?, idle: Bool, _ action: @escaping @MainActor () -> Void
     ) -> MenuCommand {
         let isNext = status?.nextStep == step
-        return command(step.title, applies: idle && isNext,
-                       shortcut: isNext ? KeyboardShortcut(.return, modifiers: .command) : nil, action)
+        return command(
+            step.title, applies: idle && isNext,
+            shortcut: isNext ? KeyboardShortcut(.return, modifiers: .command) : nil, action)
     }
 
     /// Board › Chair: the members of the board being drawn up who may chair
@@ -285,10 +289,13 @@ struct YouthActionButtons: View {
         let members = youth.map { model.draftMembers(for: $0.id) } ?? []
         let chairs = boardType.map { type in members.filter { $0.canChair(type) } } ?? []
         return SubmenuCommand("Chair", applies: !chairs.isEmpty) {
-            Picker("Chair", selection: Binding(
-                get: { boardType.flatMap { draft?.chair(among: members, for: $0) } },
-                set: { id in run { if let id { model.makeChair(id) } } }
-            )) {
+            Picker(
+                "Chair",
+                selection: Binding(
+                    get: { boardType.flatMap { draft?.chair(among: members, for: $0) } },
+                    set: { id in run { if let id { model.makeChair(id) } } }
+                )
+            ) {
                 ForEach(chairs) { Text($0.shownFullName).tag(Optional($0.id)) }
             }
         }

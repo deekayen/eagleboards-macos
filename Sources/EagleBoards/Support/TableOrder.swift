@@ -42,7 +42,9 @@ struct TableOrder<Row> {
     /// What the table sorts by for `sort`: the first column when `sort`
     /// names none of them.
     func comparators(for sort: TableSort) -> [KeyPathComparator<Row>] {
-        guard var comparator = (columns.first { $0.title == sort.column } ?? columns.first)?.comparator else { return [] }
+        guard var comparator = (columns.first { $0.title == sort.column } ?? columns.first)?.comparator else {
+            return []
+        }
         comparator.order = sort.ascending ? .forward : .reverse
         return [comparator]
     }
@@ -51,7 +53,7 @@ struct TableOrder<Row> {
     /// column sorts on.
     func sort(from comparators: [KeyPathComparator<Row>]) -> TableSort? {
         guard let first = comparators.first,
-              let column = columns.first(where: { $0.comparator.keyPath == first.keyPath })
+            let column = columns.first(where: { $0.comparator.keyPath == first.keyPath })
         else { return nil }
         return TableSort(column.title, ascending: first.order == .forward)
     }
@@ -108,20 +110,28 @@ struct SortByMenu: View {
         let sort = model.sort(for: page)
         Menu("Sort By") {
             ForEach(columns) { column in
-                Toggle(column.title, isOn: Binding(
-                    get: { sort.column == column.id },
-                    set: { _ in model.setSort(sort.sorting(by: column.id, ascendingFirst: column.ascendingFirst), for: page) }
-                ))
+                Toggle(
+                    column.title,
+                    isOn: Binding(
+                        get: { sort.column == column.id },
+                        set: { _ in
+                            model.setSort(sort.sorting(by: column.id, ascendingFirst: column.ascendingFirst), for: page)
+                        }
+                    ))
             }
             Divider()
-            Toggle("Ascending", isOn: Binding(
-                get: { sort.ascending },
-                set: { _ in model.setSort(TableSort(sort.column, ascending: true), for: page) }
-            ))
-            Toggle("Descending", isOn: Binding(
-                get: { !sort.ascending },
-                set: { _ in model.setSort(TableSort(sort.column, ascending: false), for: page) }
-            ))
+            Toggle(
+                "Ascending",
+                isOn: Binding(
+                    get: { sort.ascending },
+                    set: { _ in model.setSort(TableSort(sort.column, ascending: true), for: page) }
+                ))
+            Toggle(
+                "Descending",
+                isOn: Binding(
+                    get: { !sort.ascending },
+                    set: { _ in model.setSort(TableSort(sort.column, ascending: false), for: page) }
+                ))
         }
         .disabled(columns.isEmpty)
     }

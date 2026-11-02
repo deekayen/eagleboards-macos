@@ -16,6 +16,8 @@ struct TableSortTests {
     }
 
     @Test func aColumnThatListsTheNewestFirstStartsDescending() {
-        #expect(TableSort("last").sorting(by: "lastEvent", ascendingFirst: false) == TableSort("lastEvent", ascending: false))
+        #expect(
+            TableSort("last").sorting(by: "lastEvent", ascendingFirst: false)
+                == TableSort("lastEvent", ascending: false))
     }
 }

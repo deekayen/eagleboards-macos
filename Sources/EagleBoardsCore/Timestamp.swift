@@ -29,17 +29,18 @@ public enum Timestamp {
     public static func date(fromRecordStamp stamp: String) -> Date? {
         let characters = Array(stamp.trimmingCharacters(in: .whitespaces))
         guard characters.count == 21,
-              characters[4] == "-", characters[7] == "-", characters[10] == "_", characters[13] == ":",
-              characters[16] == "+" || characters[16] == "-"
+            characters[4] == "-", characters[7] == "-", characters[10] == "_", characters[13] == ":",
+            characters[16] == "+" || characters[16] == "-"
         else { return nil }
 
         func number(_ range: Range<Int>) -> Int? {
             Int(String(characters[range]))
         }
         guard let year = number(0..<4), let month = number(5..<7), let day = number(8..<10),
-              let hour = number(11..<13), let minute = number(14..<16),
-              let offsetHours = number(17..<19), let offsetMinutes = number(19..<21),
-              let zone = TimeZone(secondsFromGMT: (characters[16] == "-" ? -1 : 1) * (offsetHours * 3600 + offsetMinutes * 60))
+            let hour = number(11..<13), let minute = number(14..<16),
+            let offsetHours = number(17..<19), let offsetMinutes = number(19..<21),
+            let zone = TimeZone(
+                secondsFromGMT: (characters[16] == "-" ? -1 : 1) * (offsetHours * 3600 + offsetMinutes * 60))
         else { return nil }
 
         var zonedCalendar = calendar
@@ -89,7 +90,8 @@ public enum Timestamp {
     /// `dayStamp`, or not a real date, comes back as it was.
     public static func shownDate(_ stamp: String, locale: Locale = .current) -> String {
         guard isDayStamp(stamp),
-              let year = Int(stamp.prefix(4)), let month = Int(stamp.dropFirst(5).prefix(2)), let day = Int(stamp.suffix(2))
+            let year = Int(stamp.prefix(4)), let month = Int(stamp.dropFirst(5).prefix(2)),
+            let day = Int(stamp.suffix(2))
         else { return stamp }
         // Midday UTC, written in UTC, so no time zone can move it to another day.
         var utcCalendar = calendar

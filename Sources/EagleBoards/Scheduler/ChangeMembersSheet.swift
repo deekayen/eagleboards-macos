@@ -58,8 +58,10 @@ struct ChangeMembersSheet: View {
                                         .frame(width: 72, alignment: .trailing)
                                 }
                                 .accessibilityElement(children: .ignore)
-                                .accessibilityLabel(member.spokenRow(youth: youth, place: member.unitDisplay,
-                                                                     role: member.role(for: boardType)?.label ?? ""))
+                                .accessibilityLabel(
+                                    member.spokenRow(
+                                        youth: youth, place: member.unitDisplay,
+                                        role: member.role(for: boardType)?.label ?? ""))
                                 Button {
                                     remove(member.id, from: members)
                                 } label: {
@@ -107,12 +109,18 @@ struct ChangeMembersSheet: View {
                                     NoticeLabel.warning(warning.title)
                                         .font(.headline)
                                     Text(warning.detail).fixedSize(horizontal: false, vertical: true)
-                                    Toggle("Save anyway", isOn: Binding(
-                                        get: { acknowledged.contains(warning.id) },
-                                        set: { isOn in
-                                            if isOn { acknowledged.insert(warning.id) } else { acknowledged.remove(warning.id) }
-                                        }
-                                    ))
+                                    Toggle(
+                                        "Save anyway",
+                                        isOn: Binding(
+                                            get: { acknowledged.contains(warning.id) },
+                                            set: { isOn in
+                                                if isOn {
+                                                    acknowledged.insert(warning.id)
+                                                } else {
+                                                    acknowledged.remove(warning.id)
+                                                }
+                                            }
+                                        ))
                                 }
                                 .padding(.vertical, 2)
                             }
@@ -121,8 +129,9 @@ struct ChangeMembersSheet: View {
                         }
                     }
 
-                    FreeAdultsToAddSection(youth: youth, event: event, boardType: boardType, memberIDs: $memberIDs,
-                                           search: $search, focus: $focus)
+                    FreeAdultsToAddSection(
+                        youth: youth, event: event, boardType: boardType, memberIDs: $memberIDs,
+                        search: $search, focus: $focus)
                 }
                 .formStyle(.grouped)
 
@@ -163,8 +172,9 @@ struct ChangeMembersSheet: View {
             // A refusal is about the members and chair it was given.
             .onChange(of: memberIDs + [chairID ?? ""]) { problem = nil }
         } else if let youth = event.scout(id: scoutID) {
-            SheetUnavailable(title: "\(youth.shownFullName) Has No Board Type",
-                             text: "Choose Final Board or Proposal Review for them on the Youth page. Nothing was changed.")
+            SheetUnavailable(
+                title: "\(youth.shownFullName) Has No Board Type",
+                text: "Choose Final Board or Proposal Review for them on the Youth page. Nothing was changed.")
         } else {
             SheetUnavailable(title: "That Youth Is No Longer on the List", text: "Nothing was changed.")
         }
@@ -197,11 +207,15 @@ private struct FreeAdultsToAddSection: View {
         let query = search.trimmingCharacters(in: .whitespaces)
         let candidates = event.adults
             .filter { ($0.canJoin(boardType) || $0.room == youth.room) && !memberIDs.contains($0.id) }
-            .filter { query.isEmpty || $0.shownFullName.localizedCaseInsensitiveContains(query)
-                || $0.unitName.localizedCaseInsensitiveContains(query) || $0.unitLabel.localizedCaseInsensitiveContains(query)
-                || $0.unitDisplay.localizedCaseInsensitiveContains(query) }
+            .filter {
+                query.isEmpty || $0.shownFullName.localizedCaseInsensitiveContains(query)
+                    || $0.unitName.localizedCaseInsensitiveContains(query)
+                    || $0.unitLabel.localizedCaseInsensitiveContains(query)
+                    || $0.unitDisplay.localizedCaseInsensitiveContains(query)
+            }
             .sorted { lhs, rhs in
-                let lhsChairs = lhs.canChair(boardType), rhsChairs = rhs.canChair(boardType)
+                let lhsChairs = lhs.canChair(boardType)
+                let rhsChairs = rhs.canChair(boardType)
                 if lhsChairs != rhsChairs { return lhsChairs }
                 return (lhs.last, lhs.first) < (rhs.last, rhs.first)
             }
@@ -236,8 +250,10 @@ private struct FreeAdultsToAddSection: View {
                         RoleText(role: adult.role(for: boardType)?.rawValue ?? "")
                     }
                     .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(adult.spokenRow(youth: youth, place: adult.unitDisplay,
-                                                        role: adult.role(for: boardType)?.label ?? ""))
+                    .accessibilityLabel(
+                        adult.spokenRow(
+                            youth: youth, place: adult.unitDisplay,
+                            role: adult.role(for: boardType)?.label ?? ""))
                     Button {
                         add(adult, from: candidates)
                     } label: {

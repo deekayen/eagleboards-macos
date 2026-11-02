@@ -35,11 +35,13 @@ struct SignInCodeWindow: View {
                     Text(url.absoluteString)
                         .font(.title.monospaced())
                         .textSelection(.enabled)
-                    Text("Scan the code with the tablet's camera, or type the address into its browser. "
-                        + "The tablet must be on the same network as this Mac.")
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
+                    Text(
+                        "Scan the code with the tablet's camera, or type the address into its browser. "
+                            + "The tablet must be on the same network as this Mac."
+                    )
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
                 }
                 .padding(32)
             } else {
@@ -50,7 +52,9 @@ struct SignInCodeWindow: View {
                 }
             }
         }
-        .frame(minWidth: 360, idealWidth: 560, maxWidth: .infinity, minHeight: 420, idealHeight: 680, maxHeight: .infinity)
+        .frame(
+            minWidth: 360, idealWidth: 560, maxWidth: .infinity, minHeight: 420, idealHeight: 680, maxHeight: .infinity
+        )
         // The scheduler window sets this as it appears. A launch that brings
         // back only this window would leave the Dock menu's Scheduler and the
         // model's commands with no way to open it.

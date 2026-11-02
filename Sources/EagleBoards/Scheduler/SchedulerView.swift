@@ -178,8 +178,8 @@ struct SchedulerView: View {
     /// (`PlainTable.takesFocus`).
     private func focusShownPage() {
         guard let target = SchedulerFocus.content(of: model.page),
-              let window = model.schedulerWindow ?? NSApp.keyWindow,
-              window.firstResponder == nil || window.firstResponder === window
+            let window = model.schedulerWindow ?? NSApp.keyWindow,
+            window.firstResponder == nil || window.firstResponder === window
         else { return }
         if #available(macOS 15, *), searchFocused { return }
         focus = target
@@ -192,7 +192,7 @@ struct SchedulerView: View {
         pendingStep = nil
         // The target is the inspector's or the youth list's, the Event page's.
         guard model.page.showsBoard, model.selectedYouthID == step.youthID,
-              event.scout(id: step.youthID)?.status != step.status
+            event.scout(id: step.youthID)?.status != step.status
         else { return }
         steps.move(to: step.target)
     }
@@ -242,9 +242,11 @@ struct SchedulerView: View {
                     Label("Import Sign-Ups", systemImage: "square.and.arrow.down")
                 }
             }
-            .help(model.isImporting
-                ? "Importing sign-ups from SignUpGenius…"
-                : "Import today's pre-registrations and adult sign-ups from SignUpGenius")
+            .help(
+                model.isImporting
+                    ? "Importing sign-ups from SignUpGenius…"
+                    : "Import today's pre-registrations and adult sign-ups from SignUpGenius"
+            )
             .disabled(model.isImporting)
 
             Button {
@@ -276,13 +278,14 @@ private struct ColumnResizer: View {
                     }
                     // Global coordinates: the divider moves under the pointer
                     // as it drags, which would skew a local translation.
-                    .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global)
-                        .onChanged { drag in
-                            let start = widthAtDragStart ?? width
-                            widthAtDragStart = start
-                            width = (start + drag.translation.width).clamped(to: range)
-                        }
-                        .onEnded { _ in widthAtDragStart = nil }
+                    .gesture(
+                        DragGesture(minimumDistance: 1, coordinateSpace: .global)
+                            .onChanged { drag in
+                                let start = widthAtDragStart ?? width
+                                widthAtDragStart = start
+                                width = (start + drag.translation.width).clamped(to: range)
+                            }
+                            .onEnded { _ in widthAtDragStart = nil }
                     )
             }
             .accessibilityElement()
@@ -298,8 +301,8 @@ private struct ColumnResizer: View {
     }
 }
 
-private extension Double {
-    func clamped(to range: ClosedRange<Double>) -> Double {
+extension Double {
+    fileprivate func clamped(to range: ClosedRange<Double>) -> Double {
         Swift.min(Swift.max(self, range.lowerBound), range.upperBound)
     }
 }

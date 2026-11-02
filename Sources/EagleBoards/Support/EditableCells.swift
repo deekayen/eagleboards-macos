@@ -74,10 +74,12 @@ struct EditableChoice<Label: View>: View {
     var body: some View {
         Menu {
             ForEach(choices, id: \.value) { choice in
-                Toggle(choice.label, isOn: Binding(
-                    get: { choice.value == value },
-                    set: { _ in if choice.value != value { _ = save(choice.value) } }
-                ))
+                Toggle(
+                    choice.label,
+                    isOn: Binding(
+                        get: { choice.value == value },
+                        set: { _ in if choice.value != value { _ = save(choice.value) } }
+                    ))
             }
         } label: {
             // The chevron says the value is a menu, not just text.

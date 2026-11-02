@@ -36,11 +36,13 @@ public struct DataFolder: Sendable, Hashable {
     /// Events already in the folder, newest first.
     public func events() -> [String] {
         let names = (try? FileManager.default.contentsOfDirectory(atPath: root.path)) ?? []
-        return names
+        return
+            names
             .filter { Timestamp.isDayStamp($0) }
             .filter { name in
                 var isDirectory: ObjCBool = false
-                return FileManager.default.fileExists(atPath: eventFolder(name).path, isDirectory: &isDirectory) && isDirectory.boolValue
+                return FileManager.default.fileExists(atPath: eventFolder(name).path, isDirectory: &isDirectory)
+                    && isDirectory.boolValue
             }
             .sorted(by: >)
     }

@@ -38,7 +38,8 @@ struct BoardDraftTests {
     private func signIn(_ last: String, _ first: String, unit: Int, final: BoardRole = .member) throws -> Adult.ID {
         try event.registerAdult([
             "Last": last, "First": first, "Email": "\(first.lowercased()).\(last.lowercased())@example.org",
-            "UnitType": "Troop", "Unit": "\(unit)", "FinalBoard": final.rawValue, "ProjectReview": BoardRole.member.rawValue,
+            "UnitType": "Troop", "Unit": "\(unit)", "FinalBoard": final.rawValue,
+            "ProjectReview": BoardRole.member.rawValue,
         ]).id
     }
 
@@ -71,8 +72,10 @@ struct BoardDraftTests {
 
     /// The chairs Seat Board's sheet offers for this board.
     private func qualifiedChairs(on draft: BoardDraft, for id: Scout.ID) throws -> [Adult] {
-        SeatingReview(scout: try youth(id), members: members(of: draft), room: draft.roomID.flatMap { event.room(id: $0) })
-            .qualifiedChairs
+        SeatingReview(
+            scout: try youth(id), members: members(of: draft), room: draft.roomID.flatMap { event.room(id: $0) }
+        )
+        .qualifiedChairs
     }
 
     // MARK: - A proposal follows the event
@@ -138,7 +141,8 @@ struct BoardDraftTests {
     @Test func anUntouchedBoardKeepsItsRoomWhenAnEarlierRoomFrees() throws {
         let chairs = try signInChairs(2)
         let members = try signInMembers(4)
-        try event.seatBoard(roomID: "ROOM:101", scoutID: youthB, chairID: chairs[1], memberIDs: [chairs[1]] + members[2...])
+        try event.seatBoard(
+            roomID: "ROOM:101", scoutID: youthB, chairID: chairs[1], memberIDs: [chairs[1]] + members[2...])
         var drafts = BoardDrafts()
         drafts.select(try youth(youthA), in: event)
         #expect(drafts[youthA]?.roomID == "ROOM:102")
@@ -154,7 +158,8 @@ struct BoardDraftTests {
     @Test func aRoomOfTheOtherKindIsKeptWithoutTheNoFreeRoomComplaint() throws {
         let chairs = try signInChairs(2)
         let members = try signInMembers(4)
-        try event.seatBoard(roomID: "ROOM:101", scoutID: youthB, chairID: chairs[1], memberIDs: [chairs[1]] + members[2...])
+        try event.seatBoard(
+            roomID: "ROOM:101", scoutID: youthB, chairID: chairs[1], memberIDs: [chairs[1]] + members[2...])
         try event.removeRoom(id: "ROOM:102")
         var drafts = BoardDrafts()
         drafts.select(try youth(youthA), in: event)

@@ -51,8 +51,9 @@ struct WoodBadgeIcon: View {
             }
 
             let dot = outerRadius * 0.24
-            context.fill(Path(ellipseIn: CGRect(x: center.x - dot, y: center.y - dot, width: dot * 2, height: dot * 2)),
-                         with: .color(.black))
+            context.fill(
+                Path(ellipseIn: CGRect(x: center.x - dot, y: center.y - dot, width: dot * 2, height: dot * 2)),
+                with: .color(.black))
         }
         .frame(width: size, height: size)
         .help("Counting today toward a Wood Badge ticket item")
@@ -69,7 +70,8 @@ struct WoodBadgeIcon: View {
     }
 
     private static func point(from start: CGPoint, toward end: CGPoint, by distance: Double) -> CGPoint {
-        let dx = end.x - start.x, dy = end.y - start.y
+        let dx = end.x - start.x
+        let dy = end.y - start.y
         let length = (dx * dx + dy * dy).squareRoot()
         return CGPoint(x: start.x + dx / length * distance, y: start.y + dy / length * distance)
     }

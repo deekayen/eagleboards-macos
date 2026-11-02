@@ -58,8 +58,9 @@ final class AppModel {
             let path = folder.eventFolder(name).path
             openError = "Could not open \(path): \(error.localizedDescription)"
             if event != nil {
-                message = Message(title: DataFolder.openFailedTitle(name),
-                                  text: "\(error.localizedDescription)\n\nThe event's folder is \(path).")
+                message = Message(
+                    title: DataFolder.openFailedTitle(name),
+                    text: "\(error.localizedDescription)\n\nThe event's folder is \(path).")
             }
             return false
         }
@@ -521,8 +522,9 @@ final class AppModel {
         // page has.
         guard page.showsBoard else { return }
         guard let event, let youth = selectedYouth, drafts[youth.id] != nil else {
-            message = Message(title: "No board is being drawn up.",
-                              text: "Select a youth who is waiting, then add adults to their board.")
+            message = Message(
+                title: "No board is being drawn up.",
+                text: "Select a youth who is waiting, then add adults to their board.")
             return
         }
         drafts.add(adultIDs, for: youth.id, in: event)
@@ -620,8 +622,9 @@ final class AppModel {
             return false
         }
         guard youth.status?.isWaitingForBoard == true else {
-            message = Message(title: "\(youth.shownFullName) is not waiting.",
-                              text: "Only a youth who is waiting for a board can be seated in a room.")
+            message = Message(
+                title: "\(youth.shownFullName) is not waiting.",
+                text: "Only a youth who is waiting for a board can be seated in a room.")
             return false
         }
         guard room.isFree else {
@@ -682,19 +685,23 @@ final class AppModel {
             return
         }
         let fetch = AdultLocator.introductionText(for: youth, among: event.adults)
-        present(Confirmation(
-            title: "Start \(youth.shownFullName)'s review?",
-            message: "Bring \(youth.shownFullName) into room \(youth.room) and start the review. Do this once the board has "
-                + "finished reading the application, references, and project workbook.\(fetch)",
-            actionTitle: "Start Review"
-        ) { [weak self] in
-            self?.startReview(youth)
-        })
+        present(
+            Confirmation(
+                title: "Start \(youth.shownFullName)'s review?",
+                message:
+                    "Bring \(youth.shownFullName) into room \(youth.room) and start the review. Do this once the board has "
+                    + "finished reading the application, references, and project workbook.\(fetch)",
+                actionTitle: "Start Review"
+            ) { [weak self] in
+                self?.startReview(youth)
+            })
     }
 
     private func startReview(_ youth: Scout) {
-        changeBoard(youth.id, "Start Review", failure: "Could Not Start \(youth.shownFullName)'s Review",
-                    success: StepSpeech.reviewStarted(youth.shownFullName, room: youth.room)) { event in
+        changeBoard(
+            youth.id, "Start Review", failure: "Could Not Start \(youth.shownFullName)'s Review",
+            success: StepSpeech.reviewStarted(youth.shownFullName, room: youth.room)
+        ) { event in
             try event.startReview(scoutID: youth.id)
         }
     }
@@ -720,10 +727,13 @@ final class AppModel {
     /// the waiting list.
     func postpone() {
         guard let youth = boardYouth, canPostpone else { return }
-        if changeBoard(youth.id, "Postpone", failure: "Could Not Postpone \(youth.shownFullName)'s Board",
-                       success: StepSpeech.postponed(youth.shownFullName), { event in
-            try event.postponeBoard(scoutID: youth.id)
-        }) {
+        if changeBoard(
+            youth.id, "Postpone", failure: "Could Not Postpone \(youth.shownFullName)'s Board",
+            success: StepSpeech.postponed(youth.shownFullName),
+            { event in
+                try event.postponeBoard(scoutID: youth.id)
+            })
+        {
             drafts.discard(youth.id)
         }
     }
@@ -740,10 +750,13 @@ final class AppModel {
         guard let youth = boardYouth, canReset else { return }
         // The room the board held, from the record before the step.
         let room = youth.status?.holdsRoom == true ? youth.room : ""
-        if changeBoard(youth.id, "Reset Board", failure: "Could Not Reset \(youth.shownFullName)'s Board",
-                       success: StepSpeech.reset(youth.shownFullName, room: room), { event in
-            try event.resetBoard(scoutID: youth.id)
-        }) {
+        if changeBoard(
+            youth.id, "Reset Board", failure: "Could Not Reset \(youth.shownFullName)'s Board",
+            success: StepSpeech.reset(youth.shownFullName, room: room),
+            { event in
+                try event.resetBoard(scoutID: youth.id)
+            })
+        {
             selectYouth(youth.id)
         }
     }
@@ -782,8 +795,10 @@ final class AppModel {
     private func startCheckingRooms() {
         roomCheck?.cancel()
         roomCheck = Task { [weak self] in
-            while (try? await Task.sleep(for: .seconds(Timestamp.nextMinute(after: Date()).timeIntervalSinceNow))) != nil,
-                  let self {
+            while (try? await Task.sleep(for: .seconds(Timestamp.nextMinute(after: Date()).timeIntervalSinceNow)))
+                != nil,
+                let self
+            {
                 checkRoomTimers()
             }
         }
@@ -801,7 +816,9 @@ final class AppModel {
     /// The number waiting, on the Dock icon the moment it changes: a youth
     /// signs in, is seated or is put back, or another event is opened.
     private func showWaitingOnTheDock() {
-        let count = withObservationTracking { waitingCount } onChange: { [weak self] in
+        let count = withObservationTracking {
+            waitingCount
+        } onChange: { [weak self] in
             Task { @MainActor [weak self] in self?.showWaitingOnTheDock() }
         }
         attention.showWaiting(count)
@@ -816,8 +833,10 @@ final class AppModel {
     /// Take one step of a youth's board, and let Undo put it back with
     /// `BoardEvent.restoreBoard`. A refusal is shown in an alert.
     @discardableResult
-    private func changeBoard(_ scoutID: Scout.ID, _ name: String, failure: String, success: String? = nil,
-                             _ step: (BoardEvent) throws -> Void) -> Bool {
+    private func changeBoard(
+        _ scoutID: Scout.ID, _ name: String, failure: String, success: String? = nil,
+        _ step: (BoardEvent) throws -> Void
+    ) -> Bool {
         guard event?.scout(id: scoutID) != nil else { return false }
         return attempt(failure) { try changeBoardOrThrow(scoutID, name, success: success, step) }
     }
@@ -826,26 +845,31 @@ final class AppModel {
     /// itself: an alert would wait behind the sheet until it closed, and the
     /// sheet's button would seem to do nothing. `success` is said once the
     /// step and its Undo are in place.
-    private func changeBoardOrThrow(_ scoutID: Scout.ID, _ name: String, success: String? = nil,
-                                    _ step: (BoardEvent) throws -> Void) throws {
+    private func changeBoardOrThrow(
+        _ scoutID: Scout.ID, _ name: String, success: String? = nil,
+        _ step: (BoardEvent) throws -> Void
+    ) throws {
         guard let event, let before = event.scout(id: scoutID) else {
             throw EventError("That youth is no longer on the list.")
         }
         try step(event)
         guard let after = event.scout(id: scoutID) else { return }
-        registerUndo(name, on: event,
-                     undo: { try $0.restoreBoard(before) },
-                     redo: { try $0.restoreBoard(after) },
-                     reveal: { $0.revealBoard(of: scoutID) })
+        registerUndo(
+            name, on: event,
+            undo: { try $0.restoreBoard(before) },
+            redo: { try $0.restoreBoard(after) },
+            reveal: { $0.revealBoard(of: scoutID) })
         sayDone(success)
     }
 
     /// Make a change that has a plain inverse, and let Undo apply it.
     @discardableResult
-    private func change(_ name: String, failure: String, success: String? = nil,
-                        _ forward: @escaping (BoardEvent) throws -> Void,
-                        undo backward: @escaping (BoardEvent) throws -> Void,
-                        reveal: @escaping (AppModel) -> Void) -> Bool {
+    private func change(
+        _ name: String, failure: String, success: String? = nil,
+        _ forward: @escaping (BoardEvent) throws -> Void,
+        undo backward: @escaping (BoardEvent) throws -> Void,
+        reveal: @escaping (AppModel) -> Void
+    ) -> Bool {
         guard let event, attempt(failure, { try forward(event) }) else { return false }
         registerUndo(name, on: event, undo: backward, redo: forward, reveal: reveal)
         sayDone(success)
@@ -867,15 +891,18 @@ final class AppModel {
     /// changed into view afterward: `revealBoard(of:)`, `revealRooms(selecting:)`
     /// or `revealAdults(_:)`, whichever page has it. Every call site names one,
     /// so a new change has to decide where it is seen.
-    private func registerUndo(_ name: String, on event: BoardEvent,
-                              undo: @escaping (BoardEvent) throws -> Void,
-                              redo: @escaping (BoardEvent) throws -> Void,
-                              reveal: @escaping (AppModel) -> Void) {
+    private func registerUndo(
+        _ name: String, on event: BoardEvent,
+        undo: @escaping (BoardEvent) throws -> Void,
+        redo: @escaping (BoardEvent) throws -> Void,
+        reveal: @escaping (AppModel) -> Void
+    ) {
         guard let undoManager else { return }
         undoManager.registerUndo(withTarget: self) { model in
             let undoing = model.undoManager?.isUndoing ?? true
             guard model.event === event,
-                  model.attempt("Could Not \(undoing ? "Undo" : "Redo") \(name)", { try undo(event) }) else { return }
+                model.attempt("Could Not \(undoing ? "Undo" : "Redo") \(name)", { try undo(event) })
+            else { return }
             model.registerUndo(name, on: event, undo: redo, redo: undo, reveal: reveal)
             model.tidySelection()
             reveal(model)
@@ -933,11 +960,13 @@ final class AppModel {
         let apply: (Bool) -> (BoardEvent) throws -> Void = { value in
             { event in for id in ids { try event.setAvailable(value, adultID: id) } }
         }
-        if change(available ? "Mark Back" : "Mark Gone Home",
-                  failure: available ? "Could Not Mark \(names) Back" : "Could Not Mark \(names) Gone Home",
-                  success: available ? StepSpeech.markedBack(shownNames) : StepSpeech.markedGoneHome(shownNames),
-                  apply(available), undo: apply(!available),
-                  reveal: { $0.revealAdults(Set(ids)) }), !available {
+        if change(
+            available ? "Mark Back" : "Mark Gone Home",
+            failure: available ? "Could Not Mark \(names) Back" : "Could Not Mark \(names) Gone Home",
+            success: available ? StepSpeech.markedBack(shownNames) : StepSpeech.markedGoneHome(shownNames),
+            apply(available), undo: apply(!available),
+            reveal: { $0.revealAdults(Set(ids)) }), !available
+        {
             drafts.takeOff(Set(ids))
         }
     }
@@ -956,14 +985,15 @@ final class AppModel {
     func setSupporting(_ linked: Bool, adultID: Adult.ID, scoutID: Scout.ID) {
         let adult = event?.adult(id: adultID)?.shownFullName ?? "the Adult"
         let youth = event?.scout(id: scoutID)?.shownFullName ?? "the Youth"
-        change(linked ? "Link Introducer" : "Unlink Introducer",
-               failure: linked ? "Could Not Link \(adult) to \(youth)" : "Could Not Unlink \(adult) from \(youth)",
-               success: linked ? StepSpeech.linked(adult, to: youth) : StepSpeech.unlinked(adult, from: youth),
-               { try $0.setSupporting(linked, adultID: adultID, scoutID: scoutID) },
-               undo: { try $0.setSupporting(!linked, adultID: adultID, scoutID: scoutID) },
-               // A change to the youth's With Them list, so the Event page's,
-               // not the Adults page's.
-               reveal: { $0.revealBoard(of: scoutID) })
+        change(
+            linked ? "Link Introducer" : "Unlink Introducer",
+            failure: linked ? "Could Not Link \(adult) to \(youth)" : "Could Not Unlink \(adult) from \(youth)",
+            success: linked ? StepSpeech.linked(adult, to: youth) : StepSpeech.unlinked(adult, from: youth),
+            { try $0.setSupporting(linked, adultID: adultID, scoutID: scoutID) },
+            undo: { try $0.setSupporting(!linked, adultID: adultID, scoutID: scoutID) },
+            // A change to the youth's With Them list, so the Event page's,
+            // not the Adults page's.
+            reveal: { $0.revealBoard(of: scoutID) })
     }
 
     // MARK: - Rooms
@@ -974,10 +1004,11 @@ final class AppModel {
         guard let added = event.room(id: id) else { return }
         // Redo puts back this record, ID and all, so the next Undo removes
         // the same room.
-        registerUndo("Add Room", on: event,
-                     undo: { try $0.removeRoom(id: id) },
-                     redo: { try $0.restoreRoom(added) },
-                     reveal: { $0.revealRooms(selecting: id) })
+        registerUndo(
+            "Add Room", on: event,
+            undo: { try $0.removeRoom(id: id) },
+            redo: { try $0.restoreRoom(added) },
+            reveal: { $0.revealRooms(selecting: id) })
         sayDone(StepSpeech.roomAdded(added.name))
     }
 
@@ -985,21 +1016,24 @@ final class AppModel {
     func copyRooms(from earlier: String) {
         guard let event else { return }
         var copied: [Room.ID] = []
-        guard attempt(DataFolder.copyRoomsFailedTitle(from: earlier), { copied = try event.copyRooms(fromEvent: earlier) }),
-              !copied.isEmpty
+        guard
+            attempt(
+                DataFolder.copyRoomsFailedTitle(from: earlier), { copied = try event.copyRooms(fromEvent: earlier) }),
+            !copied.isEmpty
         else { return }
         let added = copied
-        registerUndo("Copy Rooms", on: event,
-                     undo: { event in
-                         // Rooms in use first: one given a board since refuses
-                         // before any room is removed.
-                         let rooms = added.compactMap { event.room(id: $0) }
-                         for room in rooms.filter({ !$0.isFree }) + rooms.filter(\.isFree) {
-                             try event.removeRoom(id: room.id)
-                         }
-                     },
-                     redo: { _ = try $0.copyRooms(fromEvent: earlier) },
-                     reveal: { $0.revealRooms() })
+        registerUndo(
+            "Copy Rooms", on: event,
+            undo: { event in
+                // Rooms in use first: one given a board since refuses
+                // before any room is removed.
+                let rooms = added.compactMap { event.room(id: $0) }
+                for room in rooms.filter({ !$0.isFree }) + rooms.filter(\.isFree) {
+                    try event.removeRoom(id: room.id)
+                }
+            },
+            redo: { _ = try $0.copyRooms(fromEvent: earlier) },
+            reveal: { $0.revealRooms() })
         sayDone(StepSpeech.roomsCopied(added.count, from: earlier))
     }
 
@@ -1012,20 +1046,23 @@ final class AppModel {
             message = Message(title: "Room \(room.name) is in use.", text: BoardEvent.roomHasABoard(room.name))
             return
         }
-        present(Confirmation(
-            title: "Remove Room \(room.name)?",
-            message: "It comes off the list for the rest of this event. You can add it again.",
-            actionTitle: "Remove Room",
-            isDestructive: true
-        ) { [weak self] in
-            guard let self,
-                  change("Remove Room", failure: "Could Not Remove Room \(room.name)", success: StepSpeech.roomRemoved(room.name),
-                         { try $0.removeRoom(id: room.id) },
-                         undo: { try $0.restoreRoom(room) },
-                         reveal: { $0.revealRooms(selecting: room.id) })
-            else { return }
-            tidySelection()
-        })
+        present(
+            Confirmation(
+                title: "Remove Room \(room.name)?",
+                message: "It comes off the list for the rest of this event. You can add it again.",
+                actionTitle: "Remove Room",
+                isDestructive: true
+            ) { [weak self] in
+                guard let self,
+                    change(
+                        "Remove Room", failure: "Could Not Remove Room \(room.name)",
+                        success: StepSpeech.roomRemoved(room.name),
+                        { try $0.removeRoom(id: room.id) },
+                        undo: { try $0.restoreRoom(room) },
+                        reveal: { $0.revealRooms(selecting: room.id) })
+                else { return }
+                tidySelection()
+            })
     }
 
     /// Rename a room, for the Rename sheet. The room keeps its ID.
@@ -1034,10 +1071,11 @@ final class AppModel {
         try event.renameRoom(id: id, to: newName)
         // Renaming a room to its own name changes nothing, and has nothing to undo.
         guard let renamed = event.room(id: id)?.name, renamed != oldName else { return }
-        registerUndo("Rename Room", on: event,
-                     undo: { try $0.renameRoom(id: id, to: oldName) },
-                     redo: { try $0.renameRoom(id: id, to: newName) },
-                     reveal: { $0.revealRooms(selecting: id) })
+        registerUndo(
+            "Rename Room", on: event,
+            undo: { try $0.renameRoom(id: id, to: oldName) },
+            redo: { try $0.renameRoom(id: id, to: newName) },
+            reveal: { $0.revealRooms(selecting: id) })
         sayDone(StepSpeech.roomRenamed(oldName, to: renamed))
     }
 
@@ -1048,25 +1086,31 @@ final class AppModel {
     func swapRooms(_ firstID: Room.ID, _ secondID: Room.ID) throws {
         guard let event else { return }
         // Who was in each room before the move, for what is said after it.
-        let first = event.room(id: firstID), second = event.room(id: secondID)
+        let first = event.room(id: firstID)
+        let second = event.room(id: secondID)
         let holding = { (room: Room?) in room.flatMap { $0.isFree ? nil : $0.scoutName.shownValue } }
         let swap: (BoardEvent) throws -> Void = { try $0.swapRooms(firstID, secondID) }
         try swap(event)
-        registerUndo("Move Board", on: event, undo: swap, redo: swap, reveal: { model in
-            model.revealRooms(selecting: model.undoManager?.isUndoing == true ? firstID : secondID)
-        })
+        registerUndo(
+            "Move Board", on: event, undo: swap, redo: swap,
+            reveal: { model in
+                model.revealRooms(selecting: model.undoManager?.isUndoing == true ? firstID : secondID)
+            })
         selectedRoomID = secondID
-        sayDone(StepSpeech.boardMoved(from: first?.name ?? firstID, holding: holding(first),
-                                      to: second?.name ?? secondID, holding: holding(second)))
+        sayDone(
+            StepSpeech.boardMoved(
+                from: first?.name ?? firstID, holding: holding(first),
+                to: second?.name ?? secondID, holding: holding(second)))
     }
 
     func setBoardType(_ boardType: BoardType, forRoom roomID: Room.ID) {
         guard let room = event?.room(id: roomID), let old = room.boardType, old != boardType else { return }
-        change("Change Room Use", failure: "Could Not Change Room \(room.name)",
-               success: StepSpeech.roomUse(room.name, boardType),
-               { try $0.setBoardType(boardType, forRoom: roomID) },
-               undo: { try $0.setBoardType(old, forRoom: roomID) },
-               reveal: { $0.revealRooms(selecting: roomID) })
+        change(
+            "Change Room Use", failure: "Could Not Change Room \(room.name)",
+            success: StepSpeech.roomUse(room.name, boardType),
+            { try $0.setBoardType(boardType, forRoom: roomID) },
+            undo: { try $0.setBoardType(old, forRoom: roomID) },
+            reveal: { $0.revealRooms(selecting: roomID) })
     }
 
     // MARK: - SignUpGenius
@@ -1090,8 +1134,11 @@ final class AppModel {
     func importSignUps() async {
         guard let event else { return }
         guard signUpGeniusAllowed else {
-            message = Message(title: "SignUpGenius is off.",
-                              text: "SignUpGenius is off while EAGLEBOARDS_DATA_FOLDER is set. Set EAGLEBOARDS_SIGNUPGENIUS=1 to use it.")
+            message = Message(
+                title: "SignUpGenius is off.",
+                text:
+                    "SignUpGenius is off while EAGLEBOARDS_DATA_FOLDER is set. Set EAGLEBOARDS_SIGNUPGENIUS=1 to use it."
+            )
             return
         }
         guard let key = SignUpGeniusKeychain.read() else {
@@ -1107,7 +1154,8 @@ final class AppModel {
             let summary = try event.mergeSignUps(entries, month: String(event.date.prefix(7)))
             showImportReport(Message(title: "Imported \(signup.title)", text: summary.report))
         } catch {
-            showImportReport(Message(title: "Could Not Import Sign-Ups from SignUpGenius", text: error.localizedDescription))
+            showImportReport(
+                Message(title: "Could Not Import Sign-Ups from SignUpGenius", text: error.localizedDescription))
         }
     }
 
@@ -1144,10 +1192,14 @@ final class AppModel {
         var signedIn: [Adult] = []
         for known in event.adultHistory where ids.contains(known.id) {
             attempt("Could Not Sign In \(known.shownFullName)") {
-                signedIn.append(try event.registerAdult(Adult.handSignInForm(
-                    historyID: known.id, first: known.first, last: known.last, email: known.email, phone: known.phone,
-                    unitType: known.unitType, unit: known.unit, finalBoard: nil, projectReview: nil, woodBadge: false
-                )))
+                signedIn.append(
+                    try event.registerAdult(
+                        Adult.handSignInForm(
+                            historyID: known.id, first: known.first, last: known.last, email: known.email,
+                            phone: known.phone,
+                            unitType: known.unitType, unit: known.unit, finalBoard: nil, projectReview: nil,
+                            woodBadge: false
+                        )))
             }
         }
         knownPeople.formUnion(signedIn.map(\.id))
@@ -1166,7 +1218,8 @@ final class AppModel {
         let youth = event.scouts.filter { !knownPeople.contains($0.id) }
         let adults = event.adults.filter { !knownPeople.contains($0.id) }
         knownPeople.formUnion(youth.map(\.id) + adults.map(\.id))
-        Speech.say(Arrivals.sentence(youth: youth.map(\.shownFullName), adults: adults.map(\.shownFullName)), priority: .low)
+        Speech.say(
+            Arrivals.sentence(youth: youth.map(\.shownFullName), adults: adults.map(\.shownFullName)), priority: .low)
     }
 
     /// Save a cell changed on the Results, Youth or Pre-Registered page. A
@@ -1174,7 +1227,8 @@ final class AppModel {
     /// (SPEC.md P-6), which is kept for the Event page's steps.
     @discardableResult
     func editYouth(_ id: Scout.ID, scheduled: Bool = false, _ edit: (inout Scout) -> Void) -> Bool {
-        guard let event, var record = (scheduled ? event.scheduledScouts : event.scouts).first(where: { $0.id == id }) else {
+        guard let event, var record = (scheduled ? event.scheduledScouts : event.scouts).first(where: { $0.id == id })
+        else {
             return false
         }
         let name = record.shownFullName
@@ -1204,33 +1258,40 @@ final class AppModel {
     /// A deleted record leaves the file and Undo cannot bring it back, so
     /// this one asks first.
     func confirmDeleteYouth(_ id: Scout.ID, scheduled: Bool = false) {
-        guard let event, let youth = (scheduled ? event.scheduledScouts : event.scouts).first(where: { $0.id == id }) else {
+        guard let event, let youth = (scheduled ? event.scheduledScouts : event.scouts).first(where: { $0.id == id })
+        else {
             return
         }
-        present(Confirmation(
-            title: "Delete \(youth.shownFullName)?",
-            message: "The record is removed from the file. This cannot be undone.",
-            actionTitle: "Delete",
-            isDestructive: true
-        ) { [weak self] in
-            guard let self, attempt("Could Not Delete \(youth.shownFullName)", { try event.deleteYouth(id: id, scheduled: scheduled) })
-            else { return }
-            if !scheduled && selectedYouthID == id { selectYouth(nil) }
-        })
+        present(
+            Confirmation(
+                title: "Delete \(youth.shownFullName)?",
+                message: "The record is removed from the file. This cannot be undone.",
+                actionTitle: "Delete",
+                isDestructive: true
+            ) { [weak self] in
+                guard let self,
+                    attempt(
+                        "Could Not Delete \(youth.shownFullName)",
+                        { try event.deleteYouth(id: id, scheduled: scheduled) })
+                else { return }
+                if !scheduled && selectedYouthID == id { selectYouth(nil) }
+            })
     }
 
     func confirmDeleteAdult(_ id: Adult.ID) {
         guard let event, let adult = event.adult(id: id) else { return }
-        present(Confirmation(
-            title: "Delete \(adult.shownFullName)?",
-            message: "They are taken off today's list; the adult history keeps them. This cannot be undone.",
-            actionTitle: "Delete",
-            isDestructive: true
-        ) { [weak self] in
-            guard let self, attempt("Could Not Delete \(adult.shownFullName)", { try event.deleteAdult(id: id) }) else { return }
-            selectedAdultIDs.remove(id)
-            drafts.takeOff([id])
-        })
+        present(
+            Confirmation(
+                title: "Delete \(adult.shownFullName)?",
+                message: "They are taken off today's list; the adult history keeps them. This cannot be undone.",
+                actionTitle: "Delete",
+                isDestructive: true
+            ) { [weak self] in
+                guard let self, attempt("Could Not Delete \(adult.shownFullName)", { try event.deleteAdult(id: id) })
+                else { return }
+                selectedAdultIDs.remove(id)
+                drafts.takeOff([id])
+            })
     }
 
     // MARK: - Files
@@ -1239,14 +1300,15 @@ final class AppModel {
     /// but never a youth's birthdate or phone number (SPEC.md D-7, D-8).
     func exportList() {
         guard let event, page.isList else { return }
-        let text = switch page {
-        case .event, .results, .approvedProposals: ""
-        case .rooms: CSVFile.render(event.rooms)
-        case .youth: CSVFile.render(event.scouts.map(\.forExport))
-        case .preRegistered: CSVFile.render(event.scheduledScouts.map(\.forExport))
-        case .adults: CSVFile.render(event.adults)
-        case .adultHistory: CSVFile.render(event.adultHistory)
-        }
+        let text =
+            switch page {
+            case .event, .results, .approvedProposals: ""
+            case .rooms: CSVFile.render(event.rooms)
+            case .youth: CSVFile.render(event.scouts.map(\.forExport))
+            case .preRegistered: CSVFile.render(event.scheduledScouts.map(\.forExport))
+            case .adults: CSVFile.render(event.adults)
+            case .adultHistory: CSVFile.render(event.adultHistory)
+            }
         let panel = NSSavePanel()
         panel.nameFieldStringValue = "\(page.exportName) \(event.date).csv"
         panel.allowedContentTypes = [.commaSeparatedText]
@@ -1259,7 +1321,8 @@ final class AppModel {
         let panel = NSSavePanel()
         panel.nameFieldStringValue = "Board Results \(event.date).csv"
         panel.allowedContentTypes = [.commaSeparatedText]
-        panel.message = "The report holds names and contact details, including those of minors. Keep it somewhere private."
+        panel.message =
+            "The report holds names and contact details, including those of minors. Keep it somewhere private."
         run(panel) { [weak self] url in
             self?.save(Reports.forSpreadsheet(Reports.csv(event.scouts, columns: Reports.boardResultColumns)), to: url)
         }
@@ -1309,7 +1372,8 @@ final class AppModel {
         panel.canChooseFiles = false
         panel.canCreateDirectories = true
         panel.prompt = "Use This Folder"
-        panel.message = "Choose the folder for Eagle Boards data. If you used the Java Eagle Board Scheduler, "
+        panel.message =
+            "Choose the folder for Eagle Boards data. If you used the Java Eagle Board Scheduler, "
             + "choose the folder it ran in, the one holding Master_AdultHistory.csv and the dated folders."
         // Beside the folder in use, so it and its neighbors are in view.
         panel.directoryURL = dataFolder?.root.deletingLastPathComponent()

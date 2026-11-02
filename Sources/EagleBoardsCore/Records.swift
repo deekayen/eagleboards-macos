@@ -151,9 +151,9 @@ extension PersonRecord {
 public enum UnitLabel {
     public static func short(_ unitName: String) -> String {
         guard let firstDigit = unitName.firstIndex(where: \.isNumber),
-              let initial = unitName.first, initial.isLetter,
-              unitName[firstDigit...].allSatisfy(\.isNumber),
-              unitName[..<firstDigit].allSatisfy(\.isLetter)
+            let initial = unitName.first, initial.isLetter,
+            unitName[firstDigit...].allSatisfy(\.isNumber),
+            unitName[..<firstDigit].allSatisfy(\.isLetter)
         else { return unitName }
         return String(initial) + unitName[firstDigit...]
     }
@@ -164,9 +164,9 @@ public enum UnitLabel {
     /// Community), or a number with no type, is returned unchanged.
     public static func spaced(_ unitName: String) -> String {
         guard let firstDigit = unitName.firstIndex(where: \.isNumber),
-              firstDigit > unitName.startIndex,
-              unitName[firstDigit...].allSatisfy(\.isNumber),
-              unitName[..<firstDigit].allSatisfy(\.isLetter)
+            firstDigit > unitName.startIndex,
+            unitName[firstDigit...].allSatisfy(\.isNumber),
+            unitName[..<firstDigit].allSatisfy(\.isLetter)
         else { return unitName }
         return unitName[..<firstDigit] + " " + unitName[firstDigit...]
     }
@@ -212,7 +212,9 @@ public struct Scout: PersonRecord {
     /// number after the letter is missing or is not a number.
     public var regNumHelp: String {
         let digits = regNum.drop(while: \.isLetter)
-        guard !digits.isEmpty, digits.allSatisfy({ $0.isASCII && $0.isNumber }), let number = Int(digits) else { return "" }
+        guard !digits.isEmpty, digits.allSatisfy({ $0.isASCII && $0.isNumber }), let number = Int(digits) else {
+            return ""
+        }
         if isPreRegistered {
             return "Pre-registered: matched a sign-up. The \(Count.ordinal(number)) pre-registered youth to sign in."
         }
@@ -377,7 +379,9 @@ public struct Adult: PersonRecord {
     ]
 
     /// The columns an adult fills in at the sign-in station.
-    public static let signInColumns = ["First", "Last", "Unit", "UnitType", "Email", "Phone", "ProjectReview", "FinalBoard"]
+    public static let signInColumns = [
+        "First", "Last", "Unit", "UnitType", "Email", "Phone", "ProjectReview", "FinalBoard",
+    ]
 
     /// Take another record's name, unit, contact and roles, cleared ones
     /// too: what the event's adults and the adult history share (SPEC.md P-6).

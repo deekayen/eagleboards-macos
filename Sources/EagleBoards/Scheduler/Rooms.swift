@@ -67,7 +67,8 @@ struct RoomsGrid: View {
     }
 
     private func grid(_ rooms: [Room], now: Date, scroller: ScrollViewProxy) -> some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: Self.cardWidth), spacing: Self.spacing)], spacing: Self.spacing) {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: Self.cardWidth), spacing: Self.spacing)], spacing: Self.spacing)
+        {
             ForEach(rooms) { room in
                 RoomCard(room: room, event: event, now: now, isSelected: room.id == model.selectedRoomID)
                     // Focus shows as the selection, not a ring: a highlight
@@ -111,7 +112,9 @@ struct RoomsGrid: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Rooms")
-        .onGeometryChange(for: Double.self) { $0.size.width } action: { width in
+        .onGeometryChange(for: Double.self) {
+            $0.size.width
+        } action: { width in
             columns = CardGrid.columns(width: width, minimum: Self.cardWidth, spacing: Self.spacing)
         }
         .focusSection()
@@ -123,7 +126,9 @@ struct RoomsGrid: View {
 
     /// An arrow key on a card: focus, and with it the selection, moves to
     /// the card beside, above or below it.
-    private func move(_ direction: MoveCommandDirection, from roomID: Room.ID, in rooms: [Room], scroller: ScrollViewProxy) {
+    private func move(
+        _ direction: MoveCommandDirection, from roomID: Room.ID, in rooms: [Room], scroller: ScrollViewProxy
+    ) {
         let move: CardGrid.Move
         switch direction {
         case .left: move = .left
@@ -133,7 +138,7 @@ struct RoomsGrid: View {
         @unknown default: return
         }
         guard let index = rooms.firstIndex(where: { $0.id == roomID }),
-              let next = CardGrid.index(after: move, from: index, count: rooms.count, columns: columns)
+            let next = CardGrid.index(after: move, from: index, count: rooms.count, columns: columns)
         else { return }
         let id = rooms[next].id
         // Into view first: the grid is lazy, so a card out of sight may not
@@ -181,7 +186,9 @@ private struct YouthDropTarget: ViewModifier {
                 guard let scoutID = DragPayload.youthIDs(in: items).first else { return false }
                 // A refused drop slides back, as the message says why.
                 return model.seat(scoutID: scoutID, inRoom: room.id)
-            } isTargeted: { isTargeted = $0 }
+            } isTargeted: {
+                isTargeted = $0
+            }
     }
 }
 
@@ -197,7 +204,9 @@ struct RoomCard: View {
         let occupant = event.occupant(of: room)
         let minutes = occupant?.minutesSinceLastUpdate(now: now)
         let timer = occupant.flatMap { youth in
-            minutes.flatMap { RoomTimer.state(status: youth.status, boardType: youth.boardType, minutes: $0, config: event.config) }
+            minutes.flatMap {
+                RoomTimer.state(status: youth.status, boardType: youth.boardType, minutes: $0, config: event.config)
+            }
         }
 
         VStack(alignment: .leading, spacing: 4) {
@@ -223,7 +232,8 @@ struct RoomCard: View {
                 // One member per line, in full, as on Windows: the cards are
                 // where people look to find which room someone is in.
                 VStack(alignment: .leading, spacing: 1) {
-                    ForEach(Array(room.memberNames(occupant: occupant, among: event.adults).enumerated()), id: \.offset) { _, name in
+                    ForEach(Array(room.memberNames(occupant: occupant, among: event.adults).enumerated()), id: \.offset)
+                    { _, name in
                         Text(name)
                     }
                 }
@@ -249,7 +259,8 @@ struct RoomCard: View {
 
     private var fill: Color {
         guard isSelected else { return Color(nsColor: .controlBackgroundColor) }
-        return isEmphasized ? Color.accentColor.opacity(0.12) : Color(nsColor: .unemphasizedSelectedContentBackgroundColor)
+        return isEmphasized
+            ? Color.accentColor.opacity(0.12) : Color(nsColor: .unemphasizedSelectedContentBackgroundColor)
     }
 
     /// An unselected card's edge: the separator color, or the label color
@@ -344,7 +355,9 @@ struct NoRoomsYet: View {
         ContentUnavailableView {
             Label("No Rooms Yet", systemImage: "door.left.hand.closed")
         } description: {
-            Text("A board cannot be seated without a room. Mark each one Final Board or Proposal Review by what it is used for today.")
+            Text(
+                "A board cannot be seated without a room. Mark each one Final Board or Proposal Review by what it is used for today."
+            )
         } actions: {
             HStack {
                 Button("Add Room…") { model.present(.addRoom) }
@@ -421,12 +434,15 @@ struct RoomActionButtons: View {
         }
         if room != nil || !inContextMenu {
             SubmenuCommand("Used For", applies: room != nil) {
-                Picker("Used For", selection: Binding(
-                    get: { room?.boardType },
-                    set: { newType in
-                        if let room, let newType { model.setBoardType(newType, forRoom: room.id) }
-                    }
-                )) {
+                Picker(
+                    "Used For",
+                    selection: Binding(
+                        get: { room?.boardType },
+                        set: { newType in
+                            if let room, let newType { model.setBoardType(newType, forRoom: room.id) }
+                        }
+                    )
+                ) {
                     ForEach(BoardType.allCases) { Text($0.label).tag(Optional($0)) }
                 }
             }

@@ -24,8 +24,14 @@ struct CheckInStatusButton: View {
                 Text(summary)
             }
         }
-        .help([servedEventNote.map { "Where the sign-in tablets connect. They sign people in \($0), the open event, not today." }
-            ?? "Where the sign-in tablets connect", networkProblem].compactMap { $0 }.joined(separator: " "))
+        .help(
+            [
+                servedEventNote.map {
+                    "Where the sign-in tablets connect. They sign people in \($0), the open event, not today."
+                }
+                    ?? "Where the sign-in tablets connect", networkProblem,
+            ].compactMap { $0 }.joined(separator: " ")
+        )
         .popover(isPresented: $showingDetails, arrowEdge: .bottom) {
             CheckInDetails()
                 .environment(model)
@@ -53,7 +59,8 @@ struct CheckInStatusButton: View {
     private var summary: String {
         switch model.serverState {
         case .running:
-            (model.checkInAddresses.chosen(chosenHost).map { "Sign-in: \($0.host):\($0.url.port ?? 0)" } ?? "Sign-in: this Mac only")
+            (model.checkInAddresses.chosen(chosenHost).map { "Sign-in: \($0.host):\($0.url.port ?? 0)" }
+                ?? "Sign-in: this Mac only")
                 + (servedEventNote.map { " \($0)" } ?? "")
         case .starting: "Starting sign-in…"
         case .stopped: "Sign-in stopped"
@@ -89,20 +96,24 @@ struct CheckInDetails: View {
                             Text(primary.url.absoluteString)
                                 .font(.title3.monospaced())
                                 .textSelection(.enabled)
-                            Text("Scan the code with the tablet's camera, or type the address into its browser. "
-                                + "The tablet must be on the same network as this Mac.")
-                                .font(.callout)
-                                .foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
+                            Text(
+                                "Scan the code with the tablet's camera, or type the address into its browser. "
+                                    + "The tablet must be on the same network as this Mac."
+                            )
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                         }
                         .frame(width: 280, alignment: .leading)
                     }
                 } else {
                     Label("This Mac is not on a network", systemImage: "wifi.slash")
                         .font(.headline)
-                    Text("Join the venue's Wi-Fi so a tablet can reach the sign-in page. It is open on this Mac at http://127.0.0.1:\(port)/.")
-                        .fixedSize(horizontal: false, vertical: true)
-                        .textSelection(.enabled)
+                    Text(
+                        "Join the venue's Wi-Fi so a tablet can reach the sign-in page. It is open on this Mac at http://127.0.0.1:\(port)/."
+                    )
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
                 }
                 if let problem = model.listening?.problem {
                     NoticeLabel.warning(problem)
@@ -120,8 +131,10 @@ struct CheckInDetails: View {
                         .foregroundStyle(.secondary)
                 }
             case .failed(let message):
-                NoticeLabel("The sign-in station is not running", systemImage: "exclamationmark.triangle.fill", tint: .red)
-                    .font(.headline)
+                NoticeLabel(
+                    "The sign-in station is not running", systemImage: "exclamationmark.triangle.fill", tint: .red
+                )
+                .font(.headline)
                 // To copy into a message or a search.
                 Text(message)
                     .fixedSize(horizontal: false, vertical: true)
@@ -150,10 +163,13 @@ struct NetworkPicker: View {
     @Binding var chosenHost: String
 
     var body: some View {
-        Picker("Network", selection: Binding(
-            get: { addresses.chosen(chosenHost)?.host ?? "" },
-            set: { chosenHost = $0 }
-        )) {
+        Picker(
+            "Network",
+            selection: Binding(
+                get: { addresses.chosen(chosenHost)?.host ?? "" },
+                set: { chosenHost = $0 }
+            )
+        ) {
             ForEach(addresses) { address in
                 Text(address.network.label).tag(address.host)
             }

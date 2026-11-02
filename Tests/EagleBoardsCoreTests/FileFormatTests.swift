@@ -9,8 +9,14 @@ import Testing
 struct FileFormatTests {
     /// The exact header lines the Java app writes.
     @Test func headersMatchTheJavaApp() {
-        #expect(CSVFile.render([Scout]()) == "Type,ID,RegNum,Last,First,Email,Phone,UnitType,Unit,UnitName,DOB,BoardType,Leader,RegTime,LastUpdateTime,Flags,Room,Status,Result,BoardChair,BoardChairID,BoardMembers,BoardMembersIDs,Notes\n")
-        #expect(CSVFile.render([Adult]()) == "Type,ID,Last,First,Email,Phone,UnitType,Unit,UnitName,ProjectReview,FinalBoard,RegTime,Room,Flags,Sel,BoardHistory,WoodBadge,Supporting\n")
+        #expect(
+            CSVFile.render([Scout]())
+                == "Type,ID,RegNum,Last,First,Email,Phone,UnitType,Unit,UnitName,DOB,BoardType,Leader,RegTime,LastUpdateTime,Flags,Room,Status,Result,BoardChair,BoardChairID,BoardMembers,BoardMembersIDs,Notes\n"
+        )
+        #expect(
+            CSVFile.render([Adult]())
+                == "Type,ID,Last,First,Email,Phone,UnitType,Unit,UnitName,ProjectReview,FinalBoard,RegTime,Room,Flags,Sel,BoardHistory,WoodBadge,Supporting\n"
+        )
         #expect(CSVFile.render([Room]()) == "Type,ID,Room,BoardType,Scout,Leaders,RegTime\n")
     }
 
@@ -47,10 +53,11 @@ struct FileFormatTests {
     // Windows versions do; the file keeps Registered and InProgress.
     @Test func statusesShowTheSharedWordsButStoreTheJavaNames() {
         let shown = Dictionary(uniqueKeysWithValues: BoardStatus.allCases.map { ($0.rawValue, $0.label) })
-        #expect(shown == [
-            "Registered": "Waiting", "Verified": "Waiting", "Seated": "Seated",
-            "InProgress": "In review", "Completed": "Completed", "Postponed": "Postponed",
-        ])
+        #expect(
+            shown == [
+                "Registered": "Waiting", "Verified": "Waiting", "Seated": "Seated",
+                "InProgress": "In review", "Completed": "Completed", "Postponed": "Postponed",
+            ])
         var youth = Scout.blank(at: Date())
         youth.status = .inProgress
         #expect(youth.statusLabel == "In review")
@@ -88,7 +95,8 @@ struct FileFormatTests {
         #expect(reread.last.shownValue == "Whitmore, Jr.")
         #expect(reread.leader.shownValue == "Lee Leader, Scoutmaster")
         #expect(reread.boardChair.shownValue == "Chris Chair, Sr.")
-        #expect(reread.notes.shownMultilineValue == "Calm, prepared\nCome back in May", "notes get their line break back")
+        #expect(
+            reread.notes.shownMultilineValue == "Calm, prepared\nCome back in May", "notes get their line break back")
         #expect(reread.notes.shownValue == "Calm, prepared+Come back in May", "a one-line value does not")
     }
 
@@ -101,13 +109,17 @@ struct FileFormatTests {
         var youth = Scout.blank(at: Date())
         youth.boardMemberIDs = "ADULT:Chair:Chris:7~ADULT:Smith:Pat:12~ 13~ADULT:Gone:Away:9"
         let listed = youth.boardMembers(among: [pat, patOfTwoUnits, chris])
-        #expect(listed.members.map(\.id) == [chris.id, patOfTwoUnits.id], "in the board's order, and not Pat of unit 12")
+        #expect(
+            listed.members.map(\.id) == [chris.id, patOfTwoUnits.id], "in the board's order, and not Pat of unit 12")
         #expect(listed.unknown == "ADULT:Gone:Away:9")
         youth.boardMemberIDs = "ADULT:Smith:Pat:12,ADULT:Chair:Chris:7"
-        #expect(youth.boardMembers(among: [chris, pat]).members.map(\.id) == [pat.id, chris.id], "as joined in memory too")
+        #expect(
+            youth.boardMembers(among: [chris, pat]).members.map(\.id) == [pat.id, chris.id], "as joined in memory too")
         youth.boardMemberIDs = "ADULT:Chair:Chris:7~ADULT:Smith:Pat:12~ADULT:Chair:Chris:7"
         let twice = youth.boardMembers(among: [chris, pat])
-        #expect(twice.members.map(\.id) == [chris.id, pat.id] && twice.unknown.isEmpty, "someone listed twice is one member")
+        #expect(
+            twice.members.map(\.id) == [chris.id, pat.id] && twice.unknown.isEmpty, "someone listed twice is one member"
+        )
     }
 
     /// A room keeps its ID when it is renamed, in the Java and Windows
@@ -120,7 +132,8 @@ struct FileFormatTests {
         let scratch = try ScratchFolder()
         let header = "Type,ID,Room,BoardType,Scout,Leaders,RegTime\n"
         try scratch.write(header + "ROOM,ROOM:101,110,Final,,,\n", to: "2026-09-22/rooms.csv")
-        try scratch.write(header + "ROOM,ROOM:110,110,Final,,,\nROOM,ROOM:120,120,Project,,,\n", to: "2026-08-25/rooms.csv")
+        try scratch.write(
+            header + "ROOM,ROOM:110,110,Final,,,\nROOM,ROOM:120,120,Project,,,\n", to: "2026-08-25/rooms.csv")
         let event = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22")
 
         #expect(throws: EventError("There's already a room 110. Choose another name.")) {
@@ -136,7 +149,8 @@ struct FileFormatTests {
     }
 
     @Test func windowsLineEndingsBlankLinesAndUnknownColumnsAreTolerated() {
-        let text = "Type,ID,Room,BoardType,Mystery,Scout\r\nROOM,ROOM:101,101,Final,xyz,\r\n\r\nROOM,ROOM:200A,200A,Project,,Someone\r\n"
+        let text =
+            "Type,ID,Room,BoardType,Mystery,Scout\r\nROOM,ROOM:101,101,Final,xyz,\r\n\r\nROOM,ROOM:200A,200A,Project,,Someone\r\n"
         let rooms = CSVFile.parse(Room.self, text: text)
         #expect(rooms.map(\.name) == ["101", "200A"])
         #expect(rooms[0].fields["Mystery"] == nil)
@@ -167,8 +181,9 @@ struct FileFormatTests {
         #expect(config.finalRedMinutes == 50)
         #expect(config.projectYellowMinutes == 25, "a blank value keeps the default")
         #expect(config.conveneRedMinutes == 30, "a missing value keeps the default")
-        #expect(!PropertiesFile.render(config).contains("Color"),
-                "a retired status color loads but is not written back (SPEC.md D-19)")
+        #expect(
+            !PropertiesFile.render(config).contains("Color"),
+            "a retired status color loads but is not written back (SPEC.md D-19)")
     }
 
     @Test func configRoundTrips() {
@@ -184,8 +199,10 @@ struct FileFormatTests {
     @Test func aNewFolderGetsEveryFile() throws {
         let scratch = try ScratchFolder()
         _ = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22")
-        for file in ["config.properties", "Master_AdultHistory.csv", "2026-09-22/scouts.csv", "2026-09-22/adults.csv",
-                     "2026-09-22/rooms.csv", "2026-09-22/scouts_scheduled.csv"] {
+        for file in [
+            "config.properties", "Master_AdultHistory.csv", "2026-09-22/scouts.csv", "2026-09-22/adults.csv",
+            "2026-09-22/rooms.csv", "2026-09-22/scouts_scheduled.csv",
+        ] {
             #expect(FileManager.default.fileExists(atPath: scratch.url.appending(path: file).path), "\(file) exists")
         }
         #expect(scratch.dataFolder.events() == ["2026-09-22"])
@@ -197,7 +214,9 @@ struct FileFormatTests {
         let us = Locale(identifier: "en_US")
         #expect(DataFolder.eventLabel("2026-10-27", today: "2026-10-27", locale: us) == "October 27, 2026 (Today)")
         #expect(DataFolder.eventLabel("2026-09-22", today: "2026-10-27", locale: us) == "September 22, 2026")
-        #expect(DataFolder.eventLabel("2026-09-22", today: "2026-10-27", locale: Locale(identifier: "en_GB")) == "22 September 2026")
+        #expect(
+            DataFolder.eventLabel("2026-09-22", today: "2026-10-27", locale: Locale(identifier: "en_GB"))
+                == "22 September 2026")
     }
 
     /// The sign-in station names the event it serves only when that is not
@@ -206,8 +225,9 @@ struct FileFormatTests {
     @Test func theSignInStationNamesAnEarlierEventItServes() {
         let us = Locale(identifier: "en_US")
         #expect(DataFolder.servedEventNote("2026-09-22", today: "2026-10-27", locale: us) == "for September 22, 2026")
-        #expect(DataFolder.servedEventNote("2026-09-22", today: "2026-10-27", locale: Locale(identifier: "en_GB"))
-            == "for 22 September 2026")
+        #expect(
+            DataFolder.servedEventNote("2026-09-22", today: "2026-10-27", locale: Locale(identifier: "en_GB"))
+                == "for 22 September 2026")
         #expect(DataFolder.servedEventNote("2026-10-27", today: "2026-10-27", locale: us) == nil)
     }
 
@@ -218,12 +238,18 @@ struct FileFormatTests {
         let gb = Locale(identifier: "en_GB")
         #expect(DataFolder.openFailedTitle("2026-09-22", locale: us) == "Could Not Open the September 22, 2026 Event")
         #expect(DataFolder.openFailedTitle("2026-09-22", locale: gb) == "Could Not Open the 22 September 2026 Event")
-        #expect(DataFolder.openFailed("2026-09-22", reason: "The file is locked.", locale: us)
-            == "Could not open the September 22, 2026 event: The file is locked.")
-        #expect(DataFolder.openFailed("2026-09-22", reason: "The file is locked.", locale: gb)
-            == "Could not open the 22 September 2026 event: The file is locked.")
-        #expect(DataFolder.copyRoomsFailedTitle(from: "2026-09-22", locale: us) == "Could Not Copy the Rooms from September 22, 2026")
-        #expect(DataFolder.copyRoomsFailedTitle(from: "2026-09-22", locale: gb) == "Could Not Copy the Rooms from 22 September 2026")
+        #expect(
+            DataFolder.openFailed("2026-09-22", reason: "The file is locked.", locale: us)
+                == "Could not open the September 22, 2026 event: The file is locked.")
+        #expect(
+            DataFolder.openFailed("2026-09-22", reason: "The file is locked.", locale: gb)
+                == "Could not open the 22 September 2026 event: The file is locked.")
+        #expect(
+            DataFolder.copyRoomsFailedTitle(from: "2026-09-22", locale: us)
+                == "Could Not Copy the Rooms from September 22, 2026")
+        #expect(
+            DataFolder.copyRoomsFailedTitle(from: "2026-09-22", locale: gb)
+                == "Could Not Copy the Rooms from 22 September 2026")
     }
 }
 
@@ -268,7 +294,8 @@ struct TimestampTests {
     @Test func anEventsDateIsShownInTheUsersFormat() {
         let us = Locale(identifier: "en_US")
         #expect(Timestamp.shownDate("2026-08-25", locale: us) == "August 25, 2026")
-        #expect(Timestamp.shownDate("2026-01-01", locale: us) == "January 1, 2026", "the day doesn't move in any time zone")
+        #expect(
+            Timestamp.shownDate("2026-01-01", locale: us) == "January 1, 2026", "the day doesn't move in any time zone")
         #expect(Timestamp.shownDate("2026-08-25", locale: Locale(identifier: "en_GB")) == "25 August 2026")
         #expect(Timestamp.shownDate("2026-13-45", locale: us) == "2026-13-45", "not a real date: as it was")
         #expect(Timestamp.shownDate("Spring", locale: us) == "Spring")
@@ -278,7 +305,9 @@ struct TimestampTests {
         #expect(Timestamp.isDayStamp("2026-09-22"))
         #expect(!Timestamp.isDayStamp("2026-9-22"))
         #expect(!Timestamp.isDayStamp("notes-2026"))
-        #expect(Timestamp.monthStamp(for: Date(timeIntervalSince1970: 1_790_118_300), timeZone: TimeZone(identifier: "UTC")!) == "2026-09")
+        #expect(
+            Timestamp.monthStamp(
+                for: Date(timeIntervalSince1970: 1_790_118_300), timeZone: TimeZone(identifier: "UTC")!) == "2026-09")
     }
 }
 
@@ -295,7 +324,9 @@ struct ReportTests {
         youth.phone = "770-555-0100"
         let report = Reports.csv([youth], columns: Reports.boardResultColumns)
         let lines = report.split(separator: "\n")
-        #expect(lines[0] == "RegNum,Last,First,Email,BoardType,UnitType,Unit,Leader,Status,Result,BoardChair,BoardMembers,Notes")
+        #expect(
+            lines[0]
+                == "RegNum,Last,First,Email,BoardType,UnitType,Unit,Leader,Status,Result,BoardChair,BoardMembers,Notes")
         #expect(lines[1] == ",Doe,Jan,,,,,,,Approved,,,Calm~ prepared")
     }
 

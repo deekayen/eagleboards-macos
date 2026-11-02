@@ -26,34 +26,42 @@ public enum PersonFind {
         guard !query.isEmpty else { return [] }
         let byName: (String, String, String, String) -> Bool = { lastA, firstA, lastB, firstB in
             let order = lastA.localizedCaseInsensitiveCompare(lastB)
-            return order == .orderedSame ? firstA.localizedCaseInsensitiveCompare(firstB) == .orderedAscending : order == .orderedAscending
+            return order == .orderedSame
+                ? firstA.localizedCaseInsensitiveCompare(firstB) == .orderedAscending : order == .orderedAscending
         }
 
         let foundYouth = youth.filter { $0.shownFullName.localizedCaseInsensitiveContains(query) }
             .sorted { byName($0.last, $0.first, $1.last, $1.first) }
             .map { youth -> PersonPlace in
                 if youth.status?.holdsRoom == true, !youth.room.isEmpty {
-                    return PersonPlace(id: youth.id, name: youth.shownFullName, isYouth: true, room: youth.room,
-                                       whereabouts: "is in room \(youth.room)")
+                    return PersonPlace(
+                        id: youth.id, name: youth.shownFullName, isYouth: true, room: youth.room,
+                        whereabouts: "is in room \(youth.room)")
                 }
-                let whereabouts = switch youth.status {
-                case .completed: "has finished"
-                case .postponed: "was postponed"
-                default: "is waiting"
-                }
-                return PersonPlace(id: youth.id, name: youth.shownFullName, isYouth: true, room: nil, whereabouts: whereabouts)
+                let whereabouts =
+                    switch youth.status {
+                    case .completed: "has finished"
+                    case .postponed: "was postponed"
+                    default: "is waiting"
+                    }
+                return PersonPlace(
+                    id: youth.id, name: youth.shownFullName, isYouth: true, room: nil, whereabouts: whereabouts)
             }
         let foundAdults = adults.filter { $0.shownFullName.localizedCaseInsensitiveContains(query) }
             .sorted { byName($0.last, $0.first, $1.last, $1.first) }
             .map { adult -> PersonPlace in
                 if adult.isDisabledForToday {
-                    return PersonPlace(id: adult.id, name: adult.shownFullName, isYouth: false, room: nil, whereabouts: "has gone home")
+                    return PersonPlace(
+                        id: adult.id, name: adult.shownFullName, isYouth: false, room: nil, whereabouts: "has gone home"
+                    )
                 }
                 if adult.isOnBoard {
-                    return PersonPlace(id: adult.id, name: adult.shownFullName, isYouth: false, room: adult.room,
-                                       whereabouts: "is in room \(adult.room)")
+                    return PersonPlace(
+                        id: adult.id, name: adult.shownFullName, isYouth: false, room: adult.room,
+                        whereabouts: "is in room \(adult.room)")
                 }
-                return PersonPlace(id: adult.id, name: adult.shownFullName, isYouth: false, room: nil, whereabouts: "isn't on a board")
+                return PersonPlace(
+                    id: adult.id, name: adult.shownFullName, isYouth: false, room: nil, whereabouts: "isn't on a board")
             }
         return foundYouth + foundAdults
     }
@@ -93,8 +101,12 @@ public enum PersonFind {
         let named = rooms.map(\.name).filter { $0.localizedCaseInsensitiveContains(query) }
         var parts = inRooms.prefix(4).map(\.sentence)
         if inRooms.count > 4 { parts.append("And \(inRooms.count - 4) more in rooms.") }
-        if !named.isEmpty { parts.append("\(Count.of(named.count, "room", "rooms")) by that name: \(named.joined(separator: ", ")).") }
-        if let note = note(people: found, roomsFound: self.rooms(query, people: found, rooms: rooms)) { parts.append(note) }
+        if !named.isEmpty {
+            parts.append("\(Count.of(named.count, "room", "rooms")) by that name: \(named.joined(separator: ", ")).")
+        }
+        if let note = note(people: found, roomsFound: self.rooms(query, people: found, rooms: rooms)) {
+            parts.append(note)
+        }
         return parts.joined(separator: " ")
     }
 }

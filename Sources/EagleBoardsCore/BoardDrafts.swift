@@ -236,7 +236,8 @@ public struct BoardDrafts: Sendable, Equatable {
     @MainActor
     public func canMakeChair(_ adult: Adult, for youth: Scout, in event: BoardEvent) -> Bool {
         guard let draft = byYouth[youth.id], let boardType = youth.boardType,
-              draft.memberIDs.contains(adult.id), adult.canChair(boardType) else { return false }
+            draft.memberIDs.contains(adult.id), adult.canChair(boardType)
+        else { return false }
         let members = draft.memberIDs.compactMap { event.adult(id: $0) }
         return draft.chair(among: members, for: boardType) != adult.id
     }

@@ -33,7 +33,9 @@ private func scout(
 }
 
 private func room(_ name: String, _ boardType: BoardType, scoutName: String = "") -> Room {
-    Room(fields: ["Type": "ROOM", "ID": "ROOM:\(name)", "Room": name, "BoardType": boardType.rawValue, "Scout": scoutName])
+    Room(fields: [
+        "Type": "ROOM", "ID": "ROOM:\(name)", "Room": name, "BoardType": boardType.rawValue, "Scout": scoutName,
+    ])
 }
 
 private func names(_ adults: [Adult]) -> [String] { adults.map(\.fullName) }
@@ -68,8 +70,10 @@ struct SeatingReviewTests {
         let members = ["A", "B", "C"].map { adult($0, "Member", unitName: "Troop9") }
         let review = SeatingReview(scout: scout(), members: members, room: finalRoom)
         #expect(!review.canSeat)
-        #expect(review.blockingProblems.contains(
-            "None of the members can chair a Final Board. Add a qualified chair, or make someone a chair on the Adults page."))
+        #expect(
+            review.blockingProblems.contains(
+                "None of the members can chair a Final Board. Add a qualified chair, or make someone a chair on the Adults page."
+            ))
     }
 
     @Test func sameUnitMembersWarnButDoNotBlock() {
@@ -84,8 +88,10 @@ struct SeatingReviewTests {
         #expect(review.warnings[0].title == "1 member is from Casey Candidate's unit")
         // SPEC.md O-1: the screen says youth. Short sentences with nothing
         // nested, for reading aloud, and the unit in full (Windows c0b18db).
-        #expect(review.warnings[0].detail == "Robin Sameunit is in Troop 1234, the youth's own unit. This council "
-            + "doesn't allow that. The national rule needs only one member from outside the unit, and this board meets it.")
+        #expect(
+            review.warnings[0].detail == "Robin Sameunit is in Troop 1234, the youth's own unit. This council "
+                + "doesn't allow that. The national rule needs only one member from outside the unit, and this board meets it."
+        )
     }
 
     @Test func anAllSameUnitBoardIsRefusedOutright() {
@@ -96,8 +102,11 @@ struct SeatingReviewTests {
         ]
         let review = SeatingReview(scout: scout(), members: members, room: finalRoom)
         #expect(!review.canSeat)
-        #expect(review.blockingProblems.contains("Every selected member is in Troop 1234, Casey Candidate's own unit. "
-            + "A board needs at least one member from outside the unit (Guide to Advancement 8.0.3.0). Add someone from another unit."))
+        #expect(
+            review.blockingProblems.contains(
+                "Every selected member is in Troop 1234, Casey Candidate's own unit. "
+                    + "A board needs at least one member from outside the unit (Guide to Advancement 8.0.3.0). Add someone from another unit."
+            ))
     }
 
     @Test func fourMembersAsksForConfirmationSevenIsRefused() {
@@ -108,23 +117,28 @@ struct SeatingReviewTests {
         #expect(fourReview.warnings.contains { $0.title.contains("4 members") })
 
         let seven = [chair] + ["A", "B", "C", "D", "E", "F"].map { adult($0, "Member", unitName: "Troop5") }
-        #expect(SeatingReview(scout: scout(), members: seven, room: finalRoom).blockingProblems
-            == ["A Final Board can have at most 6 (Guide to Advancement 8.0.0.3). Remove 1."])
+        #expect(
+            SeatingReview(scout: scout(), members: seven, room: finalRoom).blockingProblems
+                == ["A Final Board can have at most 6 (Guide to Advancement 8.0.0.3). Remove 1."])
     }
 
     /// Each problem ends with what to do about it.
     @Test func tooFewSaysHowManyMore() {
         let chair = adult("Chris", "Chair", unitName: "Troop1", final: .chair, project: .chair)
-        #expect(SeatingReview(scout: scout(), members: [chair, adult("A", "Member", unitName: "Troop5")], room: finalRoom)
-            .blockingProblems == ["A Final Board needs at least 3. Add 1 more."])
-        #expect(SeatingReview(scout: scout(boardType: .projectReview), members: [chair], room: room("200A", .projectReview))
-            .blockingProblems == ["A Proposal Review needs at least 2. Add 1 more."])
-        #expect(SeatingReview(scout: scout(), members: [], room: finalRoom).blockingProblems
-            == ["No one is on the board yet. Add at least 3 members."])
+        #expect(
+            SeatingReview(scout: scout(), members: [chair, adult("A", "Member", unitName: "Troop5")], room: finalRoom)
+                .blockingProblems == ["A Final Board needs at least 3. Add 1 more."])
+        #expect(
+            SeatingReview(scout: scout(boardType: .projectReview), members: [chair], room: room("200A", .projectReview))
+                .blockingProblems == ["A Proposal Review needs at least 2. Add 1 more."])
+        #expect(
+            SeatingReview(scout: scout(), members: [], room: finalRoom).blockingProblems
+                == ["No one is on the board yet. Add at least 3 members."])
         var seated = scout(status: .seated)
         seated.room = "101"
-        #expect(ChangeMembersReview(scout: seated, members: []).blockingProblems
-            == ["No one is left on the board. Add at least 3 members."])
+        #expect(
+            ChangeMembersReview(scout: seated, members: []).blockingProblems
+                == ["No one is left on the board. Add at least 3 members."])
     }
 
     @Test func disabledAndBusyAndUnavailableAdultsBlock() {
@@ -133,11 +147,12 @@ struct SeatingReviewTests {
         let busy = adult("Busy", "Elsewhere", unitName: "Troop3", room: "102")
         let unavailable = adult("Not", "Today", unitName: "Troop4", final: .unavailable)
         let review = SeatingReview(scout: scout(), members: [chair, gone, busy, unavailable], room: finalRoom)
-        #expect(review.blockingProblems == [
-            "Gone Home has gone home. Remove them, or bring them back with Adult › Mark Back.",
-            "Busy Elsewhere is on the board in room 102. Remove them.",
-            "Not Today said no thanks to Final Boards. Remove them.",
-        ])
+        #expect(
+            review.blockingProblems == [
+                "Gone Home has gone home. Remove them, or bring them back with Adult › Mark Back.",
+                "Busy Elsewhere is on the board in room 102. Remove them.",
+                "Not Today said no thanks to Final Boards. Remove them.",
+            ])
     }
 
     @Test func wrongRoomTypeWarnsOccupiedRoomBlocks() {
@@ -150,9 +165,11 @@ struct SeatingReviewTests {
         #expect(projectRoom.canSeat)
         #expect(projectRoom.warnings.contains { $0.title.contains("200A") })
 
-        let occupied = SeatingReview(scout: scout(), members: members, room: room("101", .finalBoard, scoutName: "Someone~ Else"))
-        #expect(occupied.blockingProblems == ["Room 101 already has Someone, Else's board. Choose a free room."],
-                "the youth's name with its comma (SPEC.md D-1)")
+        let occupied = SeatingReview(
+            scout: scout(), members: members, room: room("101", .finalBoard, scoutName: "Someone~ Else"))
+        #expect(
+            occupied.blockingProblems == ["Room 101 already has Someone, Else's board. Choose a free room."],
+            "the youth's name with its comma (SPEC.md D-1)")
 
         #expect(SeatingReview(scout: scout(), members: members, room: nil).blockingProblems == ["Choose a free room."])
     }
@@ -184,9 +201,11 @@ struct SeatingReviewTests {
             "UnitName": "Troop1234", "BoardType": "", "Status": BoardStatus.registered.rawValue,
         ])
         let review = SeatingReview(scout: youth, members: [], room: finalRoom)
-        #expect(review.blockingProblems.contains {
-            $0 == "Casey Candidate has no board type. Set Final Board or Proposal Review in the Board Type column of the Youth page."
-        })
+        #expect(
+            review.blockingProblems.contains {
+                $0
+                    == "Casey Candidate has no board type. Set Final Board or Proposal Review in the Board Type column of the Youth page."
+            })
         #expect(SeatingReview.noBoardType("Casey Candidate") == review.blockingProblems.last)
     }
 
@@ -194,7 +213,8 @@ struct SeatingReviewTests {
     /// type, as its heading reads.
     @Test func whoMayChairNamesTheRoleColumn() {
         #expect(SeatingReview.whoMayChair(.finalBoard) == "Only members whose Final Board Role is Chair may chair.")
-        #expect(SeatingReview.whoMayChair(.projectReview) == "Only members whose Proposal Review Role is Chair may chair.")
+        #expect(
+            SeatingReview.whoMayChair(.projectReview) == "Only members whose Proposal Review Role is Chair may chair.")
     }
 }
 
@@ -208,12 +228,17 @@ struct SeatingReviewSpokenTests {
             adult("Morgan", "Member", unitName: "Troop2"),
             adult("Taylor", "Member", unitName: "Troop3"),
         ]
-        let warning = try #require(SeatingReview(scout: scout(), members: members, room: room("200A", .projectReview)).warnings.first)
+        let warning = try #require(
+            SeatingReview(scout: scout(), members: members, room: room("200A", .projectReview)).warnings.first)
         #expect(SeatingReview.spoken(problem: "Choose a free room.") == "Cannot seat yet: Choose a free room.")
-        #expect(SeatingReview.spoken(warning: warning)
-                == "Check before seating: Room 200A is a Proposal Review room. Casey Candidate is here for a Final Board.")
-        #expect(SeatingReview.spoken(problems: ["Choose a free room."], warnings: [warning])
-                == ["Cannot seat yet: Choose a free room.", SeatingReview.spoken(warning: warning)], "problems first, as shown")
+        #expect(
+            SeatingReview.spoken(warning: warning)
+                == "Check before seating: Room 200A is a Proposal Review room. Casey Candidate is here for a Final Board."
+        )
+        #expect(
+            SeatingReview.spoken(problems: ["Choose a free room."], warnings: [warning])
+                == ["Cannot seat yet: Choose a free room.", SeatingReview.spoken(warning: warning)],
+            "problems first, as shown")
     }
 
     @Test func onlyANoteThatAppearedIsSaid() {
@@ -228,10 +253,11 @@ struct SeatingReviewSpokenTests {
     @Test func aRealReviewReadsWithItsPrefix() {
         let members = ["A", "B", "C"].map { adult($0, "Member", unitName: "Troop9") }
         let review = SeatingReview(scout: scout(), members: members, room: nil)
-        #expect(SeatingReview.spoken(problems: review.blockingProblems, warnings: review.warnings) == [
-            "Cannot seat yet: None of the members can chair a Final Board. Add a qualified chair, or make someone a chair on the Adults page.",
-            "Cannot seat yet: Choose a free room.",
-        ])
+        #expect(
+            SeatingReview.spoken(problems: review.blockingProblems, warnings: review.warnings) == [
+                "Cannot seat yet: None of the members can chair a Final Board. Add a qualified chair, or make someone a chair on the Adults page.",
+                "Cannot seat yet: Choose a free room.",
+            ])
     }
 }
 
@@ -247,7 +273,9 @@ struct BoardSuggestionTests {
             adult("Taylor", "Member", unitName: "Troop3"),
             adult("Extra", "Member", unitName: "Troop4"),
         ]
-        let rooms = [room("200A", .projectReview), room("101", .finalBoard, scoutName: "Taken"), room("102", .finalBoard)]
+        let rooms = [
+            room("200A", .projectReview), room("101", .finalBoard, scoutName: "Taken"), room("102", .finalBoard),
+        ]
         let suggestion = BoardSuggestion(for: scout(), adults: adults, rooms: rooms)
         #expect(suggestion.chairID == "ADULT:Chair:Chris")
         #expect(suggestion.memberIDs == ["ADULT:Chair:Chris", "ADULT:Member:Morgan", "ADULT:Member:Taylor"])
@@ -256,7 +284,8 @@ struct BoardSuggestionTests {
     }
 
     @Test func shortagesAreReported() {
-        let suggestion = BoardSuggestion(for: scout(), adults: [adult("Morgan", "Member", unitName: "Troop3")], rooms: [])
+        let suggestion = BoardSuggestion(
+            for: scout(), adults: [adult("Morgan", "Member", unitName: "Troop3")], rooms: [])
         #expect(suggestion.chairID == nil)
         #expect(suggestion.problems.count == 3)
     }
@@ -303,7 +332,8 @@ struct AdultLocatorTests {
     /// ALeaderFromAnotherUnitIsFoundByFirstAndLastName, with their adults.
     @Test func aLeaderFromAnotherUnitIsFoundByFirstAndLastName() throws {
         let youth = scout(unitName: "Troop1001", leader: "Sam Smith")
-        let found = try #require(AdultLocator.introduction(for: youth, among: [adult("Sam", "Smith", unitName: "Troop9")]))
+        let found = try #require(
+            AdultLocator.introduction(for: youth, among: [adult("Sam", "Smith", unitName: "Troop9")]))
         #expect(found.map(\.adult.fullName) == ["Sam Smith"])
         #expect(found.map(\.relation) == [.leader])
     }
@@ -321,26 +351,30 @@ struct AdultLocatorTests {
         let youth = scout("Casey", "Candidate", unitName: "Troop1234", leader: "Lee Leader")
         let leader = adult("Lee", "Leader", unitName: "Troop1234")
         let parent = adult("Jamie", "Candidate", unitName: "Troop1234")
-        let introducer = adult("Sam", "Scoutmaster", unitName: "Troop1234", room: "104", supporting: "SCOUT:X|\(youth.id)")
+        let introducer = adult(
+            "Sam", "Scoutmaster", unitName: "Troop1234", room: "104", supporting: "SCOUT:X|\(youth.id)")
 
         // Linked: only whoever introduces them, not the leader or parent besides.
         let linked = try #require(AdultLocator.introduction(for: youth, among: [leader, parent, introducer]))
         #expect(linked.map(\.adult.fullName) == ["Sam Scoutmaster"])
-        #expect(AdultLocator.introductionText(for: youth, among: [leader, parent, introducer])
-            == "\n\nFirst fetch whoever introduces them to the board:\nSam Scoutmaster (Room 104)")
+        #expect(
+            AdultLocator.introductionText(for: youth, among: [leader, parent, introducer])
+                == "\n\nFirst fetch whoever introduces them to the board:\nSam Scoutmaster (Room 104)")
 
         // No one linked: their leader, if signed in, still never the parent.
         let unlinked = try #require(AdultLocator.introduction(for: youth, among: [leader, parent]))
         #expect(unlinked.map(\.adult.fullName) == ["Lee Leader"])
         #expect(unlinked.map(\.relation) == [.leader])
-        #expect(AdultLocator.introductionText(for: youth, among: [leader, parent])
-            == "\n\nNo one has said they'll introduce them. Their leader:\nLee Leader (Main room)")
+        #expect(
+            AdultLocator.introductionText(for: youth, among: [leader, parent])
+                == "\n\nNo one has said they'll introduce them. Their leader:\nLee Leader (Main room)")
 
         // Only a parent here: no one to name, but still a reminder.
         let parentOnly = try #require(AdultLocator.introduction(for: youth, among: [parent]))
         #expect(parentOnly.isEmpty)
-        #expect(AdultLocator.introductionText(for: youth, among: [parent])
-            == "\n\nNo one has said they'll introduce them, and their leader hasn't signed in. Ask Casey who will.")
+        #expect(
+            AdultLocator.introductionText(for: youth, among: [parent])
+                == "\n\nNo one has said they'll introduce them, and their leader hasn't signed in. Ask Casey who will.")
     }
 
     @Test func aProjectReviewHasNoIntroductionToRemindAbout() {
@@ -367,8 +401,10 @@ struct RoomTimerTests {
     }
 
     @Test func projectReviewsGoYellowAtTwentyFiveAndRedAtForty() {
-        #expect(RoomTimer.state(status: .inProgress, boardType: .projectReview, minutes: 25, config: config) == .warning)
-        #expect(RoomTimer.state(status: .inProgress, boardType: .projectReview, minutes: 40, config: config) == .overdue)
+        #expect(
+            RoomTimer.state(status: .inProgress, boardType: .projectReview, minutes: 25, config: config) == .warning)
+        #expect(
+            RoomTimer.state(status: .inProgress, boardType: .projectReview, minutes: 40, config: config) == .overdue)
     }
 
     /// Settings › Timers shows each limit at 0 as off, so turning Running
@@ -421,8 +457,10 @@ struct RoomTimerSpeechTests {
     let config = Config.standard
     let clock = Date(timeIntervalSince1970: 1_790_118_300)
 
-    private func board(_ first: String, room: String, _ status: BoardStatus, _ boardType: BoardType = .finalBoard,
-                       minutesAgo: Int) -> Scout {
+    private func board(
+        _ first: String, room: String, _ status: BoardStatus, _ boardType: BoardType = .finalBoard,
+        minutesAgo: Int
+    ) -> Scout {
         var youth = scout(first, "Doe", boardType: boardType, status: status)
         youth.room = room
         youth.lastUpdateTime = Timestamp.recordStamp(for: clock.addingTimeInterval(TimeInterval(-minutesAgo * 60)))
@@ -430,8 +468,11 @@ struct RoomTimerSpeechTests {
     }
 
     private func check(_ previous: RoomTimerSpeech.States?, _ youth: [Scout], minutesLater: Int = 0)
-        -> (states: RoomTimerSpeech.States, spoken: String) {
-        RoomTimerSpeech.check(previous: previous, youth: youth, config: config, now: clock.addingTimeInterval(TimeInterval(minutesLater * 60)))
+        -> (states: RoomTimerSpeech.States, spoken: String)
+    {
+        RoomTimerSpeech.check(
+            previous: previous, youth: youth, config: config,
+            now: clock.addingTimeInterval(TimeInterval(minutesLater * 60)))
     }
 
     @Test func theFirstCheckOnlyRecords() {
@@ -441,19 +482,24 @@ struct RoomTimerSpeechTests {
     }
 
     @Test func aRoomTurningIsSaidOnce() {
-        let youth = [board("Jane", room: "101", .inProgress, minutesAgo: 29), board("Bill", room: "102", .seated, minutesAgo: 10)]
+        let youth = [
+            board("Jane", room: "101", .inProgress, minutesAgo: 29),
+            board("Bill", room: "102", .seated, minutesAgo: 10),
+        ]
         let start = check(nil, youth)
         let long = check(start.states, youth, minutesLater: 2)
         #expect(long.spoken == "Room 101 is running long: Jane Doe, 31 minutes.")
         #expect(check(long.states, youth, minutesLater: 3).spoken.isEmpty, "still running long: not said again")
         let overdue = check(long.states, youth, minutesLater: 21)
-        #expect(overdue.spoken == "Room 101 is overdue: Jane Doe, 50 minutes. Room 102 is overdue: Bill Doe, 31 minutes.",
-                "every room that turned, in one announcement")
+        #expect(
+            overdue.spoken == "Room 101 is overdue: Jane Doe, 50 minutes. Room 102 is overdue: Bill Doe, 31 minutes.",
+            "every room that turned, in one announcement")
     }
 
     @Test func aBoardNotSeenBeforeCountsAsOnTime() {
         let start = check(nil, [])
-        let late = check(start.states, [board("Ann", room: "200A", .inProgress, .projectReview, minutesAgo: 1)], minutesLater: 0)
+        let late = check(
+            start.states, [board("Ann", room: "200A", .inProgress, .projectReview, minutesAgo: 1)], minutesLater: 0)
         #expect(late.spoken.isEmpty)
         let undone = check(start.states, [board("Ann", room: "200A", .inProgress, .projectReview, minutesAgo: 41)])
         #expect(undone.spoken == "Room 200A is overdue: Ann Doe, 41 minutes.", "a board put back by Undo, already over")
@@ -464,7 +510,8 @@ struct RoomTimerSpeechTests {
         quick.finalYellowMinutes = 1
         let youth = [board("Jane", room: "101", .inProgress, minutesAgo: 0)]
         let start = RoomTimerSpeech.check(previous: nil, youth: youth, config: quick, now: clock)
-        let turned = RoomTimerSpeech.check(previous: start.states, youth: youth, config: quick, now: clock.addingTimeInterval(60))
+        let turned = RoomTimerSpeech.check(
+            previous: start.states, youth: youth, config: quick, now: clock.addingTimeInterval(60))
         #expect(turned.spoken == "Room 101 is running long: Jane Doe, 1 minute.")
     }
 }
@@ -537,8 +584,10 @@ struct PersonFindTests {
     }
 
     @Test func aPersonIsFoundInTheirRoomOrWhereTheyAreInstead() {
-        #expect(say("ar") == "Arthur Eldred is in room 101 [101]; Neil Armstrong is in room 101 [101]; Charles Duke has gone home",
-                "youth first, then adults, each by last name")
+        #expect(
+            say("ar")
+                == "Arthur Eldred is in room 101 [101]; Neil Armstrong is in room 101 [101]; Charles Duke has gone home",
+            "youth first, then adults, each by last name")
         #expect(say("neil arm") == "Neil Armstrong is in room 101 [101]")
         #expect(say("bill") == "Bill Amend is waiting")
         #expect(say("AGRE") == "Peter Agre has finished")
@@ -557,7 +606,10 @@ struct PersonFindTests {
     }
 
     @Test func theFindNarrowsTheRoomsAndSaysWhereTheRestAre() {
-        let rooms = [room("101", .finalBoard, scoutName: "Arthur Eldred"), room("102", .finalBoard), room("200A", .projectReview)]
+        let rooms = [
+            room("101", .finalBoard, scoutName: "Arthur Eldred"), room("102", .finalBoard),
+            room("200A", .projectReview),
+        ]
         func find(_ query: String) -> (rooms: Set<String>?, note: String?) {
             let found = PersonFind.people(query, youth: signedIn.youth, adults: signedIn.adults)
             let shown = PersonFind.rooms(query, people: found, rooms: rooms)
@@ -571,27 +623,35 @@ struct PersonFindTests {
         #expect(find("Spielberg").note == "No one by that name has signed in.")
         let crowd = (1...6).map { youth("Pat", "Waiting\($0)", .registered) }
         let found = PersonFind.people("pat", youth: crowd, adults: [])
-        #expect(PersonFind.note(people: found, roomsFound: PersonFind.rooms("pat", people: found, rooms: rooms))
-                == "Pat Waiting1 is waiting. Pat Waiting2 is waiting. Pat Waiting3 is waiting. Pat Waiting4 is waiting. And 2 more.")
+        #expect(
+            PersonFind.note(people: found, roomsFound: PersonFind.rooms("pat", people: found, rooms: rooms))
+                == "Pat Waiting1 is waiting. Pat Waiting2 is waiting. Pat Waiting3 is waiting. Pat Waiting4 is waiting. And 2 more."
+        )
     }
 
     /// VoiceOver hears whom the narrowed cards hold, which only the cards
     /// show, then the note (Windows' UpdatePersonFind).
     @Test func theFindSaysWhomTheRoomsHold() {
-        let rooms = [room("101", .finalBoard, scoutName: "Arthur Eldred"), room("102", .finalBoard), room("200A", .projectReview)]
+        let rooms = [
+            room("101", .finalBoard, scoutName: "Arthur Eldred"), room("102", .finalBoard),
+            room("200A", .projectReview),
+        ]
         func spoken(_ query: String, youth: [Scout]? = nil) -> String {
             let found = PersonFind.people(query, youth: youth ?? signedIn.youth, adults: signedIn.adults)
             return PersonFind.spoken(query, people: found, rooms: rooms)
         }
         #expect(spoken("").isEmpty && spoken("  ").isEmpty)
         #expect(spoken("armstrong") == "Neil Armstrong is in room 101.")
-        #expect(spoken("ar") == "Arthur Eldred is in room 101. Neil Armstrong is in room 101. Charles Duke has gone home.")
+        #expect(
+            spoken("ar") == "Arthur Eldred is in room 101. Neil Armstrong is in room 101. Charles Duke has gone home.")
         #expect(spoken("20") == "1 room by that name: 200A.")
         #expect(spoken("10") == "2 rooms by that name: 101, 102.")
         #expect(spoken("bill") == "Bill Amend is waiting.")
         #expect(spoken("Spielberg") == "No one by that name has signed in.")
         let crowd = (1...6).map { youth("Pat", "Seated\($0)", .inProgress, room: "10\($0)") }
-        #expect(spoken("pat", youth: crowd) == "Pat Seated1 is in room 101. Pat Seated2 is in room 102. Pat Seated3 is in room 103. "
-            + "Pat Seated4 is in room 104. And 2 more in rooms.")
+        #expect(
+            spoken("pat", youth: crowd)
+                == "Pat Seated1 is in room 101. Pat Seated2 is in room 102. Pat Seated3 is in room 103. "
+                + "Pat Seated4 is in room 104. And 2 more in rooms.")
     }
 }

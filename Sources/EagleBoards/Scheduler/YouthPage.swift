@@ -39,7 +39,8 @@ struct YouthPage: View {
                     EditableText(youth.last.shownValue, name: "Last name") { value in edit(youth) { $0.last = value } }
                 }
                 TableColumn("First Name", value: \Scout.first) { youth in
-                    EditableText(youth.first.shownValue, name: "First name") { value in edit(youth) { $0.first = value } }
+                    EditableText(youth.first.shownValue, name: "First name") { value in edit(youth) { $0.first = value }
+                    }
                 }
                 TableColumn("Unit Type", value: \Scout.unitType) { youth in
                     EditableChoice(youth.unitType, choices: RecordChoices.youthUnitTypes, name: "Unit type") { value in
@@ -60,7 +61,8 @@ struct YouthPage: View {
                     EditableText(youth.email, name: "Email") { value in edit(youth) { $0.email = value } }
                 }
                 TableColumn("Board Type", value: \Scout.boardTypeText) { youth in
-                    EditableChoice(value: youth.boardTypeText, choices: RecordChoices.boardTypes, name: "Board type") { value in
+                    EditableChoice(value: youth.boardTypeText, choices: RecordChoices.boardTypes, name: "Board type") {
+                        value in
                         edit(youth) { $0.boardTypeText = value }
                     } label: {
                         BoardTypeText(youth: youth)
@@ -112,8 +114,9 @@ struct YouthPage: View {
         .overlay {
             if rows.isEmpty {
                 if model.searchText.isEmpty {
-                    ContentUnavailableView("No Youth Yet", systemImage: "person.crop.circle.badge.clock",
-                                           description: Text("Youth appear here the moment they sign in at the tablet."))
+                    ContentUnavailableView(
+                        "No Youth Yet", systemImage: "person.crop.circle.badge.clock",
+                        description: Text("Youth appear here the moment they sign in at the tablet."))
                 } else {
                     ContentUnavailableView.search(text: model.searchText)
                 }
@@ -128,8 +131,11 @@ struct YouthPage: View {
     private func matches(_ search: String, _ youth: Scout) -> Bool {
         let query = search.trimmingCharacters(in: .whitespaces)
         guard !query.isEmpty else { return true }
-        return [youth.shownFullName, youth.unitName, youth.unitLabel, youth.unitDisplay, youth.leader.shownValue, youth.room,
-                youth.regNum, youth.email]
-            .contains { $0.localizedCaseInsensitiveContains(query) }
+        return [
+            youth.shownFullName, youth.unitName, youth.unitLabel, youth.unitDisplay, youth.leader.shownValue,
+            youth.room,
+            youth.regNum, youth.email,
+        ]
+        .contains { $0.localizedCaseInsensitiveContains(query) }
     }
 }

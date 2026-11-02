@@ -50,9 +50,11 @@ struct DonateView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Support this project")
                 .font(.headline)
-            Text("Eagle Boards is free, and built and kept up by a volunteer. If it helps your board events, you can chip in through any of these.")
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            Text(
+                "Eagle Boards is free, and built and kept up by a volunteer. If it helps your board events, you can chip in through any of these."
+            )
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                 ForEach(SupportLink.allCases) { link in
                     Button {
@@ -96,15 +98,19 @@ enum AboutPanel {
         )
         for (index, link) in SupportLink.allCases.enumerated() {
             if index > 0 {
-                credits.append(NSAttributedString(
-                    string: " · ",
-                    attributes: [.font: body, .foregroundColor: NSColor.secondaryLabelColor, .paragraphStyle: centered]
-                ))
+                credits.append(
+                    NSAttributedString(
+                        string: " · ",
+                        attributes: [
+                            .font: body, .foregroundColor: NSColor.secondaryLabelColor, .paragraphStyle: centered,
+                        ]
+                    ))
             }
-            credits.append(NSAttributedString(
-                string: link.title,
-                attributes: [.font: body, .link: link.url, .paragraphStyle: centered]
-            ))
+            credits.append(
+                NSAttributedString(
+                    string: link.title,
+                    attributes: [.font: body, .link: link.url, .paragraphStyle: centered]
+                ))
         }
         NSApplication.shared.orderFrontStandardAboutPanel(options: [.credits: credits])
         NSApplication.shared.activate()

@@ -30,9 +30,11 @@ struct SeatBoardSheet: View {
             VStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Seat \(youth.shownFullName)'s Board").font(.headline).heading(.h1)
-                    Text("The members get the room and the paperwork. \(youth.first.shownValue) waits outside until Start Review.")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
+                    Text(
+                        "The members get the room and the paperwork. \(youth.first.shownValue) waits outside until Start Review."
+                    )
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 20)
@@ -51,7 +53,8 @@ struct SeatBoardSheet: View {
                         Picker("Room", selection: $roomID) {
                             Text("Choose a Room").tag(String?.none)
                             ForEach(roomChoices) { choice in
-                                Text(roomLabel(choice)).accessibilityLabel(roomLabel(choice).spokenList).tag(Optional(choice.id))
+                                Text(roomLabel(choice)).accessibilityLabel(roomLabel(choice).spokenList).tag(
+                                    Optional(choice.id))
                             }
                         }
                     }
@@ -71,7 +74,8 @@ struct SeatBoardSheet: View {
                                     .frame(width: 72, alignment: .trailing)
                             }
                             .accessibilityElement(children: .ignore)
-                            .accessibilityLabel(member.spokenRow(youth: youth, place: member.unitDisplay, role: role?.label ?? ""))
+                            .accessibilityLabel(
+                                member.spokenRow(youth: youth, place: member.unitDisplay, role: role?.label ?? ""))
                         }
                     } header: {
                         Text("Board members (\(members.count))").heading(.h2)
@@ -112,12 +116,18 @@ struct SeatBoardSheet: View {
                                     NoticeLabel.warning(warning.title)
                                         .font(.headline)
                                     Text(warning.detail).fixedSize(horizontal: false, vertical: true)
-                                    Toggle("Seat anyway", isOn: Binding(
-                                        get: { acknowledged.contains(warning.id) },
-                                        set: { isOn in
-                                            if isOn { acknowledged.insert(warning.id) } else { acknowledged.remove(warning.id) }
-                                        }
-                                    ))
+                                    Toggle(
+                                        "Seat anyway",
+                                        isOn: Binding(
+                                            get: { acknowledged.contains(warning.id) },
+                                            set: { isOn in
+                                                if isOn {
+                                                    acknowledged.insert(warning.id)
+                                                } else {
+                                                    acknowledged.remove(warning.id)
+                                                }
+                                            }
+                                        ))
                                 }
                                 .padding(.vertical, 2)
                             }
@@ -139,7 +149,8 @@ struct SeatBoardSheet: View {
                         Button("Seat Board") {
                             guard let roomID, let chairID else { return }
                             do {
-                                try model.seat(scoutID: youth.id, roomID: roomID, chairID: chairID, memberIDs: members.map(\.id))
+                                try model.seat(
+                                    scoutID: youth.id, roomID: roomID, chairID: chairID, memberIDs: members.map(\.id))
                                 dismiss()
                             } catch {
                                 problem = error.localizedDescription
@@ -154,9 +165,11 @@ struct SeatBoardSheet: View {
             }
             .boardSheetFrame()
             .onAppear {
-                roomID = model.drafts[scoutID]?.roomID
+                roomID =
+                    model.drafts[scoutID]?.roomID
                     ?? event.rooms.first { $0.isFree && $0.boardType == youth.boardType }?.id
-                chairID = model.drafts[scoutID]?.chairToSeat(from: review.qualifiedChairs) ?? review.qualifiedChairs.first?.id
+                chairID =
+                    model.drafts[scoutID]?.chairToSeat(from: review.qualifiedChairs) ?? review.qualifiedChairs.first?.id
             }
             .onChange(of: review.qualifiedChairs.map(\.id)) { _, chairs in
                 if !chairs.contains(where: { $0 == chairID }) {
@@ -177,7 +190,8 @@ struct SeatBoardSheet: View {
 
     private func roomLabel(_ room: Room) -> String {
         let kind = room.boardType?.label ?? room.boardTypeText
-        return room.isFree ? "\(room.name) · \(kind)" : "\(room.name) · \(kind) · in use by \(room.scoutName.shownValue)"
+        return room.isFree
+            ? "\(room.name) · \(kind)" : "\(room.name) · \(kind) · in use by \(room.scoutName.shownValue)"
     }
 }
 
@@ -306,7 +320,8 @@ struct CompleteBoardSheet: View {
                 .keyboardShortcut(.cancelAction)
             Button("Complete") {
                 do {
-                    try model.complete(scoutID: scoutID, result: result, notes: notes.trimmingCharacters(in: .whitespacesAndNewlines))
+                    try model.complete(
+                        scoutID: scoutID, result: result, notes: notes.trimmingCharacters(in: .whitespacesAndNewlines))
                     dismiss()
                 } catch {
                     problem = error.localizedDescription
@@ -394,7 +409,11 @@ struct RenameRoomSheet: View {
         let room = event.room(id: roomID)
         SheetLayout(
             title: "Rename Room \(room?.name ?? "")",
-            message: room.flatMap { $0.isFree ? nil : "\($0.scoutName.shownValue)'s board is in this room. It moves with the new name; nobody has to be reseated." }
+            message: room.flatMap {
+                $0.isFree
+                    ? nil
+                    : "\($0.scoutName.shownValue)'s board is in this room. It moves with the new name; nobody has to be reseated."
+            }
         ) {
             Section {
                 TextField("New name", text: $name, prompt: Text("101 or 200A"))
@@ -456,8 +475,9 @@ struct SwapRoomsSheet: View {
                     }
                 }
                 if mixedTypes, let first, let second {
-                    Toggle("Room \(first.name) is for \(first.boardType?.label ?? "?") and room \(second.name) is for "
-                        + "\(second.boardType?.label ?? "?"). Move anyway", isOn: $mixedTypesConfirmed)
+                    Toggle(
+                        "Room \(first.name) is for \(first.boardType?.label ?? "?") and room \(second.name) is for "
+                            + "\(second.boardType?.label ?? "?"). Move anyway", isOn: $mixedTypesConfirmed)
                 }
             } footer: {
                 if let problem {

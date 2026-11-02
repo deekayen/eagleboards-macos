@@ -156,35 +156,61 @@ struct BoardEventTests {
     /// Three adults in finalYouth(1)'s unit, Troop 1001, who may sit on a
     /// Final board: a chair and two members.
     private func ownUnitAdults() throws -> [String] {
-        try [("Kettleborough", "Philippa", "Chair"), ("Lanchester", "Rosamund", "Member"), ("Marchbanks", "Tiberius", "Member")]
-            .map { last, first, role in
-                try event.registerAdult([
-                    "Last": last, "First": first, "Email": "\(first.lowercased())@example.org", "UnitType": "Troop", "Unit": "1001",
-                    "ProjectReview": "Member", "FinalBoard": role,
-                ]).id
-            }
+        try [
+            ("Kettleborough", "Philippa", "Chair"), ("Lanchester", "Rosamund", "Member"),
+            ("Marchbanks", "Tiberius", "Member"),
+        ]
+        .map { last, first, role in
+            try event.registerAdult([
+                "Last": last, "First": first, "Email": "\(first.lowercased())@example.org", "UnitType": "Troop",
+                "Unit": "1001",
+                "ProjectReview": "Member", "FinalBoard": role,
+            ]).id
+        }
     }
 
     @Test func compositionRulesHoldWithoutTheSeatBoardSheet() throws {
-        refused("a Final board of 2 (GTA 8.0.0.3 floor)") { try seat("101", finalYouth(1), chair: chairOfEither, member(1)) }
-        refused("a Final board of 7 (GTA 8.0.0.3 ceiling)") { try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2), member(3), member(4), member(5), member(6)) }
+        refused("a Final board of 2 (GTA 8.0.0.3 floor)") {
+            try seat("101", finalYouth(1), chair: chairOfEither, member(1))
+        }
+        refused("a Final board of 7 (GTA 8.0.0.3 ceiling)") {
+            try seat(
+                "101", finalYouth(1), chair: chairOfEither, member(1), member(2), member(3), member(4), member(5),
+                member(6))
+        }
         refused("a project review of 1") { try seat("200A", projectYouth(1), chair: projectChair1) }
-        refused("a project review of 7") { try seat("200A", projectYouth(1), chair: projectChair1, member(1), member(2), member(3), member(4), member(5), member(6)) }
+        refused("a project review of 7") {
+            try seat(
+                "200A", projectYouth(1), chair: projectChair1, member(1), member(2), member(3), member(4), member(5),
+                member(6))
+        }
 
-        refused("a plain Member may not chair a Final board") { try seat("101", finalYouth(1), chair: member(1), member(2), member(3)) }
-        refused("a Project chair may not chair a Final board") { try seat("101", finalYouth(1), chair: projectChair1, member(1), member(2)) }
-        refused("a plain Member may not chair a project review") { try seat("200A", projectYouth(1), chair: member(1), member(2)) }
+        refused("a plain Member may not chair a Final board") {
+            try seat("101", finalYouth(1), chair: member(1), member(2), member(3))
+        }
+        refused("a Project chair may not chair a Final board") {
+            try seat("101", finalYouth(1), chair: projectChair1, member(1), member(2))
+        }
+        refused("a plain Member may not chair a project review") {
+            try seat("200A", projectYouth(1), chair: member(1), member(2))
+        }
         refused("the chair must be sitting on the board") {
-            try event.seatBoard(roomID: "ROOM:101", scoutID: finalYouth(1), chairID: finalChair2, memberIDs: [member(1), member(2), member(3)])
+            try event.seatBoard(
+                roomID: "ROOM:101", scoutID: finalYouth(1), chairID: finalChair2,
+                memberIDs: [member(1), member(2), member(3)])
         }
         refused("an unknown chair") {
-            try event.seatBoard(roomID: "ROOM:101", scoutID: finalYouth(1), chairID: "NOBODY", memberIDs: [member(1), member(2), member(3)])
+            try event.seatBoard(
+                roomID: "ROOM:101", scoutID: finalYouth(1), chairID: "NOBODY",
+                memberIDs: [member(1), member(2), member(3)])
         }
         refused("a board with no members") {
             try event.seatBoard(roomID: "ROOM:101", scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [])
         }
         refused("the same member listed twice does not make a board of three") {
-            try event.seatBoard(roomID: "ROOM:101", scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [chairOfEither, member(1), member(1)])
+            try event.seatBoard(
+                roomID: "ROOM:101", scoutID: finalYouth(1), chairID: chairOfEither,
+                memberIDs: [chairOfEither, member(1), member(1)])
         }
 
         // SPEC.md D-4: the council's same-unit rule can be overridden, but
@@ -195,7 +221,8 @@ struct BoardEventTests {
             Issue.record("a board all from the youth's own unit is refused (GTA 8.0.3.0)")
         } catch let refusal as EventError {
             let youth = try #require(event.scout(id: finalYouth(1)))
-            let review = SeatingReview(scout: youth, members: own.compactMap(event.adult(id:)), room: event.room(named: "101"))
+            let review = SeatingReview(
+                scout: youth, members: own.compactMap(event.adult(id:)), room: event.room(named: "101"))
             #expect(review.blockingProblems.contains(refusal.message), "in the words the Seat Board sheet uses")
         }
 
@@ -207,45 +234,69 @@ struct BoardEventTests {
     /// refusals use the screen's words (the board type as shown, "gone
     /// home", a count with no "(s)") and say what to do.
     @Test func seatingRefusalsSayWhatToDoInTheScreensWords() throws {
-        func seating(_ chair: String, _ members: [String], in room: String = "ROOM:101", youth: String? = nil) -> String? {
-            refusal { try event.seatBoard(roomID: room, scoutID: youth ?? finalYouth(1), chairID: chair, memberIDs: members) }
+        func seating(_ chair: String, _ members: [String], in room: String = "ROOM:101", youth: String? = nil)
+            -> String?
+        {
+            refusal {
+                try event.seatBoard(roomID: room, scoutID: youth ?? finalYouth(1), chairID: chair, memberIDs: members)
+            }
         }
         #expect(seating(chairOfEither, []) == "The board has no members yet. Add at least 3 for a Final Board.")
-        #expect(seating(chairOfEither, [chairOfEither])
-            == "Only 1 member is on the board, and a Final Board needs at least 3. Add 2 more.")
-        #expect(seating(chairOfEither, [chairOfEither, member(1)])
-            == "Only 2 members are on the board, and a Final Board needs at least 3. Add 1 more.")
-        #expect(seating(chairOfEither, [chairOfEither] + (1...6).map(member))
-            == "7 members are on the board, and a Final Board can have at most 6 (Guide to Advancement 8.0.0.3). Remove 1.")
-        #expect(seating(projectChair1, [projectChair1], in: "ROOM:200A", youth: projectYouth(1))
-            == "Only 1 member is on the board, and a Proposal Review needs at least 2. Add 1 more.")
+        #expect(
+            seating(chairOfEither, [chairOfEither])
+                == "Only 1 member is on the board, and a Final Board needs at least 3. Add 2 more.")
+        #expect(
+            seating(chairOfEither, [chairOfEither, member(1)])
+                == "Only 2 members are on the board, and a Final Board needs at least 3. Add 1 more.")
+        #expect(
+            seating(chairOfEither, [chairOfEither] + (1...6).map(member))
+                == "7 members are on the board, and a Final Board can have at most 6 (Guide to Advancement 8.0.0.3). Remove 1."
+        )
+        #expect(
+            seating(projectChair1, [projectChair1], in: "ROOM:200A", youth: projectYouth(1))
+                == "Only 1 member is on the board, and a Proposal Review needs at least 2. Add 1 more.")
 
-        #expect(seating("", [chairOfEither, member(1), member(2)])
-            == "No one is chosen to chair the board. Choose which qualified member chairs it.")
-        #expect(seating(finalChair2, [member(1), member(2), member(3)])
-            == "Bartholomew Blackwood would chair the board but isn't one of its members. Add them to the board, or choose another chair.")
-        #expect(seating(member(1), [member(1), member(2), member(3)])
-            == "Fitzgerald Fairbanks isn't a chair for Final Boards. Choose a qualified chair, or make them a chair on the Adults page.")
-        #expect(seating(projectChair1, [projectChair1, member(1), member(2)])
-            == "Desmond Duxbury isn't a chair for Final Boards. Choose a qualified chair, or make them a chair on the Adults page.")
+        #expect(
+            seating("", [chairOfEither, member(1), member(2)])
+                == "No one is chosen to chair the board. Choose which qualified member chairs it.")
+        #expect(
+            seating(finalChair2, [member(1), member(2), member(3)])
+                == "Bartholomew Blackwood would chair the board but isn't one of its members. Add them to the board, or choose another chair."
+        )
+        #expect(
+            seating(member(1), [member(1), member(2), member(3)])
+                == "Fitzgerald Fairbanks isn't a chair for Final Boards. Choose a qualified chair, or make them a chair on the Adults page."
+        )
+        #expect(
+            seating(projectChair1, [projectChair1, member(1), member(2)])
+                == "Desmond Duxbury isn't a chair for Final Boards. Choose a qualified chair, or make them a chair on the Adults page."
+        )
 
         try event.setAvailable(false, adultID: member(11))
-        #expect(seating(chairOfEither, [chairOfEither, member(1), member(11)])
-            == "Percival Pemberton has gone home. Bring them back with Adult › Mark Back, or choose someone else.")
+        #expect(
+            seating(chairOfEither, [chairOfEither, member(1), member(11)])
+                == "Percival Pemberton has gone home. Bring them back with Adult › Mark Back, or choose someone else.")
         let noThanks = adultID(29, unit: 1002)  // Unavailable for Final Boards
-        #expect(seating(chairOfEither, [chairOfEither, member(1), noThanks])
-            == "Cordelia Crowninshield said no thanks to Final Boards. Choose someone else.")
-        #expect(seating(chairOfEither, [chairOfEither, member(1), "ADULT:Nobody:Here:0"]) == "There is no adult 'ADULT:Nobody:Here:0'.")
+        #expect(
+            seating(chairOfEither, [chairOfEither, member(1), noThanks])
+                == "Cordelia Crowninshield said no thanks to Final Boards. Choose someone else.")
+        #expect(
+            seating(chairOfEither, [chairOfEither, member(1), "ADULT:Nobody:Here:0"])
+                == "There is no adult 'ADULT:Nobody:Here:0'.")
 
         let own = try ownUnitAdults()
-        #expect(seating(own[0], own) == "Every selected member is in Troop 1001, Alexander Aldridge's own unit. "
-            + "A board needs at least one member from outside the unit (Guide to Advancement 8.0.3.0). Add someone from another unit.")
+        #expect(
+            seating(own[0], own) == "Every selected member is in Troop 1001, Alexander Aldridge's own unit. "
+                + "A board needs at least one member from outside the unit (Guide to Advancement 8.0.3.0). Add someone from another unit."
+        )
 
         try seat("102", finalYouth(2), chair: finalChair2, member(3), member(4))
-        #expect(seating(chairOfEither, [chairOfEither, member(1), member(3)])
-            == "Horatio Hollingsworth is on the board in room 102. Choose someone else.")
-        #expect(seating(chairOfEither, [chairOfEither, member(1), member(2)], in: "ROOM:102")
-            == "Room 102 already has Beauregard Bram's board. Choose a free room.")
+        #expect(
+            seating(chairOfEither, [chairOfEither, member(1), member(3)])
+                == "Horatio Hollingsworth is on the board in room 102. Choose someone else.")
+        #expect(
+            seating(chairOfEither, [chairOfEither, member(1), member(2)], in: "ROOM:102")
+                == "Room 102 already has Beauregard Bram's board. Choose a free room.")
         #expect(count(.seated) == 1, "none of that seated anyone")
     }
 
@@ -259,14 +310,20 @@ struct BoardEventTests {
         func changing(_ chair: String, _ members: [String]) -> String? {
             refusal { try event.changeMembers(scoutID: finalYouth(1), chairID: chair, memberIDs: members) }
         }
-        #expect(changing(chairOfEither, [])
-            == "No members would be left, and a Final Board needs at least 3. Add 3 before saving.")
-        #expect(changing(chairOfEither, [chairOfEither, member(1)])
-            == "Only 2 members would be left, and a Final Board needs at least 3. Add 1 more before saving.")
-        #expect(changing(chairOfEither, [chairOfEither] + (1...6).map(member))
-            == "That would make 7 members, and a Final Board can have at most 6 (Guide to Advancement 8.0.0.3). Remove 1 before saving.")
-        #expect(changing(chairOfEither, [finalChair2, member(1), member(2)])
-            == "Anneliese Abernathy would chair the board but isn't one of its members. Add them to the board, or choose another chair.")
+        #expect(
+            changing(chairOfEither, [])
+                == "No members would be left, and a Final Board needs at least 3. Add 3 before saving.")
+        #expect(
+            changing(chairOfEither, [chairOfEither, member(1)])
+                == "Only 2 members would be left, and a Final Board needs at least 3. Add 1 more before saving.")
+        #expect(
+            changing(chairOfEither, [chairOfEither] + (1...6).map(member))
+                == "That would make 7 members, and a Final Board can have at most 6 (Guide to Advancement 8.0.0.3). Remove 1 before saving."
+        )
+        #expect(
+            changing(chairOfEither, [finalChair2, member(1), member(2)])
+                == "Anneliese Abernathy would chair the board but isn't one of its members. Add them to the board, or choose another chair."
+        )
         #expect(adultRoom(member(2)) == "101", "the refusals changed nothing")
     }
 
@@ -281,16 +338,23 @@ struct BoardEventTests {
         let reopened = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22")
         try reopened.setAvailable(false, adultID: junior)
         let refused = refusal {
-            try reopened.seatBoard(roomID: "ROOM:101", scoutID: finalYouth(1), chairID: chairOfEither,
-                                   memberIDs: [chairOfEither, member(1), junior])
+            try reopened.seatBoard(
+                roomID: "ROOM:101", scoutID: finalYouth(1), chairID: chairOfEither,
+                memberIDs: [chairOfEither, member(1), junior])
         }
-        #expect(refused == "Lysander Whitmore, Jr. has gone home. Bring them back with Adult › Mark Back, or choose someone else.")
-        #expect(refusal { try reopened.setAvailable(false, adultID: junior) } == "Lysander Whitmore, Jr. is already marked gone home.")
+        #expect(
+            refused
+                == "Lysander Whitmore, Jr. has gone home. Bring them back with Adult › Mark Back, or choose someone else."
+        )
+        #expect(
+            refusal { try reopened.setAvailable(false, adultID: junior) }
+                == "Lysander Whitmore, Jr. is already marked gone home.")
 
         let youth = try #require(reopened.scout(id: finalYouth(1)))
         let members = [chairOfEither, member(1), junior].compactMap(reopened.adult(id:))
-        #expect(SeatingReview(scout: youth, members: members, room: reopened.room(named: "101")).blockingProblems
-            == ["Lysander Whitmore, Jr. has gone home. Remove them, or bring them back with Adult › Mark Back."])
+        #expect(
+            SeatingReview(scout: youth, members: members, room: reopened.room(named: "101")).blockingProblems
+                == ["Lysander Whitmore, Jr. has gone home. Remove them, or bring them back with Adult › Mark Back."])
     }
 
     /// A table never deletes someone a board holds (SPEC.md P-6, amended
@@ -298,8 +362,10 @@ struct BoardEventTests {
     /// seated or in review, or a member sitting on it, until it is over.
     @Test func aTableNeverDeletesSomeoneABoardHolds() throws {
         try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
-        #expect(refusal { try event.deleteYouth(id: finalYouth(1)) }?.hasSuffix("Reset or complete that board first.") == true,
-                "a seated youth is not deleted")
+        #expect(
+            refusal { try event.deleteYouth(id: finalYouth(1)) }?.hasSuffix("Reset or complete that board first.")
+                == true,
+            "a seated youth is not deleted")
         #expect(refusal { try event.deleteAdult(id: member(1)) } != nil, "nor a member of their board")
         try event.startReview(scoutID: finalYouth(1))
         #expect(refusal { try event.deleteYouth(id: finalYouth(1)) } != nil, "nor a youth in review")
@@ -314,29 +380,37 @@ struct BoardEventTests {
     /// way out (Windows' DisableAdult and Undo). Undo and Redo share
     /// restoreBoard, so its ending fits either.
     @Test func goneHomeDeleteAndUndoRefusalsNameTheWayOut() throws {
-        #expect(refusal { try event.setAvailable(true, adultID: member(1)) } == "Fitzgerald Fairbanks isn't marked gone home.")
+        #expect(
+            refusal { try event.setAvailable(true, adultID: member(1)) }
+                == "Fitzgerald Fairbanks isn't marked gone home.")
         try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
         let seated = try #require(event.scout(id: finalYouth(1)))
-        let onTheBoard = "Fitzgerald Fairbanks is on the board in room 101. "
+        let onTheBoard =
+            "Fitzgerald Fairbanks is on the board in room 101. "
             + "Take them off it with Board › Change Members… first, or reset or complete that board."
         #expect(refusal { try event.setAvailable(false, adultID: member(1)) } == onTheBoard)
         #expect(refusal { try event.deleteAdult(id: member(1)) } == onTheBoard)
 
         try event.resetBoard(scoutID: finalYouth(1))
         try seat("101", finalYouth(2), chair: finalChair2, member(3), member(4))
-        #expect(refusal { try event.restoreBoard(seated) }
-            == "Room 101 has been given to Beauregard Bram since. Change the board by hand instead.")
+        #expect(
+            refusal { try event.restoreBoard(seated) }
+                == "Room 101 has been given to Beauregard Bram since. Change the board by hand instead.")
         try event.resetBoard(scoutID: finalYouth(2))
         try seat("102", finalYouth(3), chair: finalChair3, member(1), member(5))
-        #expect(refusal { try event.restoreBoard(seated) }
-            == "Fitzgerald Fairbanks is on the board in room 102 now. Change the board by hand instead.")
+        #expect(
+            refusal { try event.restoreBoard(seated) }
+                == "Fitzgerald Fairbanks is on the board in room 102 now. Change the board by hand instead.")
         try event.resetBoard(scoutID: finalYouth(3))
         try event.setAvailable(false, adultID: member(2))
-        #expect(refusal { try event.restoreBoard(seated) } == "Genevieve Grimaldi has gone home since. Change the board by hand instead.")
+        #expect(
+            refusal { try event.restoreBoard(seated) }
+                == "Genevieve Grimaldi has gone home since. Change the board by hand instead.")
         try event.setAvailable(true, adultID: member(2))
         try event.removeRoom(id: "ROOM:101")
-        #expect(refusal { try event.restoreBoard(seated) }
-            == "Room 101 is no longer on today's list. Change the board by hand instead.")
+        #expect(
+            refusal { try event.restoreBoard(seated) }
+                == "Room 101 is no longer on today's list. Change the board by hand instead.")
     }
 
     @Test func fiveChairsCapTheEventAtFiveConcurrentBoards() throws {
@@ -346,8 +420,12 @@ struct BoardEventTests {
         #expect(emptyRooms == 7, "seven rooms sit empty for want of a chair")
         #expect(count(.inProgress) == 0, "seating convenes only; the youth is still outside (GTA 8.0.3.0 #8)")
 
-        refused("a seated chair cannot take a second board") { try seat("104", finalYouth(4), chair: chairOfEither, member(9), member(10)) }
-        refused("a seated member cannot take a second board") { try seat("104", finalYouth(4), chair: chairOfEither, member(1), member(9)) }
+        refused("a seated chair cannot take a second board") {
+            try seat("104", finalYouth(4), chair: chairOfEither, member(9), member(10))
+        }
+        refused("a seated member cannot take a second board") {
+            try seat("104", finalYouth(4), chair: chairOfEither, member(1), member(9))
+        }
         #expect(status(finalYouth(4)) == .registered)
         #expect(adultRoom(chairOfEither) == "101")
     }
@@ -356,7 +434,9 @@ struct BoardEventTests {
         try seatFiveBoards()
         try event.setAvailable(false, adultID: member(11))
         #expect(adultRoom(member(11)) == disabledForTodayMarker)
-        refused("a disabled adult cannot be seated") { try seat("104", finalYouth(4), chair: chairOfEither, member(11), member(12)) }
+        refused("a disabled adult cannot be seated") {
+            try seat("104", finalYouth(4), chair: chairOfEither, member(11), member(12))
+        }
         refused("an adult on a board cannot be disabled") { try event.setAvailable(false, adultID: member(1)) }
 
         try event.setAvailable(true, adultID: member(11))
@@ -405,7 +485,8 @@ struct BoardEventTests {
             try event.changeMembers(scoutID: finalYouth(2), chairID: finalChair2, memberIDs: [finalChair2, member(3)])
         }
 
-        try event.changeMembers(scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [chairOfEither, member(1), member(3)])
+        try event.changeMembers(
+            scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [chairOfEither, member(1), member(3)])
         let changed = try #require(event.scout(id: finalYouth(1)))
         #expect(changed.status == .seated, "still seated, not reseated")
         #expect(changed.lastUpdateTime == seated.lastUpdateTime, "the room timer keeps running")
@@ -416,17 +497,22 @@ struct BoardEventTests {
 
         try seat("102", finalYouth(2), chair: finalChair2, member(4), member(9))
         refused("a member already on another board cannot be added") {
-            try event.changeMembers(scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [chairOfEither, member(4)])
+            try event.changeMembers(
+                scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [chairOfEither, member(4)])
         }
 
         try event.startReview(scoutID: finalYouth(1))
         let inReview = try #require(event.scout(id: finalYouth(1)))
-        try event.changeMembers(scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [chairOfEither, member(1), member(2)])
+        try event.changeMembers(
+            scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [chairOfEither, member(1), member(2)])
         #expect(status(finalYouth(1)) == .inProgress, "changing members mid-review does not end it")
-        #expect(event.scout(id: finalYouth(1))?.lastUpdateTime == inReview.lastUpdateTime, "the review timer keeps running too")
+        #expect(
+            event.scout(id: finalYouth(1))?.lastUpdateTime == inReview.lastUpdateTime,
+            "the review timer keeps running too")
 
         refused("the chair must stay one of the members") {
-            try event.changeMembers(scoutID: finalYouth(1), chairID: member(5), memberIDs: [chairOfEither, member(1), member(2)])
+            try event.changeMembers(
+                scoutID: finalYouth(1), chairID: member(5), memberIDs: [chairOfEither, member(1), member(2)])
         }
         refused("a board of one is below the Final minimum") {
             try event.changeMembers(scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [chairOfEither])
@@ -445,20 +531,25 @@ struct BoardEventTests {
     @Test func changeMembersHandsTheChairOnAndCompleteReleasesTheNewBoard() throws {
         try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
 
-        try event.changeMembers(scoutID: finalYouth(1), chairID: finalChair3, memberIDs: [finalChair3, member(1), member(3)])
+        try event.changeMembers(
+            scoutID: finalYouth(1), chairID: finalChair3, memberIDs: [finalChair3, member(1), member(3)])
         #expect(adultRoom(chairOfEither) == "", "the chair who left is free")
         #expect(adultRoom(member(2)) == "", "the member not kept is free")
-        #expect(adultRoom(finalChair3) == "101" && adultRoom(member(3)) == "101", "the new chair and member are in the room")
+        #expect(
+            adultRoom(finalChair3) == "101" && adultRoom(member(3)) == "101", "the new chair and member are in the room"
+        )
         #expect(event.scout(id: finalYouth(1))?.boardChairID == finalChair3, "the new chair is recorded")
 
         refused("a plain member may not take the chair") {
-            try event.changeMembers(scoutID: finalYouth(1), chairID: member(1), memberIDs: [finalChair3, member(1), member(3)])
+            try event.changeMembers(
+                scoutID: finalYouth(1), chairID: member(1), memberIDs: [finalChair3, member(1), member(3)])
         }
         #expect(event.scout(id: finalYouth(1))?.boardChairID == finalChair3, "the refusal changed nothing")
 
         try runBoard(finalYouth(1))
-        #expect(adultRoom(finalChair3) == "" && adultRoom(member(1)) == "" && adultRoom(member(3)) == "",
-                "completing releases the board as changed")
+        #expect(
+            adultRoom(finalChair3) == "" && adultRoom(member(1)) == "" && adultRoom(member(3)) == "",
+            "completing releases the board as changed")
         #expect(busyAdults == 0)
     }
 
@@ -494,11 +585,13 @@ struct BoardEventTests {
         let before = try #require(reopened.scout(id: finalYouth(1)))
         #expect(!before.boardMemberIDs.contains(","), "the file joined the list with ~")
         let listed = before.boardMembers(among: reopened.adults)
-        #expect(listed.members.map(\.id) == [chairOfEither, member(1), junior],
-                "Change Members starts from every member, in the board's order")
+        #expect(
+            listed.members.map(\.id) == [chairOfEither, member(1), junior],
+            "Change Members starts from every member, in the board's order")
         #expect(listed.unknown.isEmpty)
 
-        try reopened.changeMembers(scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [chairOfEither, member(1), member(2)])
+        try reopened.changeMembers(
+            scoutID: finalYouth(1), chairID: chairOfEither, memberIDs: [chairOfEither, member(1), member(2)])
         #expect(reopened.adult(id: junior)?.room == "", "the member taken off is free again")
         #expect(reopened.adult(id: member(2))?.room == "101")
 
@@ -508,7 +601,8 @@ struct BoardEventTests {
 
         var gone = before
         gone.boardMemberIDs = before.boardMemberIDs + "~ADULT:Nobody:Here:0"
-        #expect(gone.boardMembers(among: reopened.adults).unknown == "ADULT:Nobody:Here:0", "and names who it cannot find")
+        #expect(
+            gone.boardMembers(among: reopened.adults).unknown == "ADULT:Nobody:Here:0", "and names who it cannot find")
     }
 
     /// SPEC.md D-1: a comma in a name is "~" in the files, the same character
@@ -530,15 +624,18 @@ struct BoardEventTests {
             let room = try #require(board.room(named: "101"))
             #expect(youth.boardMemberNames(among: board.adults) == names, "the youth's Members line \(when)")
             #expect(board.memberNames(in: room) == names, "the room card and Rooms page \(when)")
-            #expect(room.spokenLabel(occupant: board.occupant(of: room), adults: board.adults, minutes: nil, timer: nil)
+            #expect(
+                room.spokenLabel(occupant: board.occupant(of: room), adults: board.adults, minutes: nil, timer: nil)
                     == "Room 101, Final Board, Alexander Aldridge, Seated, "
                     + "members Anneliese Abernathy, Fitzgerald Fairbanks, Lysander Whitmore, Jr.",
-                    "the spoken card \(when)")
+                "the spoken card \(when)")
         }
         try check(event, "as seated")
 
         let reopened = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22")
-        #expect(!(reopened.scout(id: finalYouth(1))?.boardMembers.contains(",") ?? true), "the file joined the names with ~")
+        #expect(
+            !(reopened.scout(id: finalYouth(1))?.boardMembers.contains(",") ?? true), "the file joined the names with ~"
+        )
         try check(reopened, "after a reopen")
 
         try reopened.startReview(scoutID: finalYouth(1))
@@ -557,7 +654,10 @@ struct BoardEventTests {
         #expect(youth.boardMemberNames(among: [ann]) == ["Bob Smith", "Ann Lee"], "names and no IDs")
         youth.boardMemberIDs = "ADULT:Smith:Bob:9,ADULT:Lee:Ann:12"
         #expect(youth.boardMemberNames(among: [ann]) == ["Bob Smith", "Ann Lee"], "one ID not found")
-        #expect(youth.boardMemberNames(among: [ann, Adult(fields: ["ID": "ADULT:Smith:Bob:9", "First": "Bob", "Last": "Smith"])])
+        #expect(
+            youth.boardMemberNames(among: [
+                ann, Adult(fields: ["ID": "ADULT:Smith:Bob:9", "First": "Bob", "Last": "Smith"]),
+            ])
                 == ["Bob Smith", "Ann Lee"], "every ID found")
         #expect(Scout.blank(at: Date()).boardMemberNames(among: [ann]).isEmpty, "no board")
     }
@@ -567,7 +667,9 @@ struct BoardEventTests {
         try event.postponeBoard(scoutID: finalYouth(9))
         #expect(status(finalYouth(9)) == .postponed)
 
-        refused("a youth whose board has convened cannot be postponed") { try event.postponeBoard(scoutID: finalYouth(2)) }
+        refused("a youth whose board has convened cannot be postponed") {
+            try event.postponeBoard(scoutID: finalYouth(2))
+        }
         #expect(status(finalYouth(2)) == .seated)
 
         let busyBefore = busyAdults
@@ -599,15 +701,24 @@ struct BoardEventTests {
         try runBoard(finalYouth(3))
         try runBoard(projectYouth(2))
         try runBoard(finalYouth(4))
-        try seat("101", finalYouth(2), chair: chairOfEither, member(1), member(2)); try runBoard(finalYouth(2))
-        try seat("102", finalYouth(5), chair: finalChair2, member(3), member(4)); try runBoard(finalYouth(5))
-        try seat("103", finalYouth(6), chair: finalChair3, member(5), member(6)); try runBoard(finalYouth(6))
-        try seat("104", finalYouth(7), chair: chairOfEither, member(1), member(2)); try runBoard(finalYouth(7))
-        try seat("105", finalYouth(8), chair: finalChair2, member(3), member(4)); try runBoard(finalYouth(8))
-        try seat("200A", projectYouth(1), chair: projectChair1, member(7)); try runBoard(projectYouth(1))
-        try seat("200B", projectYouth(3), chair: projectChair2, member(8)); try runBoard(projectYouth(3))
-        try seat("201A", projectYouth(4), chair: projectChair1, member(7)); try runBoard(projectYouth(4))
-        try seat("201B", projectYouth(5), chair: projectChair2, member(8)); try runBoard(projectYouth(5))
+        try seat("101", finalYouth(2), chair: chairOfEither, member(1), member(2))
+        try runBoard(finalYouth(2))
+        try seat("102", finalYouth(5), chair: finalChair2, member(3), member(4))
+        try runBoard(finalYouth(5))
+        try seat("103", finalYouth(6), chair: finalChair3, member(5), member(6))
+        try runBoard(finalYouth(6))
+        try seat("104", finalYouth(7), chair: chairOfEither, member(1), member(2))
+        try runBoard(finalYouth(7))
+        try seat("105", finalYouth(8), chair: finalChair2, member(3), member(4))
+        try runBoard(finalYouth(8))
+        try seat("200A", projectYouth(1), chair: projectChair1, member(7))
+        try runBoard(projectYouth(1))
+        try seat("200B", projectYouth(3), chair: projectChair2, member(8))
+        try runBoard(projectYouth(3))
+        try seat("201A", projectYouth(4), chair: projectChair1, member(7))
+        try runBoard(projectYouth(4))
+        try seat("201B", projectYouth(5), chair: projectChair2, member(8))
+        try runBoard(projectYouth(5))
 
         #expect(count(.completed) == 13)
         #expect(count(.postponed) == 1)
@@ -621,7 +732,9 @@ struct BoardEventTests {
         // failure that outlives the event.
         for youth in event.scouts where youth.status == .completed {
             let chair = event.adult(id: youth.boardChairID)
-            #expect(chair != nil && youth.boardType.map { chair!.canChair($0) } == true, "\(youth.fullName) had a qualified chair")
+            #expect(
+                chair != nil && youth.boardType.map { chair!.canChair($0) } == true,
+                "\(youth.fullName) had a qualified chair")
         }
 
         // And it is all on disk: a fresh open of the folder sees the same event.
@@ -661,8 +774,12 @@ struct BoardEventTests {
     // compositionRulesHoldWithoutTheSeatBoardSheet.)
     @Test func requestsTheSeatBoardSheetWouldNeverMake() throws {
         refused("an unknown room") { try seat("999", finalYouth(1), chair: chairOfEither, member(1), member(2)) }
-        refused("an unknown youth") { try seat("101", "SCOUT:Nobody:Here:0", chair: chairOfEither, member(1), member(2)) }
-        refused("an unknown member") { try seat("101", finalYouth(1), chair: chairOfEither, member(1), "ADULT:Nobody:Here:0") }
+        refused("an unknown youth") {
+            try seat("101", "SCOUT:Nobody:Here:0", chair: chairOfEither, member(1), member(2))
+        }
+        refused("an unknown member") {
+            try seat("101", finalYouth(1), chair: chairOfEither, member(1), "ADULT:Nobody:Here:0")
+        }
         refused("an unknown youth cannot be started") { try event.startReview(scoutID: "SCOUT:Nobody:Here:0") }
         refused("an unknown youth cannot be completed") {
             try event.completeBoard(scoutID: "SCOUT:Nobody:Here:0", result: .approved, notes: "")
@@ -670,8 +787,12 @@ struct BoardEventTests {
         #expect(busyAdults == 0)
 
         try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
-        refused("nobody else can be seated in an occupied room") { try seat("101", finalYouth(2), chair: finalChair2, member(3), member(4)) }
-        refused("the same youth cannot be seated twice") { try seat("102", finalYouth(1), chair: finalChair2, member(3), member(4)) }
+        refused("nobody else can be seated in an occupied room") {
+            try seat("101", finalYouth(2), chair: finalChair2, member(3), member(4))
+        }
+        refused("the same youth cannot be seated twice") {
+            try seat("102", finalYouth(1), chair: finalChair2, member(3), member(4))
+        }
         #expect(status(finalYouth(2)) == .registered)
     }
 
@@ -682,11 +803,17 @@ struct BoardEventTests {
         try runBoard(finalYouth(1))
         try event.postponeBoard(scoutID: finalYouth(9))
 
-        refused("a Completed youth cannot be seated again") { try seat("102", finalYouth(1), chair: finalChair2, member(3), member(4)) }
-        refused("a Postponed youth cannot be seated") { try seat("102", finalYouth(9), chair: finalChair2, member(3), member(4)) }
+        refused("a Completed youth cannot be seated again") {
+            try seat("102", finalYouth(1), chair: finalChair2, member(3), member(4))
+        }
+        refused("a Postponed youth cannot be seated") {
+            try seat("102", finalYouth(9), chair: finalChair2, member(3), member(4))
+        }
         refused("a waiting youth cannot be started") { try event.startReview(scoutID: finalYouth(2)) }
         refused("a Completed youth cannot be started") { try event.startReview(scoutID: finalYouth(1)) }
-        refused("a waiting youth cannot be completed") { try event.completeBoard(scoutID: finalYouth(2), result: .approved, notes: "") }
+        refused("a waiting youth cannot be completed") {
+            try event.completeBoard(scoutID: finalYouth(2), result: .approved, notes: "")
+        }
         refused("a Completed youth cannot be completed again") {
             try event.completeBoard(scoutID: finalYouth(1), result: .notApproved, notes: "")
         }
@@ -701,7 +828,9 @@ struct BoardEventTests {
             try event.postponeBoard(scoutID: finalYouth(2))
             Issue.record("a review under way cannot be postponed")
         } catch let refusal as EventError {
-            #expect(refusal.message.hasSuffix("is 'In review'."), "the alert says the badge's word, not the stored InProgress")
+            #expect(
+                refusal.message.hasSuffix("is 'In review'."),
+                "the alert says the badge's word, not the stored InProgress")
         }
         try event.completeBoard(scoutID: finalYouth(2), result: .adjourned, notes: "")
         #expect(result(finalYouth(2)) == "Adjourned")
@@ -717,7 +846,7 @@ struct BoardEventTests {
         try seat("102", finalYouth(2), chair: finalChair2, member(3), member(4))
         try event.startReview(scoutID: finalYouth(2))
         try registerAdult(8, unit: 2008, project: "Member", final: "Member")  // member(3)
-        try registerAdult(2, unit: 2002, project: "Member", final: "Chair")   // finalChair2
+        try registerAdult(2, unit: 2002, project: "Member", final: "Chair")  // finalChair2
         #expect(adultRoom(member(3)) == "102", "a member who signs in again stays in their room")
         #expect(adultRoom(finalChair2) == "102", "so does the chair")
         #expect(event.adult(id: finalChair2)?.canChair(.finalBoard) == true)
@@ -744,7 +873,9 @@ struct BoardEventTests {
         try seat("103", finalYouth(5), chair: chairOfEither, member(1), member(2))
         try event.swapRooms("ROOM:103", "ROOM:106")
         #expect(roomOf(finalYouth(4)) == "103" && roomOf(finalYouth(5)) == "106", "each youth took the other's room")
-        #expect(adultRoom(finalChair3) == "103" && adultRoom(chairOfEither) == "106", "each chair went with their own board")
+        #expect(
+            adultRoom(finalChair3) == "103" && adultRoom(chairOfEither) == "106", "each chair went with their own board"
+        )
         refused("swapping with a room that does not exist") { try event.swapRooms("ROOM:103", "ROOM:nope") }
         refused("swapping a room with itself") { try event.swapRooms("ROOM:103", "ROOM:103") }
 
@@ -770,13 +901,15 @@ struct BoardEventTests {
     // cannot take. The tests after them are Windows' for the same rule.
     @Test func anEmptyRoomIsRenamed() throws {
         try event.renameRoom(id: "ROOM:104", to: "  104 Annex ")
-        #expect(event.room(id: "ROOM:104")?.name == "104 Annex", "the room keeps its ID and takes the new name, trimmed")
+        #expect(
+            event.room(id: "ROOM:104")?.name == "104 Annex", "the room keeps its ID and takes the new name, trimmed")
         #expect(event.room(named: "104") == nil)
         #expect(event.room(id: "ROOM:104")?.boardType == .finalBoard, "and keeps what it is used for")
         try seat("104 Annex", finalYouth(1), chair: chairOfEither, member(1), member(2))
         #expect(adultRoom(chairOfEither) == "104 Annex")
-        #expect(try event.addRoom(named: "104", boardType: .finalBoard) == "ROOM:104-2",
-                "the old name is free again, under the next free ID")
+        #expect(
+            try event.addRoom(named: "104", boardType: .finalBoard) == "ROOM:104-2",
+            "the old name is free again, under the next free ID")
 
         let reopened = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22")
         #expect(reopened.room(id: "ROOM:104")?.scoutName == "Alexander Aldridge", "the rename is on disk")
@@ -790,13 +923,18 @@ struct BoardEventTests {
 
         try event.renameRoom(id: "ROOM:104", to: "Library")
         #expect(roomOf(finalYouth(6)) == "Library", "the youth moves with the room")
-        #expect([chairOfEither, member(1), member(2)].map(adultRoom) == ["Library", "Library", "Library"],
-                "and so does every member")
+        #expect(
+            [chairOfEither, member(1), member(2)].map(adultRoom) == ["Library", "Library", "Library"],
+            "and so does every member")
         #expect(event.room(id: "ROOM:104")?.scoutName == "Finnegan Fenwick", "the card still names the youth")
         #expect(status(finalYouth(6)) == .inProgress, "the review carries on")
         #expect(event.scout(id: finalYouth(6))?["LastUpdateTime"] == clockBefore, "and its timer was not restarted")
-        refused("the renamed room is still occupied") { try seat("Library", finalYouth(7), chair: finalChair2, member(3), member(4)) }
-        refused("its adults are still committed") { try seat("105", finalYouth(7), chair: chairOfEither, member(3), member(4)) }
+        refused("the renamed room is still occupied") {
+            try seat("Library", finalYouth(7), chair: finalChair2, member(3), member(4))
+        }
+        refused("its adults are still committed") {
+            try seat("105", finalYouth(7), chair: chairOfEither, member(3), member(4))
+        }
 
         try event.completeBoard(scoutID: finalYouth(6), result: .approved, notes: "")
         #expect(busyAdults == 0, "completing releases every member, none stranded on the old name")
@@ -807,9 +945,13 @@ struct BoardEventTests {
         refused("an empty name") { try event.renameRoom(id: "ROOM:104", to: "  ") }
         refused("a name with a comma") { try event.renameRoom(id: "ROOM:104", to: "104, east") }
         refused("a name another room has") { try event.renameRoom(id: "ROOM:104", to: "105") }
-        refused("N/A, which marks adults who have gone home") { try event.renameRoom(id: "ROOM:104", to: disabledForTodayMarker) }
+        refused("N/A, which marks adults who have gone home") {
+            try event.renameRoom(id: "ROOM:104", to: disabledForTodayMarker)
+        }
         refused("a room that does not exist") { try event.renameRoom(id: "ROOM:nope", to: "999") }
-        refused("nor can a room be added as N/A") { try event.addRoom(named: disabledForTodayMarker, boardType: .finalBoard) }
+        refused("nor can a room be added as N/A") {
+            try event.addRoom(named: disabledForTodayMarker, boardType: .finalBoard)
+        }
         refused("in any case") { try event.addRoom(named: "n/a", boardType: .finalBoard) }
         try event.renameRoom(id: "ROOM:104", to: "104")
         #expect(event.room(id: "ROOM:104")?.name == "104", "renaming to its own name changes nothing")
@@ -822,7 +964,9 @@ struct BoardEventTests {
         try event.renameRoom(id: "ROOM:104", to: "110")
         #expect(try event.addRoom(named: "104", boardType: .finalBoard) == "ROOM:104-2")
         refused("a second 104") { try event.addRoom(named: "104", boardType: .finalBoard) }
-        refused("a second 110, though no room has the ID ROOM:110") { try event.addRoom(named: "110", boardType: .finalBoard) }
+        refused("a second 110, though no room has the ID ROOM:110") {
+            try event.addRoom(named: "110", boardType: .finalBoard)
+        }
         refused("nor a rename onto it") { try event.renameRoom(id: "ROOM:105", to: "110") }
         #expect(event.rooms.filter { $0.name == "110" }.map(\.id) == ["ROOM:104"])
     }
@@ -839,30 +983,39 @@ struct BoardEventTests {
 
         try event.removeRoom(id: removed.id)
         try event.addRoom(named: "104", boardType: .projectReview)  // takes the free ROOM:104
-        #expect(refusal { try event.restoreRoom(removed) }
-            == "Room 104 has taken its place since. Add room 110 by hand instead.")
+        #expect(
+            refusal { try event.restoreRoom(removed) }
+                == "Room 104 has taken its place since. Add room 110 by hand instead.")
     }
 
     /// The room refusals say what to do, in the Add Room and Rename sheets'
     /// own word for it, name.
     @Test func roomRefusalsSayWhatToDo() throws {
-        #expect(refusal { try event.addRoom(named: "101", boardType: .finalBoard) }
-            == "There's already a room 101. Choose another name.")
-        #expect(refusal { try event.renameRoom(id: "ROOM:104", to: "105") } == "There's already a room 105. Choose another name.")
-        #expect(refusal { try event.renameRoom(id: "ROOM:104", to: "104, east") }
-            == "A room name can't contain a comma. Leave the comma out.")
-        #expect(refusal { try event.addRoom(named: disabledForTodayMarker, boardType: .finalBoard) }
-            == "N/A marks adults who have gone home. Choose another name.")
+        #expect(
+            refusal { try event.addRoom(named: "101", boardType: .finalBoard) }
+                == "There's already a room 101. Choose another name.")
+        #expect(
+            refusal { try event.renameRoom(id: "ROOM:104", to: "105") }
+                == "There's already a room 105. Choose another name.")
+        #expect(
+            refusal { try event.renameRoom(id: "ROOM:104", to: "104, east") }
+                == "A room name can't contain a comma. Leave the comma out.")
+        #expect(
+            refusal { try event.addRoom(named: disabledForTodayMarker, boardType: .finalBoard) }
+                == "N/A marks adults who have gone home. Choose another name.")
         #expect(refusal { try event.addRoom(named: " ", boardType: .finalBoard) } == "Enter a room name.")
 
         // Undo of Add Room, once a board has taken the room.
         let added = try event.addRoom(named: "108", boardType: .finalBoard)
         try seat("108", finalYouth(1), chair: chairOfEither, member(1), member(2))
-        #expect(refusal { try event.removeRoom(id: added) }
-            == "Room 108 has a board in it. Complete, reset, or move that board first.")
-        #expect(BoardEvent.roomHasABoard("108") == refusal { try event.removeRoom(id: added) }, "as the Room menu says it")
-        #expect(refusal { try seat("108", finalYouth(2), chair: finalChair2, member(3), member(4)) }
-            == "Room 108 already has Alexander Aldridge's board. Choose a free room.")
+        #expect(
+            refusal { try event.removeRoom(id: added) }
+                == "Room 108 has a board in it. Complete, reset, or move that board first.")
+        #expect(
+            BoardEvent.roomHasABoard("108") == refusal { try event.removeRoom(id: added) }, "as the Room menu says it")
+        #expect(
+            refusal { try seat("108", finalYouth(2), chair: finalChair2, member(3), member(4)) }
+                == "Room 108 already has Alexander Aldridge's board. Choose a free room.")
     }
 
     // Java section 14. Here the ids are an array, so the comma never split
@@ -883,7 +1036,8 @@ struct BoardEventTests {
         let reopened = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22")
         #expect(reopened.adult(id: junior)?.room == "101", "and are the same person after a restart")
         try reopened.registerAdult(form)
-        #expect(reopened.adults.filter { $0.first == "Lysander" }.count == 1, "signing in again does not make a second one")
+        #expect(
+            reopened.adults.filter { $0.first == "Lysander" }.count == 1, "signing in again does not make a second one")
         try reopened.startReview(scoutID: finalYouth(7))
         try reopened.completeBoard(scoutID: finalYouth(7), result: .approved, notes: "")
         #expect(reopened.adult(id: junior)?.room == "")
@@ -905,8 +1059,9 @@ struct BoardEventTests {
         #expect(reopened.scout(id: finalYouth(2))?.status == .seated)
         #expect(reopened.adults.filter(\.isOnBoard).count == 6)
         #expect(throws: EventError.self, "a committed chair still cannot be double-booked") {
-            try reopened.seatBoard(roomID: "ROOM:103", scoutID: finalYouth(3), chairID: chairOfEither,
-                                   memberIDs: [chairOfEither, member(5), member(6)])
+            try reopened.seatBoard(
+                roomID: "ROOM:103", scoutID: finalYouth(3), chairID: chairOfEither,
+                memberIDs: [chairOfEither, member(5), member(6)])
         }
         try reopened.completeBoard(scoutID: finalYouth(1), result: .approved, notes: "")
         try reopened.startReview(scoutID: finalYouth(2))
@@ -944,8 +1099,9 @@ struct BoardEventTests {
         try event.completeBoard(scoutID: finalYouth(1), result: .approved, notes: "")
         try runBoard(projectYouth(1))
         try runBoard(finalYouth(2))
-        #expect([finalYouth(1), projectYouth(1), finalYouth(2)].map { event.scout(id: $0)?.boardChairID }
-            == [chairOfEither, projectChair1, finalChair2], "every board kept the chair it was seated with")
+        #expect(
+            [finalYouth(1), projectYouth(1), finalYouth(2)].map { event.scout(id: $0)?.boardChairID }
+                == [chairOfEither, projectChair1, finalChair2], "every board kept the chair it was seated with")
         #expect(busyAdults == 0)
     }
 
@@ -955,8 +1111,9 @@ struct BoardEventTests {
     // with its board, is checked here on the record, as the data files and
     // /youth-update still take it.
     @Test func aResultCorrectedOnTheResultsPage() throws {
-        #expect(BoardResult.allCases.map(\.rawValue) == ["Approved", "Adjourned", "NotApproved"],
-                "results are exactly the board's three decisions; Postponed is a status, not a result")
+        #expect(
+            BoardResult.allCases.map(\.rawValue) == ["Approved", "Adjourned", "NotApproved"],
+            "results are exactly the board's three decisions; Postponed is a status, not a result")
 
         // The wrong result clicked.
         try seat("101", finalYouth(1), chair: chairOfEither, member(1), member(2))
@@ -988,7 +1145,9 @@ struct BoardEventTests {
         #expect(status(right) == .completed && result(right) == "Approved")
         #expect(event.scout(id: right)?.boardChair == board.boardChair)
         #expect(status(wrong) == .registered && result(wrong) == "")
-        refused("the reviewed youth cannot be seated again") { try seat("103", right, chair: finalChair3, member(5), member(6)) }
+        refused("the reviewed youth cannot be seated again") {
+            try seat("103", right, chair: finalChair3, member(5), member(6))
+        }
         try seat("103", wrong, chair: finalChair3, member(5), member(6))
         try event.startReview(scoutID: wrong)
         try event.completeBoard(scoutID: wrong, result: .notApproved, notes: "")
@@ -1004,7 +1163,9 @@ struct BoardEventTests {
             $0.result = ""
         }
         #expect(status(sent) == .postponed && result(sent) == "")
-        refused("a youth sent away cannot be seated again at that event") { try seat("104", sent, chair: chairOfEither, member(1), member(2)) }
+        refused("a youth sent away cannot be seated again at that event") {
+            try seat("104", sent, chair: chairOfEither, member(1), member(2))
+        }
         #expect(busyAdults == 0)
     }
 
@@ -1024,7 +1185,9 @@ struct BoardEventTests {
         refused("nor a review completed") { try editYouth(finalYouth(1)) { $0.status = .completed } }
         refused("nor postponed") { try editYouth(finalYouth(1)) { $0.status = .postponed } }
         try editYouth(finalYouth(1)) { $0.notes = "Strong answers" }
-        #expect(event.scout(id: finalYouth(1))?.notes == "Strong answers", "the rest of a sitting board's record still corrects")
+        #expect(
+            event.scout(id: finalYouth(1))?.notes == "Strong answers",
+            "the rest of a sitting board's record still corrects")
         #expect(status(finalYouth(1)) == .inProgress && busyAdults == 3, "and the room and members stay with it")
 
         try event.completeBoard(scoutID: finalYouth(1), result: .approved, notes: "")
@@ -1038,7 +1201,9 @@ struct BoardEventTests {
     // no call that edits it (Java's /adult-history-update refuses one).
     @Test func aChairPromotedOnTheAdultsPageIsSeatedAsOne() throws {
         #expect(event.adultHistory.first { $0.id == member(1) }?.finalBoardRoleText == "Member")
-        refused("a plain member cannot chair") { try seat("101", finalYouth(1), chair: member(1), member(2), member(3)) }
+        refused("a plain member cannot chair") {
+            try seat("101", finalYouth(1), chair: member(1), member(2), member(3))
+        }
         var promoted = try #require(event.adult(id: member(1)))
         promoted.finalBoardRoleText = BoardRole.chair.rawValue
         promoted.phone = "555-0106"
@@ -1094,14 +1259,16 @@ struct BoardEventTests {
         try event.deleteAdult(id: hand)
         #expect(event.adult(id: hand) == nil, "an adult taken off the event's list")
         let historyCount = event.adultHistory.count
-        let back = try event.registerAdult(Adult.handSignInForm(
-            historyID: hand, first: "Harriet Ann", last: "Handley", email: "hh@example.org", phone: "",
-            unitType: "Troop", unit: "3601", finalBoard: .chair, projectReview: .member, woodBadge: false
-        ))
+        let back = try event.registerAdult(
+            Adult.handSignInForm(
+                historyID: hand, first: "Harriet Ann", last: "Handley", email: "hh@example.org", phone: "",
+                unitType: "Troop", unit: "3601", finalBoard: .chair, projectReview: .member, woodBadge: false
+            ))
         #expect(back.id == hand && back.first == "Harriet Ann", "is signed in by hand as the same adult")
         #expect(back.canChair(.finalBoard), "still a chair")
         #expect(event.adultHistory.count == historyCount, "with no second history record")
-        #expect(event.adultHistory.first { $0.id == hand }?.first == "Harriet Ann", "and the corrected name in the history")
+        #expect(
+            event.adultHistory.first { $0.id == hand }?.first == "Harriet Ann", "and the corrected name in the history")
     }
 
     // Java section 28 (SPEC.md D-22). Approved proposals from earlier events,
@@ -1110,36 +1277,47 @@ struct BoardEventTests {
     // Approved; read afresh each time, nothing written; and never a
     // birthdate, phone number or email.
     @Test func approvedProposalsFromEarlierEvents() throws {
-        let header = "Type,ID,RegNum,Last,First,Email,Phone,UnitType,Unit,UnitName,DOB,BoardType,Leader,RegTime,"
+        let header =
+            "Type,ID,RegNum,Last,First,Email,Phone,UnitType,Unit,UnitName,DOB,BoardType,Leader,RegTime,"
             + "LastUpdateTime,Flags,Room,Status,Result,BoardChair,BoardChairID,BoardMembers,BoardMembersIDs,Notes\n"
-        func row(_ last: String, _ first: String, _ unit: Int, _ type: String, _ result: String, chair: String = "Chris Chair",
-                 notes: String = "") -> String {
+        func row(
+            _ last: String, _ first: String, _ unit: Int, _ type: String, _ result: String,
+            chair: String = "Chris Chair",
+            notes: String = ""
+        ) -> String {
             "SCOUT,SCOUT:\(last):\(first):\(unit),W1,\(last),\(first),\(first.lowercased())@example.org,555-0199,Troop,\(unit),"
                 + "Troop\(unit),1/2/2010,\(type),,,,,N/A,Completed,\(result),\(chair),ADULT:Chair:Chris:1,"
                 + "\(chair)~Morgan Member,ADULT:Chair:Chris:1~ADULT:Member:Morgan:2,\(notes)\n"
         }
         #expect(event.approvedProposals().summary == "No earlier events in this data folder.")
 
-        try scratch.write(header + row("Quill", "Ada", 3701, "Project", "Approved", notes: "Park benches~ phase one"),
-                          to: "2019-05-28/scouts.csv")
-        try scratch.write(header + row("Brook", "Ben", 3702, "Project", "Approved")
-                          + row("Final", "Fay", 3703, "Final", "Approved")
-                          + row("Later", "Lou", 3704, "Project", "Adjourned"),
-                          to: "2026-08-25/scouts.csv")
+        try scratch.write(
+            header + row("Quill", "Ada", 3701, "Project", "Approved", notes: "Park benches~ phase one"),
+            to: "2019-05-28/scouts.csv")
+        try scratch.write(
+            header + row("Brook", "Ben", 3702, "Project", "Approved")
+                + row("Final", "Fay", 3703, "Final", "Approved")
+                + row("Later", "Lou", 3704, "Project", "Adjourned"),
+            to: "2026-08-25/scouts.csv")
         try scratch.write(header + row("Future", "Flo", 3705, "Project", "Approved"), to: "2026-10-27/scouts.csv")
         try scratch.write(header + row("Undated", "Una", 3706, "Project", "Approved"), to: "notes/scouts.csv")
         // A folder whose youth file can't be read: here a folder in its place.
-        try FileManager.default.createDirectory(at: scratch.url.appending(path: "2026-07-28/scouts.csv"),
-                                                withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(
+            at: scratch.url.appending(path: "2026-07-28/scouts.csv"),
+            withIntermediateDirectories: true)
         // And a dated folder with no youth file, which held no event.
-        try FileManager.default.createDirectory(at: scratch.url.appending(path: "2020-01-01"), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(
+            at: scratch.url.appending(path: "2020-01-01"), withIntermediateDirectories: true)
 
         let found = event.approvedProposals()
-        #expect(found.approvals.map(\.last) == ["Brook", "Quill"], "earlier events only, approved proposals only, by last name")
+        #expect(
+            found.approvals.map(\.last) == ["Brook", "Quill"],
+            "earlier events only, approved proposals only, by last name")
         #expect(found.summary == "Read from 2 earlier events, 2019-05-28 to 2026-08-25.", "however long ago")
         let us = Locale(identifier: "en_US")
-        #expect(found.shownSummary(locale: us) == "Read from 2 earlier events, May 28, 2019 to August 25, 2026.",
-                "the page shows the dates as the Mac writes them")
+        #expect(
+            found.shownSummary(locale: us) == "Read from 2 earlier events, May 28, 2019 to August 25, 2026.",
+            "the page shows the dates as the Mac writes them")
         #expect(found.unreadable.map(\.event) == ["2026-07-28"], "a folder that can't be read is named")
         let unreadable = try #require(found.unreadable.first)
         #expect(unreadable.shownLine(locale: us) == "Could not read the July 28, 2026 event: \(unreadable.reason)")
@@ -1148,18 +1326,23 @@ struct BoardEventTests {
         #expect(ada.event == "2019-05-28" && ada.unit == "Troop 3701" && ada.chair == "Chris Chair")
         #expect(ada.otherMembers == ["Morgan Member"] && ada.notes == "Park benches, phase one")
         let shown = String(describing: found.approvals)
-        #expect(!shown.contains("@example.org") && !shown.contains("555-0199") && !shown.contains("1/2/2010"),
-                "never an email, a phone number or a birthdate (D-7, D-8)")
+        #expect(
+            !shown.contains("@example.org") && !shown.contains("555-0199") && !shown.contains("1/2/2010"),
+            "never an email, a phone number or a birthdate (D-7, D-8)")
 
-        try scratch.write(header + row("Brook", "Ben", 3702, "Project", "Approved")
-                          + row("Cove~ Jr.", "Cal", 3707, "Project", "Approved", chair: "Chris Chair~ Sr."),
-                          to: "2026-08-25/scouts.csv")
+        try scratch.write(
+            header + row("Brook", "Ben", 3702, "Project", "Approved")
+                + row("Cove~ Jr.", "Cal", 3707, "Project", "Approved", chair: "Chris Chair~ Sr."),
+            to: "2026-08-25/scouts.csv")
         let reread = event.approvedProposals().approvals
         #expect(reread.map(\.last) == ["Brook", "Cove, Jr.", "Quill"], "read afresh each time")
         #expect(reread[1].chair == "Chris Chair, Sr.", "and shown with the commas the file kept as ~ (D-1)")
-        #expect(try scratch.text("2019-05-28/scouts.csv").contains("555-0199"), "and nothing in an earlier folder is written")
-        #expect(!FileManager.default.fileExists(atPath: scratch.url.appending(path: "2020-01-01/scouts.csv").path),
-                "not even a youth file where there was none")
+        #expect(
+            try scratch.text("2019-05-28/scouts.csv").contains("555-0199"),
+            "and nothing in an earlier folder is written")
+        #expect(
+            !FileManager.default.fileExists(atPath: scratch.url.appending(path: "2020-01-01/scouts.csv").path),
+            "not even a youth file where there was none")
     }
 
     // Java section 19. What an adult says at sign-in.
@@ -1191,23 +1374,26 @@ struct BoardEventTests {
         let noProject = "ADULT:Ibarra:Juno:3402"
         #expect(event.adult(id: noProject)?.projectReviewRoleText == "Unavailable")
         let project = try lateYouth("Jaramillo", "Kai", unit: 3403, "Project")
-        refused("they are not seated on a proposal review") { try seat("200A", project, chair: projectChair1, noProject) }
+        refused("they are not seated on a proposal review") {
+            try seat("200A", project, chair: projectChair1, noProject)
+        }
         #expect(busyAdults == 0)
         try seat("101", rsvp, chair: chairOfEither, member(1), noProject)  // a Final board is fine
         try event.resetBoard(scoutID: rsvp)
 
         // The sign-in list: RSVPs not yet here, and this event's youth who are
         // not done yet.
-        try CSVFile.write([
-            Scout(fields: [
-                "Type": "SCOUT", "ID": "SCOUT:Rsvp:Only:3999", "Last": "Rsvp", "First": "Only",
-                "UnitType": "Troop", "Unit": "3999", "BoardType": "Final",
-            ]),
-            Scout(fields: [
-                "Type": "SCOUT", "ID": "SCOUT:Rsvp:Proposal:3998", "Last": "Rsvp", "First": "Proposal",
-                "UnitType": "Troop", "Unit": "3998", "BoardType": "Project",
-            ]),
-        ], to: scratch.dataFolder.scheduledYouthURL(event: "2026-09-22"))
+        try CSVFile.write(
+            [
+                Scout(fields: [
+                    "Type": "SCOUT", "ID": "SCOUT:Rsvp:Only:3999", "Last": "Rsvp", "First": "Only",
+                    "UnitType": "Troop", "Unit": "3999", "BoardType": "Final",
+                ]),
+                Scout(fields: [
+                    "Type": "SCOUT", "ID": "SCOUT:Rsvp:Proposal:3998", "Last": "Rsvp", "First": "Proposal",
+                    "UnitType": "Troop", "Unit": "3998", "BoardType": "Project",
+                ]),
+            ], to: scratch.dataFolder.scheduledYouthURL(event: "2026-09-22"))
         try event.postponeBoard(scoutID: finalYouth(9))
         let reopened = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22")
         let choices = reopened.scoutChoices().map(\.id)
@@ -1233,8 +1419,12 @@ struct BoardEventTests {
         try event.setSupporting(false, adultID: member(1), scoutID: finalYouth(1))
         #expect(event.adult(id: member(1))?.supporting == "", "and can be undone")
 
-        refused("an unknown adult") { try event.setSupporting(true, adultID: "ADULT:Nobody:Here:0", scoutID: finalYouth(2)) }
-        refused("an unknown youth") { try event.setSupporting(true, adultID: member(1), scoutID: "SCOUT:Nobody:Here:0") }
+        refused("an unknown adult") {
+            try event.setSupporting(true, adultID: "ADULT:Nobody:Here:0", scoutID: finalYouth(2))
+        }
+        refused("an unknown youth") {
+            try event.setSupporting(true, adultID: member(1), scoutID: "SCOUT:Nobody:Here:0")
+        }
         try event.setSupporting(false, adultID: member(1), scoutID: "SCOUT:Nobody:Here:0")  // clearing a stale link is fine
     }
 
@@ -1251,13 +1441,15 @@ struct BoardEventTests {
         let youth = try #require(event.scout(id: finalYouth(1)))
         let introducers = try #require(AdultLocator.introduction(for: youth, among: event.adults))
         #expect(introducers.map(\.adult.id) == [scoutmaster] && introducers.map(\.relation) == [.supporting])
-        #expect(AdultLocator.introductionText(for: youth, among: event.adults)
-            == "\n\nFirst fetch whoever introduces them to the board:\nSam Scoutmaster (Room 102)",
+        #expect(
+            AdultLocator.introductionText(for: youth, among: event.adults)
+                == "\n\nFirst fetch whoever introduces them to the board:\nSam Scoutmaster (Room 102)",
             "so someone can fetch them from their board")
 
         try runBoard(finalYouth(2))
-        #expect(AdultLocator.introduction(for: youth, among: event.adults)?.first?.whereabouts == "Main room",
-                "off a board, they are in the main room")
+        #expect(
+            AdultLocator.introduction(for: youth, among: event.adults)?.first?.whereabouts == "Main room",
+            "off a board, they are in the main room")
         try event.setAvailable(false, adultID: scoutmaster)
         #expect(AdultLocator.introduction(for: youth, among: event.adults)?.first?.whereabouts == "marked as gone home")
     }
@@ -1279,8 +1471,10 @@ struct BoardEventTests {
         #expect(status(projectYouth(1)) == .inProgress)
         try event.restoreBoard(seated)
         #expect(status(projectYouth(1)) == .seated)
-        #expect(event.scout(id: projectYouth(1))?.lastUpdateTime == seated.lastUpdateTime, "the convening timer resumes")
-        #expect(roomOf(projectYouth(1)) == "200A" && adultRoom(projectChair1) == "200A" && adultRoom(member(1)) == "200A")
+        #expect(
+            event.scout(id: projectYouth(1))?.lastUpdateTime == seated.lastUpdateTime, "the convening timer resumes")
+        #expect(
+            roomOf(projectYouth(1)) == "200A" && adultRoom(projectChair1) == "200A" && adultRoom(member(1)) == "200A")
     }
 
     // Java section 24, the youth phone number (SPEC.md D-8), which goes the
@@ -1309,10 +1503,12 @@ struct BoardEventTests {
     @Test func aYouthsPhoneNumberIsNotKeptButOneOnFileStays() throws {
         // A pre-registration given a birthdate and a phone number by hand, as
         // a file from before D-7 and D-8 would have them.
-        try event.mergeSignUps([
-            SignUpEntry(startDate: "2026-09-22 19:00", firstName: "lena", lastName: "lookup", item: "Eagle Board of Review",
-                        email: "Lena.Lookup@Example.org", customAnswers: ["Troop 4401", "555-0100", ""]),
-        ], month: "2026-09")
+        try event.mergeSignUps(
+            [
+                SignUpEntry(
+                    startDate: "2026-09-22 19:00", firstName: "lena", lastName: "lookup", item: "Eagle Board of Review",
+                    email: "Lena.Lookup@Example.org", customAnswers: ["Troop 4401", "555-0100", ""])
+            ], month: "2026-09")
         var lena = try #require(event.scheduledYouth(matchingEmail: "  lena.lookup@EXAMPLE.org "))
         #expect(lena.phone == "", "SignUpGenius puts no phone number on a youth")
         lena.dateOfBirth = "2010-05-06"
@@ -1321,8 +1517,9 @@ struct BoardEventTests {
         let scheduledFile = try scratch.text("2026-09-22/scouts_scheduled.csv")
         #expect(scheduledFile.contains("555-0100") && scheduledFile.contains("2010-05-06"), "both stay on file")
         let scheduledList = CSVFile.render(event.scheduledScouts.map(\.forExport))
-        #expect(!scheduledList.contains("555-0100") && !scheduledList.contains("2010-05-06"),
-                "but the pre-registrations exported from the Pre-Registered page leave them out")
+        #expect(
+            !scheduledList.contains("555-0100") && !scheduledList.contains("2010-05-06"),
+            "but the pre-registrations exported from the Pre-Registered page leave them out")
 
         // A new sign-in from an old cached page.
         var form = [
@@ -1332,8 +1529,9 @@ struct BoardEventTests {
         try event.registerYouth(form)
         let olive = "SCOUT:Oldpage:Olive:4402"
         func onFile() throws -> String {
-            let youth = try #require(CSVFile.read(Scout.self, from: scratch.dataFolder.youthURL(event: "2026-09-22"))
-                .first(where: { $0.id == olive }))
+            let youth = try #require(
+                CSVFile.read(Scout.self, from: scratch.dataFolder.youthURL(event: "2026-09-22"))
+                    .first(where: { $0.id == olive }))
             return "\(youth.dateOfBirth)|\(youth.phone)"
         }
         #expect(try onFile() == "|", "neither a birthdate nor a phone number from an old cached page is kept")
@@ -1344,11 +1542,16 @@ struct BoardEventTests {
         }
         #expect(try onFile() == "2011-02-03|555-0101", "one already on file stays on file")
         let report = Reports.csv(event.scouts, columns: Reports.boardResultColumns)
-        #expect(!report.contains("2011-02-03") && !report.contains("555-0101"), "but the board results report never shows it")
+        #expect(
+            !report.contains("2011-02-03") && !report.contains("555-0101"),
+            "but the board results report never shows it")
         let youthList = CSVFile.render(event.scouts.map(\.forExport))
-        #expect(!youthList.contains("2011-02-03") && !youthList.contains("555-0101"), "nor a list exported from the Youth page")
-        #expect(CSVFile.parse(Scout.self, text: youthList).first(where: { $0.id == olive })?.first == "Olive",
-                "which keeps the columns, so they still line up")
+        #expect(
+            !youthList.contains("2011-02-03") && !youthList.contains("555-0101"),
+            "nor a list exported from the Youth page")
+        #expect(
+            CSVFile.parse(Scout.self, text: youthList).first(where: { $0.id == olive })?.first == "Olive",
+            "which keeps the columns, so they still line up")
 
         form["Phone"] = "555-0199"
         form["DOB"] = "2012-12-12"
@@ -1453,7 +1656,8 @@ struct BoardEventTests {
     /// Room › Copy Rooms From says which rooms it added, which are what its
     /// Undo removes, so a second copy adding none has nothing to undo.
     @Test func copyRoomsSaysWhichRoomsItAdded() throws {
-        try scratch.write("""
+        try scratch.write(
+            """
             Type,ID,Room,BoardType,Scout,Leaders,RegTime
             ROOM,ROOM:101,101,Final,,,
             ROOM,ROOM:301,301,Final,Old Youth,Old Adults,
@@ -1472,8 +1676,12 @@ struct BoardEventTests {
     /// one, and the open that made it says so, for the app to name the path.
     @Test func onlyTheOpenThatStartsTheAdultHistorySaysSo() throws {
         #expect(event.createdAdultHistory, "this scratch folder had none")
-        #expect(try !BoardEvent(folder: scratch.dataFolder, date: "2026-09-22").createdAdultHistory, "the next open found it")
-        #expect(try !BoardEvent(folder: scratch.dataFolder, date: "2026-10-27").createdAdultHistory, "so does another event's")
+        #expect(
+            try !BoardEvent(folder: scratch.dataFolder, date: "2026-09-22").createdAdultHistory,
+            "the next open found it")
+        #expect(
+            try !BoardEvent(folder: scratch.dataFolder, date: "2026-10-27").createdAdultHistory,
+            "so does another event's")
     }
 
     private func seatFiveBoards() throws {

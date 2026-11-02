@@ -82,7 +82,9 @@ struct PlainTable<Row: Identifiable & Equatable>: NSViewRepresentable where Row.
                     }.map(\.id)
                 },
                 cell: { id, columnID in
-                    guard let row = byID[id], let column = columns.first(where: { $0.id == columnID }) else { return nil }
+                    guard let row = byID[id], let column = columns.first(where: { $0.id == columnID }) else {
+                        return nil
+                    }
                     return column.cell(row)
                 },
                 selection: $selection,
@@ -142,7 +144,7 @@ final class PageTableView: NSTableView {
         // let go of the focus.
         Task { [weak self] in
             guard let self, let window = self.window,
-                  window.firstResponder == nil || window.firstResponder === window
+                window.firstResponder == nil || window.firstResponder === window
             else { return }
             window.makeFirstResponder(self)
         }
@@ -241,7 +243,8 @@ final class PlainTableCoordinator: NSObject, NSTableViewDataSource, NSTableViewD
 
     private var clickedIDs: Set<String> {
         guard let table else { return [] }
-        let rows = table.clickedRow >= 0 && !table.selectedRowIndexes.contains(table.clickedRow)
+        let rows =
+            table.clickedRow >= 0 && !table.selectedRowIndexes.contains(table.clickedRow)
             ? IndexSet(integer: table.clickedRow)
             : table.selectedRowIndexes
         return Set(rows.compactMap { $0 < sorted.count ? sorted[$0] : nil })
@@ -267,10 +270,13 @@ final class PlainTableCoordinator: NSObject, NSTableViewDataSource, NSTableViewD
     }
 
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-        guard let tableColumn, row < sorted.count, let content = model?.cell(sorted[row], tableColumn.identifier.rawValue) else {
+        guard let tableColumn, row < sorted.count,
+            let content = model?.cell(sorted[row], tableColumn.identifier.rawValue)
+        else {
             return nil
         }
-        let cell = tableView.makeView(withIdentifier: tableColumn.identifier, owner: self) as? PlainCell
+        let cell =
+            tableView.makeView(withIdentifier: tableColumn.identifier, owner: self) as? PlainCell
             ?? PlainCell(identifier: tableColumn.identifier)
         cell.show(content)
         return cell
@@ -355,23 +361,31 @@ final class PlainCell: NSTableCellView {
         let body = NSFont.systemFont(ofSize: NSFont.systemFontSize)
         switch (content.style, BoardRole(rawValue: content.text)) {
         case (.role, .chair):
-            label.attributedStringValue = NSAttributedString(string: "Chair", attributes: [
-                .font: NSFont.systemFont(ofSize: NSFont.systemFontSize, weight: .semibold),
-                .foregroundColor: NSColor.labelColor,
-            ])
+            label.attributedStringValue = NSAttributedString(
+                string: "Chair",
+                attributes: [
+                    .font: NSFont.systemFont(ofSize: NSFont.systemFontSize, weight: .semibold),
+                    .foregroundColor: NSColor.labelColor,
+                ])
         case (.role, .unavailable):
-            label.attributedStringValue = NSAttributedString(string: "No Thanks", attributes: [
-                .font: body, .foregroundColor: NSColor.secondaryLabelColor,
-            ])
+            label.attributedStringValue = NSAttributedString(
+                string: "No Thanks",
+                attributes: [
+                    .font: body, .foregroundColor: NSColor.secondaryLabelColor,
+                ])
         case (.digits, _):
-            label.attributedStringValue = NSAttributedString(string: content.text, attributes: [
-                .font: NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular),
-                .foregroundColor: NSColor.labelColor,
-            ])
+            label.attributedStringValue = NSAttributedString(
+                string: content.text,
+                attributes: [
+                    .font: NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular),
+                    .foregroundColor: NSColor.labelColor,
+                ])
         default:
-            label.attributedStringValue = NSAttributedString(string: content.text, attributes: [
-                .font: body, .foregroundColor: NSColor.labelColor,
-            ])
+            label.attributedStringValue = NSAttributedString(
+                string: content.text,
+                attributes: [
+                    .font: body, .foregroundColor: NSColor.labelColor,
+                ])
         }
     }
 }

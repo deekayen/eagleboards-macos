@@ -30,7 +30,7 @@ enum SignUpGeniusKeychain {
         lookup[kSecMatchLimit as String] = kSecMatchLimitOne
         var item: CFTypeRef?
         guard SecItemCopyMatching(lookup as CFDictionary, &item) == errSecSuccess,
-              let data = item as? Data, let key = String(data: data, encoding: .utf8), !key.isEmpty
+            let data = item as? Data, let key = String(data: data, encoding: .utf8), !key.isEmpty
         else { return nil }
         return key
     }

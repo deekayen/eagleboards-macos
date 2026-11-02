@@ -29,7 +29,8 @@ struct ResultsPage: View {
         // youth still waiting has no board here yet.
         let boards = event.scouts.filter { SchedulerPage.results.listsYouth(with: $0.status) }
         let sortOrder = model.sortOrder(for: .results, Self.order)
-        let rows = boards
+        let rows =
+            boards
             .filter { matches(model.searchText, $0) }
             .sorted(using: sortOrder.wrappedValue)
         let selection = Binding(get: { model.selectedYouthID }, set: { model.selectYouth($0) })
@@ -44,7 +45,8 @@ struct ResultsPage: View {
                     EditableText(youth.last.shownValue, name: "Last name") { value in edit(youth) { $0.last = value } }
                 }
                 TableColumn("First Name", value: \Scout.first) { youth in
-                    EditableText(youth.first.shownValue, name: "First name") { value in edit(youth) { $0.first = value } }
+                    EditableText(youth.first.shownValue, name: "First name") { value in edit(youth) { $0.first = value }
+                    }
                 }
                 TableColumn("Unit Type", value: \Scout.unitType) { youth in
                     EditableChoice(youth.unitType, choices: RecordChoices.youthUnitTypes, name: "Unit type") { value in
@@ -59,7 +61,8 @@ struct ResultsPage: View {
             }
             Group {
                 TableColumn("Board Type", value: \Scout.boardTypeText) { youth in
-                    EditableChoice(value: youth.boardTypeText, choices: RecordChoices.boardTypes, name: "Board type") { value in
+                    EditableChoice(value: youth.boardTypeText, choices: RecordChoices.boardTypes, name: "Board type") {
+                        value in
                         edit(youth) { $0.boardTypeText = value }
                     } label: {
                         BoardTypeText(youth: youth)
@@ -97,7 +100,9 @@ struct ResultsPage: View {
                     EditableText(youth.leader.shownValue, name: "Leader") { value in edit(youth) { $0.leader = value } }
                 }
                 TableColumn("Notes", value: \Scout.notes) { youth in
-                    EditableText(youth.notes.shownMultilineValue, name: "Notes") { value in edit(youth) { $0.notes = value } }
+                    EditableText(youth.notes.shownMultilineValue, name: "Notes") { value in
+                        edit(youth) { $0.notes = value }
+                    }
                 }
             }
         } rows: {
@@ -124,8 +129,10 @@ struct ResultsPage: View {
         .overlay {
             if rows.isEmpty {
                 if model.searchText.isEmpty {
-                    ContentUnavailableView("No Boards Yet", systemImage: "checklist",
-                                           description: Text("A board appears here once it is seated, and keeps its result when it is complete."))
+                    ContentUnavailableView(
+                        "No Boards Yet", systemImage: "checklist",
+                        description: Text(
+                            "A board appears here once it is seated, and keeps its result when it is complete."))
                 } else {
                     ContentUnavailableView.search(text: model.searchText)
                 }
@@ -141,8 +148,11 @@ struct ResultsPage: View {
         let query = search.trimmingCharacters(in: .whitespaces)
         guard !query.isEmpty else { return true }
         let result = BoardResult(rawValue: youth.result)?.label ?? youth.result
-        return [youth.shownFullName, youth.unitName, youth.unitLabel, youth.unitDisplay, youth.leader.shownValue, youth.room, youth.regNum,
-                youth.boardChair.shownValue, youth.boardMembers.shownValue, result, youth.notes.shownValue]
-            .contains { $0.localizedCaseInsensitiveContains(query) }
+        return [
+            youth.shownFullName, youth.unitName, youth.unitLabel, youth.unitDisplay, youth.leader.shownValue,
+            youth.room, youth.regNum,
+            youth.boardChair.shownValue, youth.boardMembers.shownValue, result, youth.notes.shownValue,
+        ]
+        .contains { $0.localizedCaseInsensitiveContains(query) }
     }
 }

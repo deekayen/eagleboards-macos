@@ -24,7 +24,9 @@ struct PreRegisteredPage: View {
     var body: some View {
         let sortOrder = model.sortOrder(for: .preRegistered, Self.order)
         let rows = event.scheduledScouts
-            .filter { matches(model.searchText, $0.shownFullName, $0.email, $0.unitName, $0.unitDisplay, $0.leader.shownValue) }
+            .filter {
+                matches(model.searchText, $0.shownFullName, $0.email, $0.unitName, $0.unitDisplay, $0.leader.shownValue)
+            }
             .sorted(using: sortOrder.wrappedValue)
 
         Table(of: Scout.self, selection: $selection, sortOrder: sortOrder) {
@@ -45,7 +47,8 @@ struct PreRegisteredPage: View {
             }
             .width(min: 40, ideal: 50, max: 70)
             TableColumn("Board Type", value: \Scout.boardTypeText) { youth in
-                EditableChoice(value: youth.boardTypeText, choices: RecordChoices.boardTypes, name: "Board type") { value in
+                EditableChoice(value: youth.boardTypeText, choices: RecordChoices.boardTypes, name: "Board type") {
+                    value in
                     edit(youth) { $0.boardTypeText = value }
                 } label: {
                     BoardTypeText(youth: youth)
@@ -79,8 +82,9 @@ struct PreRegisteredPage: View {
         .overlay {
             if rows.isEmpty {
                 if model.searchText.isEmpty && model.isImporting {
-                    ContentUnavailableView("Importing Sign-Ups…", systemImage: "square.and.arrow.down",
-                                           description: Text("The youth who signed up for today appear here once SignUpGenius answers."))
+                    ContentUnavailableView(
+                        "Importing Sign-Ups…", systemImage: "square.and.arrow.down",
+                        description: Text("The youth who signed up for today appear here once SignUpGenius answers."))
                 } else if model.searchText.isEmpty {
                     NoPreRegistrations()
                 } else {
@@ -119,18 +123,22 @@ struct AdultHistoryPage: View {
         [
             // The date in words, "Today" for today's, sorted by the
             // folder's name, which is the help.
-            PlainColumn(id: "lastEvent", title: "Last Event", width: 140, style: .digits, ascendingFirst: false,
-                        text: { $0.adult.lastEvent == today ? "Today" : Timestamp.shownDate($0.adult.lastEvent) },
-                        toolTip: { $0.adult.lastEvent.isEmpty ? nil : $0.adult.lastEvent }, checked: \.signedIn,
-                        sortText: { $0.adult.lastEvent }),
+            PlainColumn(
+                id: "lastEvent", title: "Last Event", width: 140, style: .digits, ascendingFirst: false,
+                text: { $0.adult.lastEvent == today ? "Today" : Timestamp.shownDate($0.adult.lastEvent) },
+                toolTip: { $0.adult.lastEvent.isEmpty ? nil : $0.adult.lastEvent }, checked: \.signedIn,
+                sortText: { $0.adult.lastEvent }),
             PlainColumn(id: "last", title: "Last Name", width: 130, text: { $0.adult.last.shownValue }),
             PlainColumn(id: "first", title: "First Name", width: 130, text: { $0.adult.first.shownValue }),
             PlainColumn(id: "unit", title: "Unit", width: 90, text: { $0.adult.unitDisplay }),
-            PlainColumn(id: "final", title: "Final Board Role", width: 106, style: .role, text: { $0.adult.finalBoardRoleText }),
-            PlainColumn(id: "project", title: "Proposal Review Role", width: 132, style: .role,
-                        text: { $0.adult.projectReviewRoleText }),
-            PlainColumn(id: "events", title: "Events", width: 55, style: .digits, text: { "\($0.adult.eventCount)" },
-                        toolTip: { $0.adult.boardHistory }, sortKey: { $0.adult.eventCount }),
+            PlainColumn(
+                id: "final", title: "Final Board Role", width: 106, style: .role, text: { $0.adult.finalBoardRoleText }),
+            PlainColumn(
+                id: "project", title: "Proposal Review Role", width: 132, style: .role,
+                text: { $0.adult.projectReviewRoleText }),
+            PlainColumn(
+                id: "events", title: "Events", width: 55, style: .digits, text: { "\($0.adult.eventCount)" },
+                toolTip: { $0.adult.boardHistory }, sortKey: { $0.adult.eventCount }),
             PlainColumn(id: "email", title: "Email", width: 220, text: { $0.adult.email }),
             PlainColumn(id: "phone", title: "Phone", width: 120, text: { $0.adult.phone }),
         ]
@@ -157,9 +165,10 @@ struct AdultHistoryPage: View {
                 if !signedIn.contains(id) { model.signInFromHistory([id]) }
             },
             menuItems: [
-                PlainMenuItem(title: "Sign In for Today",
-                              isEnabled: { !$0.isSubset(of: signedIn) },
-                              action: { model.signInFromHistory($0.subtracting(signedIn)) }),
+                PlainMenuItem(
+                    title: "Sign In for Today",
+                    isEnabled: { !$0.isSubset(of: signedIn) },
+                    action: { model.signInFromHistory($0.subtracting(signedIn)) })
             ],
             takesFocus: true,
             firstRowRequest: model.searchSubmitted
@@ -168,8 +177,9 @@ struct AdultHistoryPage: View {
         .overlay {
             if rows.isEmpty {
                 if model.searchText.isEmpty {
-                    ContentUnavailableView("No Adults Yet", systemImage: "clock.arrow.circlepath",
-                                           description: Text("Every adult who signs in is kept here, across events."))
+                    ContentUnavailableView(
+                        "No Adults Yet", systemImage: "clock.arrow.circlepath",
+                        description: Text("Every adult who signs in is kept here, across events."))
                 } else {
                     ContentUnavailableView.search(text: model.searchText)
                 }
@@ -194,11 +204,14 @@ struct ApprovedProposalsPage: View {
         PlainColumn(id: "last", title: "Last Name", width: 130, text: \.last),
         PlainColumn(id: "first", title: "First Name", width: 120, text: \.first),
         PlainColumn(id: "unit", title: "Unit", width: 100, text: \.unit),
-        PlainColumn(id: "event", title: "Approved On", width: 140, style: .digits, ascendingFirst: false,
-                    text: { Timestamp.shownDate($0.event) }, toolTip: { $0.event }, sortText: \.event),
+        PlainColumn(
+            id: "event", title: "Approved On", width: 140, style: .digits, ascendingFirst: false,
+            text: { Timestamp.shownDate($0.event) }, toolTip: { $0.event }, sortText: \.event),
         PlainColumn(id: "chair", title: "Chair", width: 150, text: \.chair),
-        PlainColumn(id: "members", title: "Other Members", width: 240, text: { $0.otherMembers.joined(separator: ", ") }),
-        PlainColumn(id: "notes", title: "Notes", width: 260, text: \.notes, toolTip: { $0.notes.isEmpty ? nil : $0.notes }),
+        PlainColumn(
+            id: "members", title: "Other Members", width: 240, text: { $0.otherMembers.joined(separator: ", ") }),
+        PlainColumn(
+            id: "notes", title: "Notes", width: 260, text: \.notes, toolTip: { $0.notes.isEmpty ? nil : $0.notes }),
     ]
 
     static var sortColumns: [SortColumn] { columns.map(\.sortColumn) }
@@ -233,8 +246,10 @@ struct ApprovedProposalsPage: View {
             .overlay {
                 if found != nil && approvals.isEmpty {
                     if model.searchText.isEmpty {
-                        ContentUnavailableView("No Approved Proposals", systemImage: "checkmark.seal",
-                                               description: Text("None of the earlier events in this data folder approved a project proposal."))
+                        ContentUnavailableView(
+                            "No Approved Proposals", systemImage: "checkmark.seal",
+                            description: Text(
+                                "None of the earlier events in this data folder approved a project proposal."))
                     } else {
                         ContentUnavailableView.search(text: model.searchText)
                     }
@@ -260,7 +275,8 @@ struct RoomsPage: View {
 
     /// The sortable columns, as headed below, for View › Sort By.
     static let order = TableOrder<Room>([
-        .init("Room", \.name), .init("Used For", \.boardTypeText), .init("Youth", \.scoutName), .init("Members", \.leaderNames),
+        .init("Room", \.name), .init("Used For", \.boardTypeText), .init("Youth", \.scoutName),
+        .init("Members", \.leaderNames),
     ])
 
     var body: some View {

@@ -37,13 +37,18 @@ final class NetworkWatcher {
     init(onChange: @escaping @MainActor () -> Void) {
         self.onChange = onChange
         var context = SCDynamicStoreContext(
-            version: 0, info: Unmanaged.passUnretained(self).toOpaque(), retain: nil, release: nil, copyDescription: nil)
-        guard let store = SCDynamicStoreCreate(nil, "Eagle Boards" as CFString, { _, _, info in
-            guard let info else { return }
-            let watcher = Unmanaged<NetworkWatcher>.fromOpaque(info).takeUnretainedValue()
-            // The store calls back on the main queue, set below.
-            MainActor.assumeIsolated { watcher.onChange() }
-        }, &context) else { return }
+            version: 0, info: Unmanaged.passUnretained(self).toOpaque(), retain: nil, release: nil, copyDescription: nil
+        )
+        guard
+            let store = SCDynamicStoreCreate(
+                nil, "Eagle Boards" as CFString,
+                { _, _, info in
+                    guard let info else { return }
+                    let watcher = Unmanaged<NetworkWatcher>.fromOpaque(info).takeUnretainedValue()
+                    // The store calls back on the main queue, set below.
+                    MainActor.assumeIsolated { watcher.onChange() }
+                }, &context)
+        else { return }
         let anyInterfaceIPv4 = SCDynamicStoreKeyCreateNetworkInterfaceEntity(
             nil, kSCDynamicStoreDomainState, kSCCompAnyRegex, kSCEntNetIPv4)
         SCDynamicStoreSetNotificationKeys(store, nil, [anyInterfaceIPv4] as CFArray)

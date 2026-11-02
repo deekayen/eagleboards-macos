@@ -1,9 +1,10 @@
-@testable import CheckInServer
 import EagleBoardsCore
 import Foundation
 import Hummingbird
 import HummingbirdTesting
 import Testing
+
+@testable import CheckInServer
 
 /// What the sign-in tablets can and cannot reach.
 @MainActor
@@ -88,7 +89,8 @@ struct CheckInServerTests {
     @Test func aYouthSignsInAndAppearsOnTheListWithoutTheirContactDetails() async throws {
         let reply = try await send(
             "/register-youth", method: .post,
-            form: "Email=jan%40example.org&ID=&First=Jan&Last=Doe&Phone=770-555-0100&DOB=1%2F2%2F2010&UnitType=Troop&Unit=1776&BoardType=Final&Leader=Lee+Leader"
+            form:
+                "Email=jan%40example.org&ID=&First=Jan&Last=Doe&Phone=770-555-0100&DOB=1%2F2%2F2010&UnitType=Troop&Unit=1776&BoardType=Final&Leader=Lee+Leader"
         )
         #expect(reply.status == .ok)
         #expect(reply.body == "OK.")
@@ -108,9 +110,13 @@ struct CheckInServerTests {
     }
 
     @Test func theAdultFormListsYouthByNameAndUnitOnly() async throws {
-        _ = try await send("/register-youth", method: .post,
-            form: "First=Jan&Last=Doe&Email=jan%40example.org&Phone=770-555-0100&UnitType=Troop&Unit=1776&BoardType=Final")
-        _ = try await send("/register-youth", method: .post,
+        _ = try await send(
+            "/register-youth", method: .post,
+            form:
+                "First=Jan&Last=Doe&Email=jan%40example.org&Phone=770-555-0100&UnitType=Troop&Unit=1776&BoardType=Final"
+        )
+        _ = try await send(
+            "/register-youth", method: .post,
             form: "First=Pia&Last=Proposal&Email=pia%40example.org&UnitType=Troop&Unit=1777&BoardType=Project")
         let reply = try await send("/api/scout-choices")
         #expect(reply.status == .ok)
@@ -133,7 +139,8 @@ struct CheckInServerTests {
     @Test func anAdultSignsIn() async throws {
         let reply = try await send(
             "/register-adult", method: .post,
-            form: "Email=morgan%40example.org&First=Morgan&Last=Member&Phone=555&UnitType=District&Unit=&FinalBoard=Chair&ProjectReview=Member"
+            form:
+                "Email=morgan%40example.org&First=Morgan&Last=Member&Phone=555&UnitType=District&Unit=&FinalBoard=Chair&ProjectReview=Member"
         )
         #expect(reply.status == .ok)
         #expect(event.adults.first?.unitName == "District")
@@ -141,12 +148,16 @@ struct CheckInServerTests {
     }
 
     @Test func lookupsFillTheFormAndNothingMore() async throws {
-        try event.mergeSignUps([
-            SignUpEntry(startDate: "2026-09-22", firstName: "jan", lastName: "doe", item: "Eagle Board of Review",
-                        email: "jan@example.org", customAnswers: ["Troop 1776", "7705550100", "lee leader"]),
-        ], month: "2026-09")
-        try event.registerAdult(["First": "Morgan", "Last": "Member", "Email": "morgan@example.org", "UnitType": "Troop", "Unit": "5",
-                                 "Phone": "770-555-0110"])
+        try event.mergeSignUps(
+            [
+                SignUpEntry(
+                    startDate: "2026-09-22", firstName: "jan", lastName: "doe", item: "Eagle Board of Review",
+                    email: "jan@example.org", customAnswers: ["Troop 1776", "7705550100", "lee leader"])
+            ], month: "2026-09")
+        try event.registerAdult([
+            "First": "Morgan", "Last": "Member", "Email": "morgan@example.org", "UnitType": "Troop", "Unit": "5",
+            "Phone": "770-555-0110",
+        ])
         let signedIn = try #require(event.adultHistory.first?.boardHistory)
         // A pre-registration from before D-7 and D-8 may still hold both.
         var scheduled = try #require(event.scheduledYouth(matchingEmail: "jan@example.org"))
@@ -176,7 +187,8 @@ struct CheckInServerTests {
     /// HTTP as the Java script does it. BoardEventTests follows the same
     /// youth through the data files, the report and the exported lists.
     @Test func aYouthsPhoneNumberIsNotKeptButAnAdultsStillFillsTheirForm() async throws {
-        let oldPage = "Last=Oldpage&First=Olive&Email=op%40example.org&Phone=555-0101&UnitType=Troop&Unit=4402&BoardType=Final&DOB=2011-02-03"
+        let oldPage =
+            "Last=Oldpage&First=Olive&Email=op%40example.org&Phone=555-0101&UnitType=Troop&Unit=4402&BoardType=Final&DOB=2011-02-03"
         #expect(try await send("/register-youth", method: .post, form: oldPage).body == "OK.")
         var olive = try #require(event.scout(id: "SCOUT:Oldpage:Olive:4402"))
         #expect(olive.phone == "" && olive.dateOfBirth == "", "neither is kept from an old cached page")
@@ -185,18 +197,21 @@ struct CheckInServerTests {
         olive.phone = "555-0101"
         olive.dateOfBirth = "2011-02-03"
         try event.updateYouth(olive)
-        let again = oldPage
+        let again =
+            oldPage
             .replacingOccurrences(of: "555-0101", with: "555-0199")
             .replacingOccurrences(of: "2011-02-03", with: "2012-12-12")
         #expect(try await send("/register-youth", method: .post, form: again).body == "OK.")
         #expect(event.scout(id: olive.id)?.phone == "555-0101", "signing in again neither changes nor blanks it")
         #expect(event.scout(id: olive.id)?.dateOfBirth == "2011-02-03")
         let lists = try await send("/api/checked-in").body + send("/api/scout-choices").body
-        #expect(!lists.contains("555-0101") && !lists.contains("2011-02-03"), "and the lists at the door never carry it")
+        #expect(
+            !lists.contains("555-0101") && !lists.contains("2011-02-03"), "and the lists at the door never carry it")
 
         _ = try await send(
             "/register-adult", method: .post,
-            form: "Last=Phoneon&First=Adele&Email=adele%40example.org&Phone=555-0102&UnitType=Troop&Unit=4403&ProjectReview=Member&FinalBoard=Member"
+            form:
+                "Last=Phoneon&First=Adele&Email=adele%40example.org&Phone=555-0102&UnitType=Troop&Unit=4403&ProjectReview=Member&FinalBoard=Member"
         )
         let adult = try await send("/api/adult-lookup", method: .post, form: "email=adele%40example.org")
         #expect(adult.json["Phone"] as? String == "555-0102", "an adult's phone number still fills in their form")
@@ -379,7 +394,8 @@ struct CheckInServerTests {
 @Suite("Form bodies")
 struct FormFieldsTests {
     @Test func decodesTheWayBrowsersEncode() {
-        let fields = FormFields.parse("Leader=Lee+Leader&Email=jan%40example.org&Notes=a%2Bb&Empty=&Flag&First=1&First=2")
+        let fields = FormFields.parse(
+            "Leader=Lee+Leader&Email=jan%40example.org&Notes=a%2Bb&Empty=&Flag&First=1&First=2")
         #expect(fields["Leader"] == "Lee Leader")
         #expect(fields["Email"] == "jan@example.org")
         #expect(fields["Notes"] == "a+b")

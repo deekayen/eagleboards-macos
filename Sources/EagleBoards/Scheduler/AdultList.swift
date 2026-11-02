@@ -44,8 +44,9 @@ struct AdultList: View {
                         .adultRowStyle(adult)
                 }
                 TableColumn("First Name", value: \Adult.first) { adult in
-                    EditableText(adult.first.shownValue, name: "First name") { value in edit(adult) { $0.first = value } }
-                        .adultRowStyle(adult)
+                    EditableText(adult.first.shownValue, name: "First name") { value in edit(adult) { $0.first = value }
+                    }
+                    .adultRowStyle(adult)
                 }
                 TableColumn("Unit Type", value: \Adult.unitType) { adult in
                     EditableChoice(adult.unitType, choices: RecordChoices.adultUnitTypes, name: "Unit type") { value in
@@ -126,13 +127,16 @@ struct AdultList: View {
         // One adult at a time, as in the context menu, asking first.
         .onDeleteCommand(perform: model.singleSelectedAdult.map { adult in { model.confirmDeleteAdult(adult.id) } })
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            ListFooter("Add Adult…", help: "Sign in an adult who would rather not use the tablet") { model.present(.addAdult) }
+            ListFooter("Add Adult…", help: "Sign in an adult who would rather not use the tablet") {
+                model.present(.addAdult)
+            }
         }
         .overlay {
             if rows.isEmpty {
                 if model.searchText.isEmpty {
-                    ContentUnavailableView("No Adults Yet", systemImage: "person.2",
-                                           description: Text("Adults appear here the moment they sign in at the tablet."))
+                    ContentUnavailableView(
+                        "No Adults Yet", systemImage: "person.2",
+                        description: Text("Adults appear here the moment they sign in at the tablet."))
                 } else {
                     ContentUnavailableView.search(text: model.searchText)
                 }
@@ -294,9 +298,12 @@ struct AddAdultSheet: View {
                         }
                     }
                 } else {
-                    TextField("Signed in before?", text: $search, prompt: Text("Search the adult history by name, email, or unit"))
-                        .focused($field, equals: .search)
-                        .onSubmit { submitSearch(matches) }
+                    TextField(
+                        "Signed in before?", text: $search,
+                        prompt: Text("Search the adult history by name, email, or unit")
+                    )
+                    .focused($field, equals: .search)
+                    .onSubmit { submitSearch(matches) }
                     ForEach(matches) { match in
                         HStack {
                             Text(match.shownFullName)
@@ -360,18 +367,21 @@ struct AddAdultSheet: View {
                 .keyboardShortcut(.cancelAction)
             Button("Add Adult") {
                 do {
-                    try model.addAdult(Adult.handSignInForm(
-                        historyID: known?.id,
-                        first: first, last: last, email: email, phone: phone, unitType: unitType.rawValue, unit: unit,
-                        finalBoard: finalBoard, projectReview: projectReview, woodBadge: woodBadge
-                    ))
+                    try model.addAdult(
+                        Adult.handSignInForm(
+                            historyID: known?.id,
+                            first: first, last: last, email: email, phone: phone, unitType: unitType.rawValue,
+                            unit: unit,
+                            finalBoard: finalBoard, projectReview: projectReview, woodBadge: woodBadge
+                        ))
                     dismiss()
                 } catch {
                     problem = error.localizedDescription
                 }
             }
             .keyboardShortcut(inSearch ? nil : .defaultAction)
-            .disabled(first.trimmingCharacters(in: .whitespaces).isEmpty || last.trimmingCharacters(in: .whitespaces).isEmpty)
+            .disabled(
+                first.trimmingCharacters(in: .whitespaces).isEmpty || last.trimmingCharacters(in: .whitespaces).isEmpty)
         }
         // How many in the history match, said once typing pauses, since the
         // list shows only the first few.

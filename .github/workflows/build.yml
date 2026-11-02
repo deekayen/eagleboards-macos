@@ -30,6 +30,12 @@ jobs:
             exit 1
           fi
 
+      - name: Swift formatting
+        # Apple's swift-format, which ships with Xcode, configured by
+        # .swift-format (4-space indent, 120 columns). Run
+        # `xcrun swift-format format -i --recursive Sources Tests` to fix.
+        run: xcrun swift-format lint --strict --recursive Sources Tests
+
       - name: No participant data in the tree
         # The same patterns as scripts/hooks/pre-commit and .gitignore, for a
         # file that got in anyway. Change all three together.

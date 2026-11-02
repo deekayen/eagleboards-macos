@@ -85,6 +85,14 @@ System Settings. The README's pictures in `docs/images/` are shot this way from
 the demo event in `deekayen/eagleboards-shared` (its `WEBSITE.md` says how),
 with the window at 1280 by 738 and `-youthListWidth 320`.
 
+Swift code is formatted with Apple's `swift-format`, which ships with Xcode and
+reads `.swift-format` (4-space indent, 120 columns). CI lints with `--strict`.
+Format your changes before committing:
+
+```bash
+xcrun swift-format format -i --recursive Sources Tests
+```
+
 **Prefer pushing over re-running everything locally.** CI (`build.yml`) runs
 the tests, builds the app, checks the bundle, and runs the guards
 below. Run things locally to debug what CI found, or to iterate.

@@ -83,8 +83,10 @@ struct SharedCase: Sendable, CustomTestStringConvertible {
 
 enum SharedCases {
     static let format = 1.0
-    static let ops = ["unit-conflicts", "outside-member", "board-size", "suggest", "fill", "free-since",
-                      "seat-down-the-queue", "support-link"]
+    static let ops = [
+        "unit-conflicts", "outside-member", "board-size", "suggest", "fill", "free-since",
+        "seat-down-the-queue", "support-link",
+    ]
 
     struct File: Sendable {
         let name: String
@@ -94,7 +96,7 @@ enum SharedCases {
 
     static let files: [File] = {
         guard let folder = Bundle.module.url(forResource: "cases", withExtension: nil),
-              let names = try? FileManager.default.contentsOfDirectory(atPath: folder.path)
+            let names = try? FileManager.default.contentsOfDirectory(atPath: folder.path)
         else { return [] }
         return names.filter { $0.hasSuffix(".json") }.sorted().map { name in
             do {
@@ -127,8 +129,9 @@ struct SharedCaseTests {
                 Issue.record("\(file.name) is not readable JSON: \(file.error ?? "")")
                 continue
             }
-            #expect(SharedCases.isReadable(suite, file: file.name),
-                    "\(file.name): format \(suite["format"]) or op \(suite["op"]) is not one this runner reads")
+            #expect(
+                SharedCases.isReadable(suite, file: file.name),
+                "\(file.name): format \(suite["format"]) or op \(suite["op"]) is not one this runner reads")
         }
     }
 
@@ -138,13 +141,15 @@ struct SharedCaseTests {
         let expect = body["expect"]
         switch sharedCase.op {
         case "unit-conflicts":
-            let conflicts = BoardRules.unitConflicts(scoutUnitName: body["youth"]["unit"].string,
-                                                     members: body["adults"].array.map(adult))
+            let conflicts = BoardRules.unitConflicts(
+                scoutUnitName: body["youth"]["unit"].string,
+                members: body["adults"].array.map(adult))
             #expect(JSON.array(conflicts.map { .string($0.id) }) == expect)
 
         case "outside-member":
-            let outside = BoardRules.hasMemberFromOutsideUnit(scoutUnitName: body["youth"]["unit"].string,
-                                                              members: body["adults"].array.map(adult))
+            let outside = BoardRules.hasMemberFromOutsideUnit(
+                scoutUnitName: body["youth"]["unit"].string,
+                members: body["adults"].array.map(adult))
             #expect(JSON.bool(outside) == expect)
 
         case "board-size":
@@ -166,8 +171,9 @@ struct SharedCaseTests {
         case "suggest":
             let adults = body["adults"].array.map(adult)
             let youth = youth(body["youth"])
-            let pick = BoardSuggestion(for: youth, adults: adults, rooms: [freeRoom(for: youth)],
-                                       waiting: body["waiting"].array.map(self.youth), freeSince: freeSince(body["adults"]))
+            let pick = BoardSuggestion(
+                for: youth, adults: adults, rooms: [freeRoom(for: youth)],
+                waiting: body["waiting"].array.map(self.youth), freeSince: freeSince(body["adults"]))
             // The Mac's suggestion lists the whole board, chair first.
             if let chair = pick.chairID {
                 #expect(pick.memberIDs.first == chair, "the chair leads the board")
@@ -177,17 +183,22 @@ struct SharedCaseTests {
 
         case "fill":
             let youth = youth(body["youth"])
-            let fill = BoardSuggestion.fill(for: youth, adults: body["adults"].array.map(adult),
-                                            picked: body["picked"].array.map(\.string),
-                                            waiting: body["waiting"].array.map(self.youth), freeSince: freeSince(body["adults"]))
+            let fill = BoardSuggestion.fill(
+                for: youth, adults: body["adults"].array.map(adult),
+                picked: body["picked"].array.map(\.string),
+                waiting: body["waiting"].array.map(self.youth), freeSince: freeSince(body["adults"]))
             compare(proposal(chair: fill.chairID, members: fill.memberIDs, problems: fill.problems), expect)
 
         case "free-since":
             let since = BoardSuggestion.freeSinceTimes(
-                adults: body["adults"].array.map { Adult(fields: ["Type": "ADULT", "ID": $0["id"].string, "RegTime": $0["regTime"].string]) },
+                adults: body["adults"].array.map {
+                    Adult(fields: ["Type": "ADULT", "ID": $0["id"].string, "RegTime": $0["regTime"].string])
+                },
                 scouts: body["boards"].array.map {
-                    Scout(fields: ["Type": "SCOUT", "Status": $0["status"].string,
-                                   "BoardMembersIDs": $0["members"].string, "LastUpdateTime": $0["lastUpdate"].string])
+                    Scout(fields: [
+                        "Type": "SCOUT", "Status": $0["status"].string,
+                        "BoardMembersIDs": $0["members"].string, "LastUpdateTime": $0["lastUpdate"].string,
+                    ])
                 })
             for (id, time) in expect.object ?? [:] {
                 #expect(since[id].map(JSON.string) ?? .null == time, "\(id)")
@@ -214,8 +225,9 @@ struct SharedCaseTests {
             #expect(JSON.object(boards.mapValues { .number(Double($0)) }) == expect)
 
         case "support-link":
-            let supporting = Adult.withSupportLink(body["supporting"].string, body["youth"].string,
-                                                   linked: body["linked"] == .bool(true))
+            let supporting = Adult.withSupportLink(
+                body["supporting"].string, body["youth"].string,
+                linked: body["linked"] == .bool(true))
             #expect(JSON.string(supporting) == expect)
 
         default:
@@ -249,7 +261,8 @@ struct SharedCaseTests {
     /// The suggestion takes when each adult was last free as its own
     /// argument; the cases write it on the adult.
     private func freeSince(_ adults: JSON) -> [String: String] {
-        Dictionary(adults.array.map { ($0["id"].string, $0["freeSince"].string) }, uniquingKeysWith: { first, _ in first })
+        Dictionary(
+            adults.array.map { ($0["id"].string, $0["freeSince"].string) }, uniquingKeysWith: { first, _ in first })
     }
 
     private func word(_ verdict: BoardRules.SizeVerdict) -> String {
@@ -267,17 +280,20 @@ struct SharedCaseTests {
         [
             "chair": chair.map(JSON.string) ?? .null,
             "members": .array(members.map(JSON.string)),
-            "problems": .array(problems.map { text in
-                if text.wholeMatch(of: /No (Final Board|Proposal Review) chairs are available\./) != nil {
-                    return .object(["kind": .string("no-chair")])
-                }
-                if let match = text.wholeMatch(of: /Only (\d+) (Final Board|Proposal Review) members? (is|are) available\./),
-                   let count = Double(match.1) {
-                    return .object(["kind": .string("too-few-members"), "available": .number(count)])
-                }
-                Issue.record("unknown problem message \"\(text)\"")
-                return .string(text)
-            }),
+            "problems": .array(
+                problems.map { text in
+                    if text.wholeMatch(of: /No (Final Board|Proposal Review) chairs are available\./) != nil {
+                        return .object(["kind": .string("no-chair")])
+                    }
+                    if let match = text.wholeMatch(
+                        of: /Only (\d+) (Final Board|Proposal Review) members? (is|are) available\./),
+                        let count = Double(match.1)
+                    {
+                        return .object(["kind": .string("too-few-members"), "available": .number(count)])
+                    }
+                    Issue.record("unknown problem message \"\(text)\"")
+                    return .string(text)
+                }),
         ]
     }
 
@@ -288,7 +304,8 @@ struct SharedCaseTests {
             Issue.record("expect is not an object: \(expect)")
             return
         }
-        for problem in expected["problems"]?.array ?? [] where !["no-chair", "too-few-members"].contains(problem["kind"].string) {
+        for problem in expected["problems"]?.array ?? []
+        where !["no-chair", "too-few-members"].contains(problem["kind"].string) {
             Issue.record("unknown problem kind \(problem["kind"]) in the case")
         }
         for (key, want) in expected.sorted(by: { $0.key < $1.key }) {

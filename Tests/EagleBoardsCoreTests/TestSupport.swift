@@ -23,7 +23,8 @@ final class ScratchFolder {
 
     func write(_ text: String, to relativePath: String) throws {
         let target = url.appending(path: relativePath)
-        try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(
+            at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
         try Data(text.utf8).write(to: target)
     }
 }

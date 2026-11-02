@@ -147,7 +147,10 @@ public final class BoardEvent {
             let fields = [adult.first, adult.last, adult.email, adult.unitName, adult.unitLabel, adult.unitDisplay]
             return words.allSatisfy { word in fields.contains { $0.localizedCaseInsensitiveContains(word) } }
         }
-        return Array(found.sorted { ($0.last.lowercased(), $0.first.lowercased()) < ($1.last.lowercased(), $1.first.lowercased()) }
+        return Array(
+            found.sorted {
+                ($0.last.lowercased(), $0.first.lowercased()) < ($1.last.lowercased(), $1.first.lowercased())
+            }
             .prefix(limit))
     }
 
@@ -187,9 +190,11 @@ public final class BoardEvent {
         incoming.assignIDIfNeeded()
         incoming.refreshDerivedFields()
 
-        let preRegistered = scheduledScouts.contains { $0.id == incoming.id }
+        let preRegistered =
+            scheduledScouts.contains { $0.id == incoming.id }
             || scheduledYouth(matchingEmail: incoming.email) != nil
-        let nextRegNum = preRegistered
+        let nextRegNum =
+            preRegistered
             ? "P\(scouts.filter(\.isPreRegistered).count + 1)"
             : "W\(scouts.filter(\.isWalkIn).count + 1)"
 
@@ -358,7 +363,9 @@ public final class BoardEvent {
         }
         var scout = scouts[scoutIndex]
         guard scout.status == .seated || scout.status == .inProgress else {
-            throw EventError("\(scout.shownFullName)'s board members can only be changed while seated or in review (status '\(scout.statusLabel)').")
+            throw EventError(
+                "\(scout.shownFullName)'s board members can only be changed while seated or in review (status '\(scout.statusLabel)')."
+            )
         }
         guard let roomIndex = rooms.firstIndex(where: { $0.name == scout.room }) else {
             throw EventError("Room \(scout.room) was not found.")
@@ -401,13 +408,15 @@ public final class BoardEvent {
         let changing = currentRoom != nil
 
         var seenIDs = Set<String>()
-        let uniqueMemberIDs = memberIDs
+        let uniqueMemberIDs =
+            memberIDs
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty && seenIDs.insert($0).inserted }
         guard !uniqueMemberIDs.isEmpty else {
-            throw EventError(changing
-                ? "No members would be left, and a \(label) needs at least \(minimum). Add \(minimum) before saving."
-                : "The board has no members yet. Add at least \(minimum) for a \(label).")
+            throw EventError(
+                changing
+                    ? "No members would be left, and a \(label) needs at least \(minimum). Add \(minimum) before saving."
+                    : "The board has no members yet. Add at least \(minimum) for a \(label).")
         }
 
         var members: [Adult] = []
@@ -417,7 +426,8 @@ public final class BoardEvent {
             }
             let name = member.shownFullName
             if member.isDisabledForToday {
-                throw EventError("\(name) has gone home. Bring them back with Adult › Mark Back, or choose someone else.")
+                throw EventError(
+                    "\(name) has gone home. Bring them back with Adult › Mark Back, or choose someone else.")
             }
             if !member.room.isEmpty && member.room != currentRoom {
                 throw EventError("\(name) is on the board in room \(member.room). Choose someone else.")
@@ -432,7 +442,8 @@ public final class BoardEvent {
         // The council's same-unit rule may be overridden; the national floor
         // of one member from outside the unit may not (SPEC.md D-4).
         guard BoardRules.hasMemberFromOutsideUnit(scoutUnitName: scout.unitName, members: members) else {
-            throw EventError(BoardRules.noMemberFromOutsideUnit(scoutName: scout.shownFullName, scoutUnitName: scout.unitName))
+            throw EventError(
+                BoardRules.noMemberFromOutsideUnit(scoutName: scout.shownFullName, scoutUnitName: scout.unitName))
         }
 
         let count = members.count
@@ -440,14 +451,18 @@ public final class BoardEvent {
         switch BoardRules.checkSize(count, for: boardType) {
         case .tooFew:
             let short = "a \(label) needs at least \(minimum). Add \(minimum - count) more"
-            throw EventError(changing
-                ? "Only \(Count.of(count, "member", "members")) would be left, and \(short) before saving."
-                : "Only \(Count.of(count, "member", "members")) \(count == 1 ? "is" : "are") on the board, and \(short).")
+            throw EventError(
+                changing
+                    ? "Only \(Count.of(count, "member", "members")) would be left, and \(short) before saving."
+                    : "Only \(Count.of(count, "member", "members")) \(count == 1 ? "is" : "are") on the board, and \(short)."
+            )
         case .tooMany:
-            let limit = "a \(label) can have at most \(maximum) (Guide to Advancement 8.0.0.3). Remove \(count - maximum)"
-            throw EventError(changing
-                ? "That would make \(count) members, and \(limit) before saving."
-                : "\(count) members are on the board, and \(limit).")
+            let limit =
+                "a \(label) can have at most \(maximum) (Guide to Advancement 8.0.0.3). Remove \(count - maximum)"
+            throw EventError(
+                changing
+                    ? "That would make \(count) members, and \(limit) before saving."
+                    : "\(count) members are on the board, and \(limit).")
         case .ok, .overPreferred:
             break
         }
@@ -462,12 +477,14 @@ public final class BoardEvent {
             throw EventError("There is no adult '\(chairID)' to chair the board.")
         }
         guard uniqueMemberIDs.contains(chair.id) else {
-            throw EventError("\(chair.shownFullName) would chair the board but isn't one of its members. "
-                + "Add them to the board, or choose another chair.")
+            throw EventError(
+                "\(chair.shownFullName) would chair the board but isn't one of its members. "
+                    + "Add them to the board, or choose another chair.")
         }
         guard chair.canChair(boardType) else {
-            throw EventError("\(chair.shownFullName) isn't a chair for \(label)s. "
-                + "Choose a qualified chair, or make them a chair on the Adults page.")
+            throw EventError(
+                "\(chair.shownFullName) isn't a chair for \(label)s. "
+                    + "Choose a qualified chair, or make them a chair on the Adults page.")
         }
         return (members, chair)
     }
@@ -478,7 +495,8 @@ public final class BoardEvent {
             throw EventError("There is no youth '\(scoutID)'.")
         }
         guard scouts[index].status == .seated else {
-            throw EventError("\(scouts[index].shownFullName)'s board has not been seated (status '\(scouts[index].statusLabel)').")
+            throw EventError(
+                "\(scouts[index].shownFullName)'s board has not been seated (status '\(scouts[index].statusLabel)').")
         }
         scouts[index].status = .inProgress
         scouts[index].markUpdated(at: now)
@@ -495,7 +513,9 @@ public final class BoardEvent {
             throw EventError("There is no youth '\(scoutID)'.")
         }
         guard scouts[scoutIndex].status == .inProgress else {
-            throw EventError("\(scouts[scoutIndex].shownFullName)'s review has not started (status '\(scouts[scoutIndex].statusLabel)').")
+            throw EventError(
+                "\(scouts[scoutIndex].shownFullName)'s review has not started (status '\(scouts[scoutIndex].statusLabel)')."
+            )
         }
         let roomName = scouts[scoutIndex].room
         guard let roomIndex = rooms.firstIndex(where: { $0.name == roomName }) else {
@@ -516,7 +536,9 @@ public final class BoardEvent {
             throw EventError("There is no youth '\(scoutID)'.")
         }
         guard scouts[index].status?.isWaitingForBoard == true else {
-            throw EventError("Only a youth still waiting can be postponed; \(scouts[index].shownFullName) is '\(scouts[index].statusLabel)'.")
+            throw EventError(
+                "Only a youth still waiting can be postponed; \(scouts[index].shownFullName) is '\(scouts[index].statusLabel)'."
+            )
         }
         scouts[index].status = .postponed
         scouts[index].markUpdated(at: now)
@@ -531,7 +553,9 @@ public final class BoardEvent {
         }
         let status = scouts[scoutIndex].status
         guard status == .seated || status == .inProgress || status == .verified else {
-            throw EventError("Only a seated board or one in review can be reset; \(scouts[scoutIndex].shownFullName) is '\(scouts[scoutIndex].statusLabel)'.")
+            throw EventError(
+                "Only a seated board or one in review can be reset; \(scouts[scoutIndex].shownFullName) is '\(scouts[scoutIndex].statusLabel)'."
+            )
         }
         if let roomIndex = rooms.firstIndex(where: { $0.name == scouts[scoutIndex].room }) {
             releaseRoom(at: roomIndex)
@@ -570,7 +594,9 @@ public final class BoardEvent {
                 throw EventError("Room \(earlier.room) is no longer on today's list. \(Self.byHandInstead)")
             }
             guard rooms[index].isFree || rooms[index].name == currentRoom else {
-                throw EventError("Room \(earlier.room) has been given to \(rooms[index].scoutName.shownValue) since. \(Self.byHandInstead)")
+                throw EventError(
+                    "Room \(earlier.room) has been given to \(rooms[index].scoutName.shownValue) since. \(Self.byHandInstead)"
+                )
             }
             let listed = earlier.boardMembers(among: adults)
             guard listed.unknown.isEmpty else {
@@ -582,7 +608,8 @@ public final class BoardEvent {
                     throw EventError("\(member.shownFullName) has gone home since. \(Self.byHandInstead)")
                 }
                 guard member.room.isEmpty || member.room == currentRoom else {
-                    throw EventError("\(member.shownFullName) is on the board in room \(member.room) now. \(Self.byHandInstead)")
+                    throw EventError(
+                        "\(member.shownFullName) is on the board in room \(member.room) now. \(Self.byHandInstead)")
                 }
             }
             roomIndex = index
@@ -886,12 +913,14 @@ public final class BoardEvent {
             let current = scouts[index]
             if record.statusText != current.statusText {
                 if record.status?.holdsRoom == true {
-                    throw EventError("\(current.shownFullName) can be seated, or their review started, only on the Event page, "
-                        + "where the board gets its room and members.")
+                    throw EventError(
+                        "\(current.shownFullName) can be seated, or their review started, only on the Event page, "
+                            + "where the board gets its room and members.")
                 }
                 if current.status?.holdsRoom == true {
-                    throw EventError("\(current.shownFullName)'s board is in room \(current.room). Reset it or complete it on the "
-                        + "Event page, which frees the room and its members.")
+                    throw EventError(
+                        "\(current.shownFullName)'s board is in room \(current.room). Reset it or complete it on the "
+                            + "Event page, which frees the room and its members.")
                 }
             }
             scouts[index] = record
@@ -905,7 +934,9 @@ public final class BoardEvent {
             try save(.scheduledYouth)
         } else {
             if let scout = scout(id: id), scout.status == .seated || scout.status == .inProgress {
-                throw EventError("\(scout.shownFullName)'s board is active in room \(scout.room). Reset or complete that board first.")
+                throw EventError(
+                    "\(scout.shownFullName)'s board is active in room \(scout.room). Reset or complete that board first."
+                )
             }
             scouts.removeAll { $0.id == id }
             try save(.youth)
@@ -1031,7 +1062,8 @@ public final class BoardEvent {
                 }
             } else {
                 if scheduledScouts.contains(where: {
-                    Self.matchableEmail($0.email) != nil && Self.matchableEmail($0.email) == Self.matchableEmail(entry.email)
+                    Self.matchableEmail($0.email) != nil
+                        && Self.matchableEmail($0.email) == Self.matchableEmail(entry.email)
                 }) {
                     summary.alreadyScheduledYouth += 1
                     continue

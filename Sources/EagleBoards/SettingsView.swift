@@ -21,8 +21,10 @@ struct SettingsView: View {
                 .tag("signUpGenius")
         }
         .frame(width: 560)
-        .alert(problem?.title ?? "", isPresented: Binding(get: { problem != nil }, set: { if !$0 { problem = nil } }),
-               presenting: problem) { _ in
+        .alert(
+            problem?.title ?? "", isPresented: Binding(get: { problem != nil }, set: { if !$0 { problem = nil } }),
+            presenting: problem
+        ) { _ in
             Button("OK", role: .cancel) {}
         } message: { problem in
             Text(problem.text)
@@ -48,10 +50,12 @@ private struct GeneralSettings: View {
             } header: {
                 Text("Boards")
             } footer: {
-                Text("A proposed board picks a chair, members, and a room with the whole waiting line in mind. "
-                    + "Start empty to choose the adults yourself; a free room is still picked, and Start Over "
-                    + "in the inspector proposes one whenever you want it.")
-                    .foregroundStyle(.secondary)
+                Text(
+                    "A proposed board picks a chair, members, and a room with the whole waiting line in mind. "
+                        + "Start empty to choose the adults yourself; a free room is still picked, and Start Over "
+                        + "in the inspector proposes one whenever you want it."
+                )
+                .foregroundStyle(.secondary)
             }
             Section("Data folder") {
                 LabeledContent("Folder", value: model.dataFolder?.root.path ?? "Not chosen")
@@ -63,8 +67,12 @@ private struct GeneralSettings: View {
             }
             Section {
                 if showsNetworks {
-                    Picker("Network", selection: Binding(get: { model.signInListening.selection },
-                                                         set: { model.signInNetwork = $0 })) {
+                    Picker(
+                        "Network",
+                        selection: Binding(
+                            get: { model.signInListening.selection },
+                            set: { model.signInNetwork = $0 })
+                    ) {
                         ForEach(model.signInListening.menu(among: model.networks)) { item in
                             Text(item.label).tag(item.tag)
                         }
@@ -79,14 +87,18 @@ private struct GeneralSettings: View {
                 Text("Sign-in station")
             } footer: {
                 if showsNetworks {
-                    Text("Tablets reach the sign-in page only on the network chosen here: Wi-Fi, unless you choose another. "
-                        + "Every Network also serves any VPN, virtual machine, or phone hotspot this Mac is on. "
-                        + "This Mac can always open the page itself.")
-                        .foregroundStyle(.secondary)
-                }
-                Text("Tablets connect to this port, a number from \(Self.portRange). 8080 is the usual choice; "
-                    + "change it only if another program already uses it.")
+                    Text(
+                        "Tablets reach the sign-in page only on the network chosen here: Wi-Fi, unless you choose another. "
+                            + "Every Network also serves any VPN, virtual machine, or phone hotspot this Mac is on. "
+                            + "This Mac can always open the page itself."
+                    )
                     .foregroundStyle(.secondary)
+                }
+                Text(
+                    "Tablets connect to this port, a number from \(Self.portRange). 8080 is the usual choice; "
+                        + "change it only if another program already uses it."
+                )
+                .foregroundStyle(.secondary)
                 if let problem = model.signInListening.problem {
                     NoticeLabel.warning(problem)
                         .foregroundStyle(.secondary)
@@ -97,7 +109,8 @@ private struct GeneralSettings: View {
         .onAppear { portText = String(model.port) }
     }
 
-    private static let portRange = "\(LaunchSettings.allowedPorts.lowerBound) to \(LaunchSettings.allowedPorts.upperBound)"
+    private static let portRange =
+        "\(LaunchSettings.allowedPorts.lowerBound) to \(LaunchSettings.allowedPorts.upperBound)"
 
     private var showsNetworks: Bool {
         model.signInListening.showsMenu(among: model.networks)
@@ -109,7 +122,8 @@ private struct GeneralSettings: View {
             let typed = portText.trimmingCharacters(in: .whitespaces)
             problem = AppModel.Message(
                 title: "Choose a port from \(Self.portRange).",
-                text: (typed.isEmpty ? "" : "“\(typed)” is not one. ") + "The sign-in station stays on port \(model.port).")
+                text: (typed.isEmpty ? "" : "“\(typed)” is not one. ")
+                    + "The sign-in station stays on port \(model.port).")
             return
         }
         model.port = port
@@ -132,10 +146,12 @@ private struct TimerSettings: View {
                 } header: {
                     Text("Board convening (Seat Board to Start Review)")
                 } footer: {
-                    Text("Guide to Advancement 8.0.3.0, item 8: members convene at least 30 minutes before the board to go over the "
-                        + "application, references, and project workbook. Used here as a cap: past it the youth is being kept "
-                        + "waiting. It is never just running long, because it is a limit rather than a target.")
-                        .foregroundStyle(.secondary)
+                    Text(
+                        "Guide to Advancement 8.0.3.0, item 8: members convene at least 30 minutes before the board to go over the "
+                            + "application, references, and project workbook. Used here as a cap: past it the youth is being kept "
+                            + "waiting. It is never just running long, because it is a limit rather than a target."
+                    )
+                    .foregroundStyle(.secondary)
                 }
                 Section {
                     minutes("Running long after", \.finalYellowMinutes, event)
@@ -143,9 +159,11 @@ private struct TimerSettings: View {
                 } header: {
                     Text("Final board review (from Start Review)")
                 } footer: {
-                    Text("Guide to Advancement 8.0.3.0, item 9: Eagle boards generally last 30 minutes or somewhat longer, but "
-                        + "rarely should one last longer than 45 minutes.")
-                        .foregroundStyle(.secondary)
+                    Text(
+                        "Guide to Advancement 8.0.3.0, item 9: Eagle boards generally last 30 minutes or somewhat longer, but "
+                            + "rarely should one last longer than 45 minutes."
+                    )
+                    .foregroundStyle(.secondary)
                     runningLongNote(\.finalYellowMinutes, \.finalRedMinutes, event)
                 }
                 Section {
@@ -154,8 +172,10 @@ private struct TimerSettings: View {
                 } header: {
                     Text("Proposal review (from Start Review)")
                 } footer: {
-                    Text("District practice. A proposal review is not a board of review, so the Guide sets no length for it.")
-                        .foregroundStyle(.secondary)
+                    Text(
+                        "District practice. A proposal review is not a board of review, so the Guide sets no length for it."
+                    )
+                    .foregroundStyle(.secondary)
                     runningLongNote(\.projectYellowMinutes, \.projectRedMinutes, event)
                 }
                 if let notificationStyle {
@@ -202,18 +222,24 @@ private struct TimerSettings: View {
     /// Said rather than prevented: a Running long stepper bounded by Overdue
     /// would still be left past it whenever Overdue is lowered.
     @ViewBuilder
-    private func runningLongNote(_ yellow: KeyPath<Config, Int>, _ red: KeyPath<Config, Int>, _ event: BoardEvent) -> some View {
+    private func runningLongNote(_ yellow: KeyPath<Config, Int>, _ red: KeyPath<Config, Int>, _ event: BoardEvent)
+        -> some View
+    {
         let runningLong = event.config[keyPath: yellow]
         let overdue = event.config[keyPath: red]
         if runningLong > 0, overdue > 0, runningLong >= overdue {
-            NoticeLabel.warning("Running long is at or past Overdue, so these reviews go from on time straight to overdue.")
-                .foregroundStyle(.secondary)
+            NoticeLabel.warning(
+                "Running long is at or past Overdue, so these reviews go from on time straight to overdue."
+            )
+            .foregroundStyle(.secondary)
         }
     }
 
     private func minutes(_ label: String, _ keyPath: WritableKeyPath<Config, Int>, _ event: BoardEvent) -> some View {
         Stepper(value: configBinding(keyPath, event), in: 0...240) {
-            LabeledContent(label, value: event.config[keyPath: keyPath] == 0 ? "off" : Count.minutes(event.config[keyPath: keyPath]))
+            LabeledContent(
+                label,
+                value: event.config[keyPath: keyPath] == 0 ? "off" : Count.minutes(event.config[keyPath: keyPath]))
         }
     }
 
@@ -265,14 +291,18 @@ private struct SignUpGeniusSettings: View {
             } header: {
                 Text("SignUpGenius")
             } footer: {
-                Text("With a key, Eagle Boards reads today's Eagle board sign-up: youth become pre-registrations, so their "
-                    + "details fill in at the door and they sign in as P rather than W, and adults are added to the history. "
-                    + "The key is kept in your macOS keychain, not in the data folder.")
-                    .foregroundStyle(.secondary)
+                Text(
+                    "With a key, Eagle Boards reads today's Eagle board sign-up: youth become pre-registrations, so their "
+                        + "details fill in at the door and they sign in as P rather than W, and adults are added to the history. "
+                        + "The key is kept in your macOS keychain, not in the data folder."
+                )
+                .foregroundStyle(.secondary)
                 if !model.signUpGeniusAllowed {
-                    NoticeLabel.warning("Off for this run: EAGLEBOARDS_DATA_FOLDER is set, so the keychain is not read. "
-                        + "Set EAGLEBOARDS_SIGNUPGENIUS=1 to use it with a scratch folder.")
-                        .foregroundStyle(.secondary)
+                    NoticeLabel.warning(
+                        "Off for this run: EAGLEBOARDS_DATA_FOLDER is set, so the keychain is not read. "
+                            + "Set EAGLEBOARDS_SIGNUPGENIUS=1 to use it with a scratch folder."
+                    )
+                    .foregroundStyle(.secondary)
                 }
             }
             Section {

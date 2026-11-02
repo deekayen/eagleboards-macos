@@ -83,16 +83,20 @@ struct WelcomeView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Where should Eagle Boards keep its data?")
                         .font(.headline)
-                    Text("Each event gets its own dated folder inside, and a history of every adult who has signed in is kept across events. "
-                        + "It holds personal information, some of it about minors, so choose a private place.")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text("Moving from the Java Eagle Board Scheduler? Choose the folder it ran in, the one holding "
-                        + "Master_AdultHistory.csv and the dated folders. Both programs read the same files.")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    Text(
+                        "Each event gets its own dated folder inside, and a history of every adult who has signed in is kept across events. "
+                            + "It holds personal information, some of it about minors, so choose a private place."
+                    )
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    Text(
+                        "Moving from the Java Eagle Board Scheduler? Choose the folder it ran in, the one holding "
+                            + "Master_AdultHistory.csv and the dated folders. Both programs read the same files."
+                    )
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
                     HStack {
                         Button("Use Documents › Eagle Boards") { model.useDefaultDataFolder() }
                             .keyboardShortcut(.defaultAction)

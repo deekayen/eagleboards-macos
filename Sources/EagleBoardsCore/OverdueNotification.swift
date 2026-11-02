@@ -26,21 +26,24 @@ public enum OverdueNotification {
     /// `RoomTimerSpeech.check` does, so a room already overdue then is not
     /// announced as if it had just gone over.
     public static func check(announced: Set<String>?, youth: [Scout], config: Config, now: Date)
-        -> (announced: Set<String>, posts: [Post]) {
+        -> (announced: Set<String>, posts: [Post])
+    {
         var seen = announced ?? []
         var posts: [Post] = []
         for youth in youth where youth.status == .seated || youth.status == .inProgress {
             guard let minutes = youth.minutesSinceLastUpdate(now: now),
-                  RoomTimer.state(status: youth.status, boardType: youth.boardType, minutes: minutes, config: config) == .overdue
+                RoomTimer.state(status: youth.status, boardType: youth.boardType, minutes: minutes, config: config)
+                    == .overdue
             else { continue }
             let key = RoomTimerSpeech.key(for: youth)
             guard seen.insert(key).inserted, announced != nil else { continue }
-            posts.append(Post(
-                id: key,
-                title: "Room \(youth.room) is overdue",
-                body: youth.status == .seated
-                    ? "\(youth.shownFullName)'s board has been convening for \(Count.minutes(minutes))."
-                    : "\(youth.shownFullName)'s review has run \(Count.minutes(minutes))."))
+            posts.append(
+                Post(
+                    id: key,
+                    title: "Room \(youth.room) is overdue",
+                    body: youth.status == .seated
+                        ? "\(youth.shownFullName)'s board has been convening for \(Count.minutes(minutes))."
+                        : "\(youth.shownFullName)'s review has run \(Count.minutes(minutes))."))
         }
         return (seen, posts)
     }
@@ -53,7 +56,8 @@ public enum OverdueNotification {
     }
 
     /// Under the style in Settings › Timers, whatever it is.
-    public static let settingsFooter = "Eagle Boards posts a notification once when a room goes overdue. With Eagle "
+    public static let settingsFooter =
+        "Eagle Boards posts a notification once when a room goes overdue. With Eagle "
         + "Boards in front, it goes away after 10 seconds; behind another app, the Alerts style keeps it on screen "
         + "until you close it."
 

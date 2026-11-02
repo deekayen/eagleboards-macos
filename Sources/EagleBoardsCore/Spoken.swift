@@ -33,14 +33,18 @@ public enum StepSpeech {
 
     /// Change Members' whole change, in one announcement: one swapped for
     /// another, or who left and who joined, then a new chair.
-    public static func membersChanged(before: [String], after: [String], chairBefore: String?, chairAfter: String?) -> String {
+    public static func membersChanged(before: [String], after: [String], chairBefore: String?, chairAfter: String?)
+        -> String
+    {
         let removed = before.filter { !after.contains($0) }
         let added = after.filter { !before.contains($0) }
         var sentences: [String] = []
         if removed.count == 1 && added.count == 1 {
             sentences.append("\(added[0]) replaces \(removed[0]) on the board.")
         } else {
-            if !removed.isEmpty { sentences.append("\(list(removed)) \(removed.count == 1 ? "is" : "are") off the board.") }
+            if !removed.isEmpty {
+                sentences.append("\(list(removed)) \(removed.count == 1 ? "is" : "are") off the board.")
+            }
             if !added.isEmpty { sentences.append("\(list(added)) \(added.count == 1 ? "is" : "are") on the board.") }
         }
         if let chairAfter, chairAfter != chairBefore {
@@ -92,7 +96,9 @@ public enum StepSpeech {
     }
 
     /// Move Board, from who was in each room before the move.
-    public static func boardMoved(from first: String, holding firstYouth: String?, to second: String, holding secondYouth: String?) -> String {
+    public static func boardMoved(
+        from first: String, holding firstYouth: String?, to second: String, holding secondYouth: String?
+    ) -> String {
         switch (firstYouth, secondYouth) {
         case (.some, .some): "The boards in rooms \(first) and \(second) swapped rooms."
         case (.some(let youth), nil): "\(youth)'s board moved to room \(second)."
@@ -134,7 +140,8 @@ public enum Arrivals {
         case (0, 1): "\(adults[0]) signed in."
         case (_, 0): "\(Count.of(youth.count, "youth", "youth")) signed in."
         case (0, _): "\(Count.of(adults.count, "adult", "adults")) signed in."
-        default: "\(Count.of(youth.count, "youth", "youth")) and \(Count.of(adults.count, "adult", "adults")) signed in."
+        default:
+            "\(Count.of(youth.count, "youth", "youth")) and \(Count.of(adults.count, "adult", "adults")) signed in."
         }
     }
 }
@@ -176,19 +183,24 @@ public enum RoomTimerSpeech {
     /// announcement. Nil `previous` is the first look after an event opens:
     /// it only records, so opening an event does not read out every room. A
     /// board not seen before counts as on time.
-    public static func check(previous: States?, youth: [Scout], config: Config, now: Date) -> (states: States, spoken: String) {
+    public static func check(previous: States?, youth: [Scout], config: Config, now: Date) -> (
+        states: States, spoken: String
+    ) {
         var states: States = [:]
         var turned: [String] = []
         for youth in youth where youth.status?.holdsRoom == true {
             guard let minutes = youth.minutesSinceLastUpdate(now: now),
-                  let state = RoomTimer.state(status: youth.status, boardType: youth.boardType, minutes: minutes, config: config)
+                let state = RoomTimer.state(
+                    status: youth.status, boardType: youth.boardType, minutes: minutes, config: config)
             else { continue }
             let key = key(for: youth)
             states[key] = state
             guard let previous, state != previous[key] ?? .okay else { continue }
             switch state {
-            case .warning: turned.append("Room \(youth.room) is running long: \(youth.shownFullName), \(Count.minutes(minutes)).")
-            case .overdue: turned.append("Room \(youth.room) is overdue: \(youth.shownFullName), \(Count.minutes(minutes)).")
+            case .warning:
+                turned.append("Room \(youth.room) is running long: \(youth.shownFullName), \(Count.minutes(minutes)).")
+            case .overdue:
+                turned.append("Room \(youth.room) is overdue: \(youth.shownFullName), \(Count.minutes(minutes)).")
             case .okay: break
             }
         }
@@ -303,7 +315,8 @@ extension Adult {
     /// is the unit the row shows, or why they cannot sit ("Gone home");
     /// `role` the role it shows. The add or remove button is read on its own.
     public func spokenRow(youth: Scout?, place: String, role: String) -> String {
-        let sameUnit = youth.map { !BoardRules.unitConflicts(scoutUnitName: $0.unitName, members: [self]).isEmpty } ?? false
+        let sameUnit =
+            youth.map { !BoardRules.unitConflicts(scoutUnitName: $0.unitName, members: [self]).isEmpty } ?? false
         return [shownFullName, woodBadge == "Y" ? "Wood Badge" : "", sameUnit ? "Same unit" : "", place, role]
             .filter { !$0.isEmpty }
             .joined(separator: ", ")

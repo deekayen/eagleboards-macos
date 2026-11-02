@@ -101,7 +101,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let model, model.isServing else { return .terminateNow }
         let alert = NSAlert()
         alert.messageText = "Stop the sign-in station and quit?"
-        alert.informativeText = "The sign-in tablets will not be able to register anyone until Eagle Boards is open again. "
+        alert.informativeText =
+            "The sign-in tablets will not be able to register anyone until Eagle Boards is open again. "
             + "Everything recorded so far is saved."
         alert.addButton(withTitle: "Quit")
         alert.addButton(withTitle: "Cancel")
@@ -265,13 +266,16 @@ struct EagleBoardsCommands: Commands {
     /// Command-1 to Command-8 in the View menu's order, Windows' Ctrl+1 to 8
     /// with the Mac's modifier (SPEC.md P-3, P-6).
     private func pageButton(_ page: AppModel.Page, _ key: KeyEquivalent) -> some View {
-        Toggle(page.title, isOn: Binding(
-            get: { model.event != nil && model.page == page },
-            set: { _ in
-                openWindow(id: WindowID.scheduler)
-                model.show(page)
-            }
-        ))
+        Toggle(
+            page.title,
+            isOn: Binding(
+                get: { model.event != nil && model.page == page },
+                set: { _ in
+                    openWindow(id: WindowID.scheduler)
+                    model.show(page)
+                }
+            )
+        )
         .keyboardShortcut(key)
         .disabled(model.event == nil)
     }

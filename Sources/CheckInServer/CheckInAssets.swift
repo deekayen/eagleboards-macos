@@ -41,8 +41,9 @@ enum CheckInAssets {
     /// the executable and would stop the app if it were not there.
     static let directory: URL = {
         if let bundleURL = Bundle.main.url(forResource: "EagleBoards_CheckInServer", withExtension: "bundle"),
-           let bundle = Bundle(url: bundleURL),
-           let pagesURL = bundle.url(forResource: "CheckIn", withExtension: nil) {
+            let bundle = Bundle(url: bundleURL),
+            let pagesURL = bundle.url(forResource: "CheckIn", withExtension: nil)
+        {
             return pagesURL
         }
         return Bundle.module.url(forResource: "CheckIn", withExtension: nil)!

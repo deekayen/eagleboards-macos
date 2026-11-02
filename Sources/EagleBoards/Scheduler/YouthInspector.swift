@@ -34,7 +34,8 @@ struct YouthInspector: View {
                     // it once a row. Another youth starts a fresh view (the
                     // `.id` below), and a board just begun has no notes
                     // before it, so those already there are only shown.
-                    .onChange(of: DraftBoardSections.spokenNotes(for: youth, model: model, event: event)) { previous, current in
+                    .onChange(of: DraftBoardSections.spokenNotes(for: youth, model: model, event: event)) {
+                        previous, current in
                         guard let previous, let current else { return }
                         Speech.say(SeatingReview.newlySpoken(current, since: previous))
                     }
@@ -50,8 +51,9 @@ struct YouthInspector: View {
             }
             .id(youth.id)
         } else {
-            ContentUnavailableView("No Youth Selected", systemImage: "person.crop.circle",
-                                   description: Text("Select a youth to draw up their board, or to see how it went."))
+            ContentUnavailableView(
+                "No Youth Selected", systemImage: "person.crop.circle",
+                description: Text("Select a youth to draw up their board, or to see how it went."))
         }
     }
 }
@@ -105,7 +107,8 @@ private struct DraftBoardSections: View {
                 Picker("Room", selection: Binding(get: { draft.roomID }, set: { model.setDraftRoom($0) })) {
                     Text("None").tag(Room.ID?.none)
                     ForEach(roomChoices(for: boardType)) { choice in
-                        Text(roomLabel(choice)).accessibilityLabel(roomLabel(choice).spokenList).tag(Optional(choice.id))
+                        Text(roomLabel(choice)).accessibilityLabel(roomLabel(choice).spokenList).tag(
+                            Optional(choice.id))
                     }
                 }
                 ForEach(members) { member in
@@ -117,9 +120,11 @@ private struct DraftBoardSections: View {
                 }
                 if members.isEmpty {
                     // The list to add from, by its heading, not by where it is.
-                    Text("No one yet. Click someone under Free for a \(boardType.label), drag them here, "
-                        + "or use Fill the Rest.")
-                        .foregroundStyle(.secondary)
+                    Text(
+                        "No one yet. Click someone under Free for a \(boardType.label), drag them here, "
+                            + "or use Fill the Rest."
+                    )
+                    .foregroundStyle(.secondary)
                 }
             } header: {
                 HStack {
@@ -139,7 +144,9 @@ private struct DraftBoardSections: View {
                 let ids = DragPayload.adultIDs(in: items)
                 model.addToDraft(ids)
                 return !ids.isEmpty
-            } isTargeted: { isTargeted = $0 }
+            } isTargeted: {
+                isTargeted = $0
+            }
 
             Section {
                 HStack {
@@ -160,7 +167,8 @@ private struct DraftBoardSections: View {
                 // not the section, which hands its modifiers to every row.
                 .onChange(of: members.map(\.id)) { old, new in
                     if case .remove(let id)? = steps.focus.wrappedValue, !new.contains(id) {
-                        steps.focus.wrappedValue = ListFocus.row(id, in: old, becoming: new).map { .remove($0) } ?? .findAdult
+                        steps.focus.wrappedValue =
+                            ListFocus.row(id, in: old, becoming: new).map { .remove($0) } ?? .findAdult
                     }
                 }
                 HStack {
@@ -181,23 +189,27 @@ private struct DraftBoardSections: View {
                 }
             }
 
-            FreeAdultsSection(youth: youth, event: event, boardType: boardType, draftIDs: Set(draft.memberIDs),
-                              focus: steps.focus)
+            FreeAdultsSection(
+                youth: youth, event: event, boardType: boardType, draftIDs: Set(draft.memberIDs),
+                focus: steps.focus)
         } else if youth.boardType == nil {
             Section {
                 NoticeLabel.warning(SeatingReview.noBoardType(youth.shownFullName))
             }
         } else if youth.status == nil {
             Section {
-                NoticeLabel.warning("\(youth.shownFullName)'s status is not one Eagle Boards knows, so it cannot draw up a board. "
-                    + "The Youth page shows it in the Status column.")
+                NoticeLabel.warning(
+                    "\(youth.shownFullName)'s status is not one Eagle Boards knows, so it cannot draw up a board. "
+                        + "The Youth page shows it in the Status column.")
             }
         } else {
             // No board yet, so there is nothing to start over.
             Section {
                 Button("Suggest Board") {
-                    steps.run(.suggestBoard, then: model.draftMembers(for: youth.id).isEmpty ? .findAdult : .seat,
-                              landed: { model.draft != nil }) {
+                    steps.run(
+                        .suggestBoard, then: model.draftMembers(for: youth.id).isEmpty ? .findAdult : .seat,
+                        landed: { model.draft != nil }
+                    ) {
                         model.suggestBoard()
                     }
                 }
@@ -222,7 +234,8 @@ private struct DraftBoardSections: View {
     /// empty board is one being picked, not a mistake: what stops it is
     /// said only once someone is on it.
     static func notes(for youth: Scout, draft: BoardDraft, members: [Adult], event: BoardEvent)
-        -> (problems: [String], warnings: [SeatingReview.Warning]) {
+        -> (problems: [String], warnings: [SeatingReview.Warning])
+    {
         let review = SeatingReview(scout: youth, members: members, room: draft.roomID.flatMap { event.room(id: $0) })
         return ((draft.problems + (members.isEmpty ? [] : review.blockingProblems)).uniqued, review.warnings)
     }
@@ -230,7 +243,9 @@ private struct DraftBoardSections: View {
     /// The same notes as VoiceOver reads them. Nil while the youth has no
     /// board being drawn up.
     static func spokenNotes(for youth: Scout, model: AppModel, event: BoardEvent) -> [String]? {
-        guard youth.status?.isWaitingForBoard ?? true, youth.boardType != nil, let draft = model.draft else { return nil }
+        guard youth.status?.isWaitingForBoard ?? true, youth.boardType != nil, let draft = model.draft else {
+            return nil
+        }
         let notes = notes(for: youth, draft: draft, members: model.draftMembers(for: youth.id), event: event)
         return SeatingReview.spoken(problems: notes.problems, warnings: notes.warnings)
     }
@@ -392,11 +407,15 @@ private struct FreeAdultsSection: View {
         let query = search.trimmingCharacters(in: .whitespaces)
         let free = event.adults
             .filter { $0.canJoin(boardType) && !draftIDs.contains($0.id) }
-            .filter { query.isEmpty || $0.shownFullName.localizedCaseInsensitiveContains(query)
-                || $0.unitName.localizedCaseInsensitiveContains(query) || $0.unitLabel.localizedCaseInsensitiveContains(query)
-                || $0.unitDisplay.localizedCaseInsensitiveContains(query) }
+            .filter {
+                query.isEmpty || $0.shownFullName.localizedCaseInsensitiveContains(query)
+                    || $0.unitName.localizedCaseInsensitiveContains(query)
+                    || $0.unitLabel.localizedCaseInsensitiveContains(query)
+                    || $0.unitDisplay.localizedCaseInsensitiveContains(query)
+            }
             .sorted { lhs, rhs in
-                let lhsChairs = lhs.canChair(boardType), rhsChairs = rhs.canChair(boardType)
+                let lhsChairs = lhs.canChair(boardType)
+                let rhsChairs = rhs.canChair(boardType)
                 if lhsChairs != rhsChairs { return lhsChairs }
                 return (lhs.last, lhs.first) < (rhs.last, rhs.first)
             }
@@ -432,8 +451,10 @@ private struct FreeAdultsSection: View {
                         RoleText(role: adult.role(for: boardType)?.rawValue ?? "")
                     }
                     .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(adult.spokenRow(youth: youth, place: adult.unitDisplay,
-                                                        role: adult.role(for: boardType)?.label ?? ""))
+                    .accessibilityLabel(
+                        adult.spokenRow(
+                            youth: youth, place: adult.unitDisplay,
+                            role: adult.role(for: boardType)?.label ?? ""))
                     Button {
                         add(adult, from: free)
                     } label: {
@@ -482,14 +503,17 @@ private struct SittingBoardSection: View {
                 HStack {
                     Text(youth.room)
                     if let minutes = youth.minutesSinceLastUpdate(now: now),
-                       let state = RoomTimer.state(status: youth.status, boardType: youth.boardType, minutes: minutes, config: event.config) {
+                        let state = RoomTimer.state(
+                            status: youth.status, boardType: youth.boardType, minutes: minutes, config: event.config)
+                    {
                         TimerBadge(minutes: minutes, state: state)
                     }
                 }
             }
             LabeledContent("Chair", value: youth.boardChair.shownValue)
             LabeledContent("Members") {
-                Text(youth.boardMemberNames(among: event.adults).joined(separator: ", ")).multilineTextAlignment(.trailing)
+                Text(youth.boardMemberNames(among: event.adults).joined(separator: ", ")).multilineTextAlignment(
+                    .trailing)
             }
             Button("Change Members…") { model.beginChangingMembers() }
                 .help("Remove or add members without resetting the room timer")
@@ -533,8 +557,10 @@ private struct ResultSection: View {
     var body: some View {
         Section {
             if youth.status == .postponed {
-                Text("Put off to another event. Edit › Undo brings them back to the waiting list, if it was the last thing done.")
-                    .foregroundStyle(.secondary)
+                Text(
+                    "Put off to another event. Edit › Undo brings them back to the waiting list, if it was the last thing done."
+                )
+                .foregroundStyle(.secondary)
             }
             if youth.status == .completed {
                 LabeledContent("Result", value: BoardResult(rawValue: youth.result)?.label ?? youth.result)
@@ -544,7 +570,8 @@ private struct ResultSection: View {
             }
             if !youth.boardMembers.isEmpty {
                 LabeledContent("Members") {
-                    Text(youth.boardMemberNames(among: event.adults).joined(separator: ", ")).multilineTextAlignment(.trailing)
+                    Text(youth.boardMemberNames(among: event.adults).joined(separator: ", ")).multilineTextAlignment(
+                        .trailing)
                 }
             }
             if !youth.notes.isEmpty {
@@ -582,11 +609,13 @@ private struct WithThemSection: View {
 
         Section {
             if people.isEmpty {
-                Text(youth.leader.isEmpty
-                    ? "No one is linked to introduce \(youth.first.shownValue), and no leader or parent has signed in."
-                    : "No one is linked to introduce \(youth.first.shownValue), and their leader, "
-                        + "\(youth.leader.shownValue), has not signed in.")
-                    .foregroundStyle(.secondary)
+                Text(
+                    youth.leader.isEmpty
+                        ? "No one is linked to introduce \(youth.first.shownValue), and no leader or parent has signed in."
+                        : "No one is linked to introduce \(youth.first.shownValue), and their leader, "
+                            + "\(youth.leader.shownValue), has not signed in."
+                )
+                .foregroundStyle(.secondary)
             }
             ForEach(people) { match in
                 LabeledContent {

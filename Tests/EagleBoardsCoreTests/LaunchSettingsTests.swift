@@ -73,7 +73,9 @@ struct LaunchSettingsTests {
     @Test func aPortIsAWholeNumberFrom1024To65535() {
         #expect(LaunchSettings.port(from: "8080") == 8080)
         #expect(LaunchSettings.port(from: " 18123 ") == 18123, "spaces around it are ignored")
-        #expect(LaunchSettings.port(from: "1024") == 1024 && LaunchSettings.port(from: "65535") == 65535, "both ends are in")
+        #expect(
+            LaunchSettings.port(from: "1024") == 1024 && LaunchSettings.port(from: "65535") == 65535, "both ends are in"
+        )
         for refused in ["1023", "65536", "0", "-8080", "80.5", "8080a", "eighty", ""] {
             #expect(LaunchSettings.port(from: refused) == nil, "\(refused) is not a port")
         }
@@ -82,10 +84,13 @@ struct LaunchSettingsTests {
     /// When the station cannot start, the words say what else may hold the
     /// port, and the range Settings takes.
     @Test func aPortProblemSaysWhatToDo() {
-        #expect(LaunchSettings.portInUse(8080) == "Port 8080 is already in use. Another copy of Eagle Boards or the Java "
-            + "Eagle Board Scheduler may be running. Quit it and try again, or choose another port in Settings › General.")
-        #expect(LaunchSettings.portRefused(80) == "macOS would not let Eagle Boards listen on port 80. "
-            + "Choose a port from 1024 to 65535 in Settings › General.", "1024 itself is allowed")
+        #expect(
+            LaunchSettings.portInUse(8080) == "Port 8080 is already in use. Another copy of Eagle Boards or the Java "
+                + "Eagle Board Scheduler may be running. Quit it and try again, or choose another port in Settings › General."
+        )
+        #expect(
+            LaunchSettings.portRefused(80) == "macOS would not let Eagle Boards listen on port 80. "
+                + "Choose a port from 1024 to 65535 in Settings › General.", "1024 itself is allowed")
     }
 
     // A screenshot run shows dark or light without changing the Mac's setting.
@@ -95,10 +100,12 @@ struct LaunchSettingsTests {
 
         #expect(LaunchSettings(environment: [:], defaults: defaults).appearance == nil, "the system's, as always")
         #expect(LaunchSettings(environment: ["EAGLEBOARDS_APPEARANCE": "dark"], defaults: defaults).appearance == .dark)
-        #expect(LaunchSettings(environment: ["EAGLEBOARDS_APPEARANCE": "Light"], defaults: defaults).appearance == .light)
+        #expect(
+            LaunchSettings(environment: ["EAGLEBOARDS_APPEARANCE": "Light"], defaults: defaults).appearance == .light)
         #expect(LaunchSettings(environment: ["EAGLEBOARDS_APPEARANCE": "purple"], defaults: defaults).appearance == nil)
-        #expect((defaults.persistentDomain(forName: suite) ?? [:]).keys
-            .allSatisfy { !$0.localizedCaseInsensitiveContains("appearance") }, "and nothing is saved")
+        #expect(
+            (defaults.persistentDomain(forName: suite) ?? [:]).keys
+                .allSatisfy { !$0.localizedCaseInsensitiveContains("appearance") }, "and nothing is saved")
     }
 }
 

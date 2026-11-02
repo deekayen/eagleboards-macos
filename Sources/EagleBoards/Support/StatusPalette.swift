@@ -26,17 +26,19 @@ enum StatusPalette {
     /// `light` in the light appearance and `dark` in the dark one, including
     /// their Increase Contrast variants.
     private static func color(_ light: String, _ dark: String) -> Color {
-        Color(nsColor: NSColor(name: nil) { appearance in
-            rgb(appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? dark : light)
-        })
+        Color(
+            nsColor: NSColor(name: nil) { appearance in
+                rgb(appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? dark : light)
+            })
     }
 
     private static func rgb(_ hex: String) -> NSColor {
         let value = UInt32(hex.dropFirst(), radix: 16) ?? 0
-        return NSColor(srgbRed: CGFloat((value >> 16) & 0xff) / 255,
-                       green: CGFloat((value >> 8) & 0xff) / 255,
-                       blue: CGFloat(value & 0xff) / 255,
-                       alpha: 1)
+        return NSColor(
+            srgbRed: CGFloat((value >> 16) & 0xff) / 255,
+            green: CGFloat((value >> 8) & 0xff) / 255,
+            blue: CGFloat(value & 0xff) / 255,
+            alpha: 1)
     }
 }
 

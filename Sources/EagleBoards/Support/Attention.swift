@@ -48,7 +48,8 @@ final class Attention: NSObject, UNUserNotificationCenterDelegate {
             content.title = post.title
             content.body = post.body
             content.sound = .default
-            UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: post.id, content: content, trigger: nil))
+            UNUserNotificationCenter.current().add(
+                UNNotificationRequest(identifier: post.id, content: content, trigger: nil))
             if let shown = OverdueNotification.removedAfter(appIsActive: NSApplication.shared.isActive) {
                 Task {
                     try? await Task.sleep(for: shown)
@@ -64,8 +65,10 @@ final class Attention: NSObject, UNUserNotificationCenterDelegate {
     }
 
     /// Shown in front of Eagle Boards too, as it would be behind it.
-    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter,
-                                            willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification
+    ) async -> UNNotificationPresentationOptions {
         [.banner, .list, .sound]
     }
 

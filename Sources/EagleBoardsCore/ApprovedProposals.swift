@@ -92,7 +92,8 @@ extension DataFolder {
             do {
                 let youth = try CSVFile.read(Scout.self, from: youthURL(event: event))
                 eventsRead.append(event)
-                approvals += youth
+                approvals +=
+                    youth
                     .filter { $0.boardType == .projectReview && BoardResult(rawValue: $0.result) == .approved }
                     .map { ApprovedProposal($0, event: event) }
             } catch {

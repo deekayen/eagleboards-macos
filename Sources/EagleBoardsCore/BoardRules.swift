@@ -95,9 +95,10 @@ public enum BoardRules {
         let minimum = minimumMembers(for: boardType)
 
         if members.isEmpty {
-            blocking.append(currentRoom.isEmpty
-                ? "No one is on the board yet. Add at least \(minimum) members."
-                : "No one is left on the board. Add at least \(minimum) members.")
+            blocking.append(
+                currentRoom.isEmpty
+                    ? "No one is on the board yet. Add at least \(minimum) members."
+                    : "No one is left on the board. Add at least \(minimum) members.")
         }
 
         for member in members {
@@ -122,12 +123,15 @@ public enum BoardRules {
                 // Short sentences with nothing nested, for reading aloud, as
                 // Windows' BoardCheck words it.
                 let count = conflicts.count
-                warnings.append(SeatingReview.Warning(
-                    title: "\(Count.of(count, "member", "members")) \(count == 1 ? "is" : "are") from \(scoutName)'s unit",
-                    detail: "\(names) \(count == 1 ? "is" : "are") in \(UnitLabel.spaced(scoutUnitName)), the youth's own unit. "
-                        + "This council doesn't allow that. The national rule needs only one member from outside "
-                        + "the unit, and this board meets it."
-                ))
+                warnings.append(
+                    SeatingReview.Warning(
+                        title:
+                            "\(Count.of(count, "member", "members")) \(count == 1 ? "is" : "are") from \(scoutName)'s unit",
+                        detail:
+                            "\(names) \(count == 1 ? "is" : "are") in \(UnitLabel.spaced(scoutUnitName)), the youth's own unit. "
+                            + "This council doesn't allow that. The national rule needs only one member from outside "
+                            + "the unit, and this board meets it."
+                    ))
             }
         }
 
@@ -146,10 +150,11 @@ public enum BoardRules {
                 "A \(label) can have at most \(boardMaximum) (Guide to Advancement 8.0.0.3). Remove \(members.count - boardMaximum)."
             )
         case .overPreferred:
-            warnings.append(SeatingReview.Warning(
-                title: "\(members.count) members selected",
-                detail: "Only \(minimum) are required for a \(boardType.label)."
-            ))
+            warnings.append(
+                SeatingReview.Warning(
+                    title: "\(members.count) members selected",
+                    detail: "Only \(minimum) are required for a \(boardType.label)."
+                ))
         case .tooFew, .ok:
             break
         }
@@ -213,10 +218,11 @@ public struct SeatingReview: Sendable {
             if !room.isFree {
                 blockingProblems.append(BoardEvent.roomIsTaken(room))
             } else if room.boardType != boardType {
-                warnings.append(Warning(
-                    title: "Room \(room.name) is a \(room.boardType?.label ?? room.boardTypeText) room",
-                    detail: "\(scoutName) is here for a \(boardType.label)."
-                ))
+                warnings.append(
+                    Warning(
+                        title: "Room \(room.name) is a \(room.boardType?.label ?? room.boardTypeText) room",
+                        detail: "\(scoutName) is here for a \(boardType.label)."
+                    ))
             }
         } else {
             blockingProblems.append("Choose a free room.")
@@ -283,7 +289,8 @@ public struct ChangeMembersReview: Sendable {
         }
 
         let review = BoardRules.memberReview(
-            scoutName: scoutName, scoutUnitName: scout.unitName, boardType: boardType, members: members, sittingIn: scout.room)
+            scoutName: scoutName, scoutUnitName: scout.unitName, boardType: boardType, members: members,
+            sittingIn: scout.room)
         blockingProblems = review.blocking
         warnings = review.warnings
         qualifiedChairs = review.qualifiedChairs
@@ -363,7 +370,7 @@ public struct BoardSuggestion: Sendable, Equatable {
         var seated = 0
         for youth in waiting {
             guard let boardType = youth.boardType,
-                  let chair = pool.first(where: { !used.contains($0.adult.id) && canChair($0.adult, for: youth) })
+                let chair = pool.first(where: { !used.contains($0.adult.id) && canChair($0.adult, for: youth) })
             else { continue }
             let need = membersBesideChair(boardType)
             let members = pool.filter {
@@ -392,13 +399,20 @@ public struct BoardSuggestion: Sendable, Equatable {
     /// splitting the list. The same helper is freeSinceTimes in the Java
     /// version and SchedulerLogic.FreeSinceTimes in the Windows version.
     public static func freeSinceTimes(adults: [Adult], scouts: [Scout]) -> [String: String] {
-        let boards = scouts
+        let boards =
+            scouts
             .filter { $0.status == .completed && !$0.boardMemberIDs.isEmpty && !$0.lastUpdateTime.isEmpty }
-            .map { (list: "~" + $0.boardMemberIDs.replacingOccurrences(of: ",", with: "~") + "~", finished: $0.lastUpdateTime) }
+            .map {
+                (
+                    list: "~" + $0.boardMemberIDs.replacingOccurrences(of: ",", with: "~") + "~",
+                    finished: $0.lastUpdateTime
+                )
+            }
         var since: [String: String] = [:]
         for adult in adults {
             let needle = "~" + adult.id + "~"
-            since[adult.id] = boards
+            since[adult.id] =
+                boards
                 .filter { $0.list.contains(needle) }
                 .map(\.finished)
                 .reduce(adult.regTime) { max($0, $1) }
@@ -411,7 +425,8 @@ public struct BoardSuggestion: Sendable, Equatable {
     /// who came for any board, then the longest since they were last free,
     /// then sign-in order. Each keeps the keys it was ranked on, since the
     /// suggestion scores whole boards with them.
-    private static func rankFreeAdults(_ adults: [Adult], waiting: [Scout], freeSince: [String: String]) -> [Candidate] {
+    private static func rankFreeAdults(_ adults: [Adult], waiting: [Scout], freeSince: [String: String]) -> [Candidate]
+    {
         adults.enumerated()
             .filter { $0.element.isAvailable }
             .map { order, adult in
@@ -431,7 +446,9 @@ public struct BoardSuggestion: Sendable, Equatable {
     /// Choose from `adults` (in sign-in order), skipping anyone on a board,
     /// gone home, Unavailable, or from the youth's own unit.
     /// `freeSince` is from `freeSinceTimes`; an adult missing from it sorts first.
-    public init(for scout: Scout, adults: [Adult], rooms: [Room], waiting: [Scout] = [], freeSince: [String: String] = [:]) {
+    public init(
+        for scout: Scout, adults: [Adult], rooms: [Room], waiting: [Scout] = [], freeSince: [String: String] = [:]
+    ) {
         guard let boardType = scout.boardType else {
             problems.append("\(scout.shownFullName) has no board type.")
             return
@@ -457,7 +474,8 @@ public struct BoardSuggestion: Sendable, Equatable {
                     let score = (
                         seatable: Self.countSeatable(pool.filter { !taken.contains($0.adult.id) }, waiting),
                         chairsKept: -board.map(\.chairs).reduce(0, +),
-                        flexibility: -board.map(\.useful).reduce(0, +))
+                        flexibility: -board.map(\.useful).reduce(0, +)
+                    )
                     if best == nil || score > bestScore {
                         bestScore = score
                         best = board
@@ -488,7 +506,8 @@ public struct BoardSuggestion: Sendable, Equatable {
             }
             let members = sitters.filter { $0.adult.id != chairID }.prefix(need).map(\.adult.id)
             if members.count < need {
-                problems.append("Only \(members.count) \(label) member\(members.count == 1 ? " is" : "s are") available.")
+                problems.append(
+                    "Only \(members.count) \(label) member\(members.count == 1 ? " is" : "s are") available.")
             }
             memberIDs = (chairID.map { [$0] } ?? []) + members
         }
@@ -534,7 +553,9 @@ public struct BoardSuggestion: Sendable, Equatable {
             return fill
         }
         let label = boardType.label
-        let pool = rankFreeAdults(adults, waiting: waiting, freeSince: freeSince).filter { !picked.contains($0.adult.id) }
+        let pool = rankFreeAdults(adults, waiting: waiting, freeSince: freeSince).filter {
+            !picked.contains($0.adult.id)
+        }
 
         if !adults.contains(where: { picked.contains($0.id) && $0.role(for: boardType) == .chair }) {
             fill.chairID = pool.first { canChair($0.adult, for: scout) }?.adult.id
@@ -597,7 +618,8 @@ public enum AdultLocator {
             let adultFirst = adult.first.lowercased()
             let sameUnit = !scout.unitName.isEmpty && adult.unitName == scout.unitName
             if !adultLast.isEmpty, leaderText.contains(adultLast),
-               sameUnit || (!adultFirst.isEmpty && leaderText.contains(adultFirst)) {
+                sameUnit || (!adultFirst.isEmpty && leaderText.contains(adultFirst))
+            {
                 leaders.append(Match(adult: adult, relation: .leader))
             } else if sameUnit, !scoutLast.isEmpty, adultLast == scoutLast {
                 parents.append(Match(adult: adult, relation: .parent))
@@ -629,7 +651,8 @@ public enum AdultLocator {
         if !people.isEmpty {
             return "\n\nNo one has said they'll introduce them. Their leader:\n" + lines
         }
-        return "\n\nNo one has said they'll introduce them, and their leader hasn't signed in. Ask \(scout.first.shownValue) who will."
+        return
+            "\n\nNo one has said they'll introduce them, and their leader hasn't signed in. Ask \(scout.first.shownValue) who will."
     }
 }
 
