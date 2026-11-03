@@ -181,7 +181,7 @@ struct SchedulerView: View {
             let window = model.schedulerWindow ?? NSApp.keyWindow,
             window.firstResponder == nil || window.firstResponder === window
         else { return }
-        if #available(macOS 15, *), searchFocused { return }
+        if searchFocused { return }
         focus = target
     }
 

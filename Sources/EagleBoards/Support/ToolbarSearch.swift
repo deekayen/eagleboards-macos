@@ -1,16 +1,12 @@
-import AppKit
 import SwiftUI
 
-/// Binds a toolbar search's focus where the system can (macOS 15 and later).
+/// Binds a toolbar search's focus to `isFocused`, so Edit › Find… can move the
+/// cursor into it.
 struct SearchFocus: ViewModifier {
     let isFocused: FocusState<Bool>.Binding
 
     func body(content: Content) -> some View {
-        if #available(macOS 15, *) {
-            content.searchFocused(isFocused)
-        } else {
-            content
-        }
+        content.searchFocused(isFocused)
     }
 }
 
@@ -18,18 +14,7 @@ struct SearchFocus: ViewModifier {
 /// one `isFocused` is bound to with `SearchFocus`.
 @MainActor
 func startToolbarSearch(_ isFocused: FocusState<Bool>.Binding) {
-    if #available(macOS 15, *) {
-        isFocused.wrappedValue = true
-    } else {
-        // macOS 14 has no searchFocused; the toolbar's search item starts
-        // its own interaction instead. Front to back, so it is the search of
-        // the window Find is about.
-        NSApplication.shared.orderedWindows
-            .lazy
-            .compactMap { $0.toolbar?.items.lazy.compactMap { $0 as? NSSearchToolbarItem }.first }
-            .first?
-            .beginSearchInteraction()
-    }
+    isFocused.wrappedValue = true
 }
 
 /// Edit › Find… while the Help window is in front: its own search, not the

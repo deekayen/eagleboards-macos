@@ -14,7 +14,7 @@ import PackageDescription
 let package = Package(
     name: "EagleBoards",
     platforms: [
-        .macOS(.v14)
+        .macOS(.v15)
     ],
     products: [
         .executable(name: "EagleBoards", targets: ["EagleBoards"])

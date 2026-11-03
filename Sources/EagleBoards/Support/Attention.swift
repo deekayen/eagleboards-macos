@@ -94,7 +94,7 @@ final class Attention: NSObject, UNUserNotificationCenterDelegate {
 
     /// System Settings › Notifications, at Eagle Boards where macOS takes the
     /// `id`. The pane's older name, which System Settings still answers to
-    /// (its `legacyBundleIdentifier`), works on macOS 14 and later alike.
+    /// (its `legacyBundleIdentifier`), works on every macOS version Eagle Boards supports.
     func openNotificationSettings() {
         var link = "x-apple.systempreferences:com.apple.preference.notifications"
         if let id = Bundle.main.bundleIdentifier {
