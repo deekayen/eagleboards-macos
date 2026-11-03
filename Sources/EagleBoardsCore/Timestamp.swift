@@ -79,12 +79,6 @@ public enum Timestamp {
         return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
     }
 
-    /// `2026-09`: SignUpGenius entries are filtered by calendar month, as the
-    /// Java app did, so two board events in one month both import.
-    public static func monthStamp(for date: Date, timeZone: TimeZone = .current) -> String {
-        String(dayStamp(for: date, timeZone: timeZone).prefix(7))
-    }
-
     /// An event's date as the Mac writes dates, "October 24, 2026" in the
     /// US: the long date style, which has no weekday, in `locale`'s order and
     /// words. Folder and export names stay stamps. Anything that is not a

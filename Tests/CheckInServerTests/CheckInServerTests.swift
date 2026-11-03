@@ -72,7 +72,7 @@ struct CheckInServerTests {
             "/register-youth", method: .post, form: form,
             headers: [.origin: "https://evil.example"])
         #expect(refused.status == .forbidden)
-        #expect(await event.scouts.isEmpty)
+        #expect(event.scouts.isEmpty)
 
         let nullOrigin = try await send(
             "/register-youth", method: .post, form: form,
@@ -83,7 +83,7 @@ struct CheckInServerTests {
             "/register-youth", method: .post, form: form,
             headers: [.origin: "http://localhost"])
         #expect(samePage.status == .ok)
-        #expect(await event.scouts.count == 1)
+        #expect(event.scouts.count == 1)
     }
 
     @Test func aPostWithNoOriginStillWorks() async throws {

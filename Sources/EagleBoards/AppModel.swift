@@ -118,8 +118,12 @@ final class AppModel {
 
     private(set) var serverState: ServerState = .stopped
     @ObservationIgnored private var serverTask: Task<Void, Never>?
+    /// Counts starts and stops, so a server task that finishes after a restart
+    /// can tell it is no longer the current station and leave the state alone.
+    @ObservationIgnored private var serverGeneration = 0
     @ObservationIgnored private var stoppingServerTask: Task<Void, Never>?
-    @ObservationIgnored private var keepAwake: NSObjectProtocol?
+    @ObservationIgnored private let keepAwake = KeepAwake.processActivity(
+        reason: "Serving the Eagle Boards sign-in station")
 
     var port: Int {
         didSet {
@@ -220,6 +224,7 @@ final class AppModel {
     func startServer() {
         stopServer()
         guard let event else { return }
+        let generation = serverGeneration
         serverState = .starting
         let requestedPort = port
         networks = SignInNetwork.current()
@@ -233,23 +238,27 @@ final class AppModel {
             await stopping?.value
             do {
                 try await CheckInServer.run(event: event, host: listening.host, port: requestedPort) { boundPort in
-                    await MainActor.run { self?.serverState = .running(port: boundPort) }
+                    await MainActor.run {
+                        guard let self, self.serverGeneration == generation else { return }
+                        self.serverState = .running(port: boundPort)
+                    }
                 }
             } catch is CancellationError {
             } catch {
-                self?.serverState = .failed(Self.describe(serverError: error, port: requestedPort))
+                guard let self, self.serverGeneration == generation else { return }
+                self.serverState = .failed(Self.describe(serverError: error, port: requestedPort))
+                // A station that failed serves no one; the Mac may sleep again.
+                self.keepAwake.release()
             }
         }
         // A laptop that dozes off mid-event takes the sign-in station with
         // it. Keep the Mac awake while serving; the display may still sleep.
-        keepAwake = ProcessInfo.processInfo.beginActivity(
-            options: [.idleSystemSleepDisabled, .userInitiated],
-            reason: "Serving the Eagle Boards sign-in station"
-        )
+        keepAwake.hold()
     }
 
     /// Stop the sign-in station and let the Mac sleep again.
     func stopServer() {
+        serverGeneration += 1
         if let serverTask {
             serverTask.cancel()
             stoppingServerTask = serverTask
@@ -257,10 +266,7 @@ final class AppModel {
         serverTask = nil
         serverState = .stopped
         listening = nil
-        if let keepAwake {
-            ProcessInfo.processInfo.endActivity(keepAwake)
-            self.keepAwake = nil
-        }
+        keepAwake.release()
     }
 
     private static func describe(serverError error: Error, port: Int) -> String {

@@ -357,9 +357,6 @@ struct TimestampTests {
         #expect(Timestamp.isDayStamp("2026-09-22"))
         #expect(!Timestamp.isDayStamp("2026-9-22"))
         #expect(!Timestamp.isDayStamp("notes-2026"))
-        #expect(
-            Timestamp.monthStamp(
-                for: Date(timeIntervalSince1970: 1_790_118_300), timeZone: TimeZone(identifier: "UTC")!) == "2026-09")
     }
 }
 

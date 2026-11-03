@@ -103,7 +103,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.messageText = "Stop the sign-in station and quit?"
         alert.informativeText =
             "The sign-in tablets will not be able to register anyone until Eagle Boards is open again. "
-            + "Everything recorded so far is saved."
+            + "Each change is written to disk when it is made."
         alert.addButton(withTitle: "Quit")
         alert.addButton(withTitle: "Cancel")
         return alert.runModal() == .alertFirstButtonReturn ? .terminateNow : .terminateCancel
