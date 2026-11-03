@@ -79,22 +79,22 @@ struct HelpView: View {
                 "Change who sits on the board in the inspector: click someone under Free for a Final Board, or Free for a Proposal Review, to add them (type in Find an adult to narrow the list, and press Return to add the first one) or drag them onto the board, and the Remove button (a minus sign in a circle) takes them off. To hand the chair to someone who reads Can Chair, right-click them and choose Make Chair, or choose them from Board › Chair. Fill the Rest keeps who you chose and adds a chair, if none of them can chair it, and members up to the number needed; Start Over replaces the whole board with a proposal.",
                 "Until you change it, the proposed board keeps up with the event: when an adult signs in, goes home, comes back, or leaves a board, it is proposed again. Choosing its room is not a change, and it stays in the room you chose while that room is free. Once you take someone off, add someone, use Fill the Rest or Clear Board, or make someone else chair, the board is yours, kept while you look at other youth.",
                 "To choose every board yourself, set Settings › General › When you select a waiting youth to Start with an empty board. Selecting a youth then picks only a free room.",
-                "Press Seat Board… in the inspector or the toolbar, press Command-Return, or double-click the youth. You can also drag a waiting youth onto a free room's card. The sheet lists anything that stops the board (too few or too many members, no qualified chair, someone already on another board) and anything worth a second look, each of which needs its own tick. While the sheet is open, the board stays as you are checking it, even if someone signs in.",
+                "Click Seat Board… in the inspector or the toolbar, press Command-Return, or double-click the youth. You can also drag a waiting youth onto a free room's card. The sheet lists anything that stops the board (too few or too many members, no qualified chair, someone already on another board) and anything worth a second look, each of which needs its own tick. While the sheet is open, the board stays as you are checking it, even if someone signs in.",
                 "Choose the chair. The sheet starts with the board's chair from the inspector, and offers only members whose role for this kind of board is Chair. If none is free, promote someone on the Adults page: click their Final Board Role or Proposal Review Role and choose Chair.",
                 "Seating gives the members the room and the paperwork. The youth waits outside.",
-                "To change who sits on a seated board, before or after the review starts, select the youth and press Change Members… in the inspector, or choose Board › Change Members…. The sheet checks the board the same way Seat Board… does. The room's timer keeps running.",
+                "To change who sits on a seated board, before or after the review starts, select the youth and click Change Members… in the inspector, or choose Board › Change Members…. The sheet checks the board the same way Seat Board… does. The room's timer keeps running.",
             ]),
         HelpSection(
             "Start the review",
             [
-                "When the members have finished reading, select the youth and press Start Review (Command-Return again). For a board of review, the confirmation names whom to fetch to introduce the youth to the board and where they are, even on another board: the adult linked to them, or if no one is, their leader. A project review has no introduction, so it starts at once; Edit › Undo takes it back.",
+                "When the members have finished reading, select the youth and click Start Review (or press Command-Return again). For a board of review, the confirmation names whom to fetch to introduce the youth to the board and where they are, even on another board: the adult linked to them, or if no one is, their leader. A project review has no introduction, so it starts at once; Edit › Undo takes it back.",
                 "At sign-in, adults can say \"No thanks\" to one kind of board (they are never seated on it), whether today counts toward a Wood Badge ticket item (marked with a small five-colored pentagon next to their name), and which youth they will introduce to their board: usually the youth's Scoutmaster, or a leader standing in, and not a parent unless they are also the Scoutmaster. Proposed boards favor those who came to serve on any board.",
                 "If the adult introducing a youth did not say so at sign-in, select the youth and use Link an Adult under With Them in the inspector, which lists the adults from the youth's unit first. To unlink them, right-click them there or choose them from Board › Unlink Introducer.",
             ]),
         HelpSection(
             "Complete",
             [
-                "When the board has finished, press Complete… (Command-Return), choose the result and add any notes.",
+                "When the board has finished, click Complete… (or press Command-Return), choose the result and add any notes.",
                 "The room and the members are freed for the next board. The inspector lists the youth's leader and parents so someone can find them.",
             ]),
         HelpSection(
@@ -107,7 +107,7 @@ struct HelpView: View {
                 "Youth: every youth who signed in, in sign-in order. Double-click one, or choose Board › Show on Event Page, to see them on the Event page.",
                 "Pre-Registered: the youth who signed up on SignUpGenius for today.",
                 "Adult History CSV: every adult who has ever signed in, across events, read-only and searched by name, email, or unit. Last Event has a check for those signed in today; double-click someone, or choose Adult › Sign In for Today, to sign them in for today. A change to an adult's name, unit, contact, or roles on the Adults page is made here too, so someone promoted to Chair today is a chair next time. Wood Badge is for today only.",
-                "Rooms: what each room is used for today, and whose board is in it. Double-click a room, or right-click it and choose Show on Event Page, to see its card on the Event page. Right-click a room, or select it and choose from the Room menu, to Rename…, Move Board to Another Room…, or set Used For. Add Room… at the foot adds one, and Delete removes a free one; Edit › Undo puts it back.",
+                "Rooms: what each room is used for today, and whose board is in it. Double-click a room, or right-click it and choose Show on Event Page, to see its card on the Event page. Right-click a room, or select it and choose from the Room menu, to Rename…, Move Board to Another Room…, or set Used For. Add Room… at the foot adds one. Room › Remove Room…, or Remove Room… on its right-click menu, removes a free one after asking first, naming the room; Edit › Undo puts it back.",
                 "Approved Proposals: every project proposal approved at an earlier event in the data folder, however long ago, for a youth who comes without the signed page: who, their unit, when, the chair, and the other members. Read only; the page's first line says which events were read.",
                 "To delete a youth, a pre-registration, or an adult, select them and press Delete or choose Edit › Delete, or right-click them; that asks first, since Undo cannot bring them back. File › Export List… (Shift-Command-E) saves the page's list as a spreadsheet.",
             ]),
@@ -126,6 +126,22 @@ struct HelpView: View {
                 "Each busy room shows the minutes since its last step, with a stopwatch. While a board convenes it goes overdue after 30 minutes. Once the review starts, a final board runs long at 30 and is overdue at 45; a proposal review at 25 and 40. Running long is a timer on an orange tint and overdue an alarm clock on a solid pink-red fill, so they differ in shape and lightness, not only color.",
                 "They are prompts, not limits. Change them in Settings › Timers.",
                 "VoiceOver announces a room once as it turns running long, and again as it turns overdue.",
+            ]),
+        HelpSection(
+            "SignUpGenius",
+            [
+                "Put the district's SignUpGenius API key in Settings › SignUpGenius and click Save Key. Eagle Boards keeps it in your macOS keychain, not in the data folder.",
+                "When today's event opens, Eagle Boards imports the sign-up: youth become pre-registrations and adults join the history. File › Import Sign-Ups from SignUpGenius (Command-I), or Import Now in Settings › SignUpGenius, does it again. Turn off Import when today's event is opened there to import only when you ask.",
+                "The import needs the internet, and is the only thing in Eagle Boards that does. Check-in works without it.",
+                "The app is signed ad hoc, so after you install a new version macOS asks once for access to the key in your keychain. Click Always Allow.",
+            ]),
+        HelpSection(
+            "If something goes wrong",
+            [
+                "The tablet cannot open the address: check that both are on the same network. If the Mac is on more than one, choose the tablet's in Settings › General › Network. Check that Eagle Boards is allowed in System Settings › Network › Firewall.",
+                "\"Port 8080 is already in use\": quit the other program (the Java Eagle Board Scheduler uses 8080 too) and choose File › Restart Sign-In Station, or change the port in Settings › General.",
+                "\"None of the members can chair a Final Board\": add a qualified chair, or promote someone. On the Adults page, click their Final Board Role or Proposal Review Role and choose Chair.",
+                "A board was seated by mistake: select the youth and choose Board › Reset Board, or choose Edit › Undo right after seating.",
             ]),
         HelpSection(
             "Menus",
@@ -174,7 +190,7 @@ struct HelpView: View {
                 "Return in the search goes to the first row found.",
                 "Return on a row does what a double-click does: on Results, Youth, and Rooms it shows the row on the Event page. On the Adult History CSV page, Adult › Sign In for Today signs in the adults selected.",
                 "In a cell, Return saves the change, and Escape puts the value back.",
-                "On the Youth, Pre-Registered, and Adults pages, Delete deletes the selected row, asking first. On the Rooms page it removes the selected room if it is free.",
+                "On the Youth, Pre-Registered, and Adults pages, Delete deletes the selected row, asking first. On the Rooms page it removes the selected room if it is free, after asking first.",
                 "View › Sort By sorts the page by a column, either way.",
             ]),
         HelpSection(
@@ -185,13 +201,20 @@ struct HelpView: View {
                 "In Add an Adult, Return in Signed in before? fills the form in from the only match, or goes to the matches. Up and Down move through them, Up from the first goes back to the search, and Return or Space fills the form in from the one chosen.",
             ]),
         HelpSection(
-            "The data",
+            "Your data",
             [
-                "Everything is saved the moment it changes, in the data folder you chose. Each event has its own dated folder; the adult history is kept across events.",
-                "A data folder with no adult history gets a new, empty one, and Eagle Boards says where it put it. If you meant another folder, File › Choose Data Folder… switches to it.",
-                "The files are the same ones the Java Eagle Board Scheduler used, so either program can open the folder.",
+                "Everything is saved the moment it changes, in the data folder you chose, as plain CSV files. Each event has its own dated folder, with that day's youth, pre-registrations, adults, and rooms. The adult history, Master_AdultHistory.csv, is kept beside them across events.",
+                "A youth's record holds their name, unit, email, unit leader's name, and their board's room, members, result, and notes. An adult's holds their name, email, phone number, unit, board roles, and board history. A youth's birthdate and phone number are never asked for or shown, and one already in a file from an earlier event stays there, never shown or exported. The SignUpGenius key is in your macOS keychain, not in the data folder.",
+                "A data folder with no adult history gets a new, empty one, and Eagle Boards says where it put it. If you meant another folder, File › Choose Data Folder… switches to it. It does not move the old folder's files, so copy them across first if you want them.",
+                "The files are the same ones the Java Eagle Board Scheduler used, so either program can open the folder. Open it in one program at a time: nothing locks it, and each save rewrites a whole file, so the program that saves last wins.",
                 "They hold personal information, some of it about minors. Keep the folder private and do not email the files around.",
-                "Only the sign-in pages are on the network. The scheduler, the records, and the settings are on this Mac alone.",
+                "On the welcome screen, clicking Use Documents › Eagle Boards puts the folder inside Documents. When Desktop & Documents Folders is on in iCloud Drive, macOS stores Documents in iCloud and makes it available on your other devices. To keep the data off iCloud, choose another folder with Choose… under Data folder in Settings › General.",
+                "Only the sign-in pages are on the network, and they travel between the tablet and this Mac as plain HTTP, so what a person types there is not encrypted on the way. Use a network you trust, and quit Eagle Boards when the event ends. The scheduler, the records, and the settings are on this Mac alone.",
+                "The one thing Eagle Boards sends over the internet is the SignUpGenius import, which sends your key to api.signupgenius.com and brings the sign-up's names, emails, units, adults' phone numbers, and unit leaders' names back. It sends nothing for analytics, crash reports, or updates.",
+                "A notice that a room is overdue shows the youth's full name on screen, and when Eagle Boards is behind another app it can stay in Notification Center. If the Mac's screen is projected or shared, turn notifications for Eagle Boards off in System Settings › Notifications. The room cards still show the alarm clock.",
+                "Change the files only through Eagle Boards. The files take no quoting, so a spreadsheet that saves one again can add quotes that Eagle Boards reads as part of a value, or a comma that it reads as a column break, and a row comes out with its columns shifted. The next save writes it that way. For a spreadsheet, choose File › Export Board Results… or File › Export List…. An export holds names and, for adults, contact details, so keep it private too.",
+                "To delete one event, quit Eagle Boards, move that event's dated folder to the Trash in Finder, and empty the Trash. The adult history is a separate file and keeps its adults, and Approved Proposals forgets what that folder held. A backup keeps its own copy, and iCloud holds a deleted file in Recently Deleted for 30 days. Follow your council's or district's guidance on how long to keep the files.",
+                "A USB drive or backup holding these files needs its own encryption, because the files are plain text. FileVault, in System Settings › Privacy & Security, encrypts the Mac's startup disk. A Mac with Apple silicon already encrypts its storage, and FileVault adds a login password to reading it. If you lose both the password and the recovery key, the files are lost for good.",
             ]),
         HelpSection(
             "Donating",

@@ -2,6 +2,103 @@
 
 Versions are CalVer: the release date.
 
+## Unreleased
+
+**Eagle Boards needs macOS 15 or later** (this changes the requirement from
+macOS 14, which is no longer supported). GitHub retired its macOS 14 runner on
+2026-11-02, and the maintainer's Mac runs a newer macOS, so macOS 14 cannot be
+tested. The automated checks run the tests and launch the built app on macOS 15 and
+macOS 26, the exact zip that is published is launched on macOS 15, and the
+maintainer runs the app on macOS 27.
+
+**The pages are on Command-1 to Command-8**, the keys Windows gives them with
+Ctrl, in place of Option-Command-1 to 8. Option-Command-8 was also the macOS
+Zoom shortcut. Window › Scheduler and Window › Sign-In Code gave up
+Command-1 and Command-3 and have no keys now.
+
+**Start Over** replaces Suggest a Board in the Board menu and the inspector
+(SPEC.md D-12). **Mark Gone Home** and **Mark Back** replace Enable for Today
+and Disable for Today in the Adult menu. The right-click menu of a youth, an
+adult, or a room lists only what can be done to them now.
+
+**Remove Room… asks first**, naming the room, and **Edit › Undo** still adds it
+back.
+
+**Choose the sign-in network.** The sign-in station used to answer on every
+network the Mac was on, a VPN, a virtual machine's bridge, or a phone hotspot
+included. It now serves the Wi-Fi unless you choose another in Settings ›
+General › Network, which appears when the Mac is on more than one network.
+Every Network brings back the old behavior.
+
+**A sign-in station that fails to start lets the Mac sleep again.** It used to
+keep the Mac awake until Eagle Boards quit. The quit confirmation now says each
+change is written to disk when it is made.
+
+**Overdue notices show while Eagle Boards is in front**, for 10 seconds. They
+used to appear only behind another app. Behind another app, the style set for
+Eagle Boards in System Settings › Notifications decides whether one stays, and
+Settings › Timers shows that style and opens System Settings. A notice names
+the youth in full.
+
+**VoiceOver hears what happens.** A step and its Undo, a sign-in at the door, a
+room turning running long or overdue, and the count of what a search found are
+announced, and each row and room card reads as one item. The sentences are
+tested as text; nobody has yet listened to them through VoiceOver.
+
+**Start Review names only whoever introduces the youth** (SPEC.md D-23), on a
+board of review; a project proposal review has no introduction and starts at
+once. The sign-in pages at the door draw the youth and adult tiles alike, return
+to the welcome page after a sign-in, and list a youth for the adult form only
+when they are here for a board of review.
+
+**A proposed board follows its room's use** (D-24). Switching a free room from
+Final Board to Proposal Review, or back, no longer leaves a proposal in it for
+the other kind of board.
+
+**Names with a comma stay whole.** A member such as "Lysander Whitmore, Jr."
+was listed as two people on a room card and in the Rooms and Results pages, and
+Change Members opened empty after the app was restarted. Both are fixed.
+
+**The sign-in pages refuse a post from another web site.** A page on another
+site could make a browser on the venue network send a sign-in to the Mac; the
+Mac now answers it with 403.
+
+**A name with an unusual line break can no longer split into several people.**
+A name sent from the tablet holding a line-break character other than Return
+and Line Feed (U+000B, U+000C, U+0085, U+2028, U+2029) read back as two or three
+people, in the adult history too. Each is stored as `+` now.
+
+**A data folder that cannot be read stops the open.** A file that existed but
+could not be read, or a link pointing at an unmounted drive, was treated as
+missing, and opening the event started a new, empty adult history over it.
+Eagle Boards now shows the existing alert and opens nothing.
+
+**Adults sort by name as people read it.** "de Silva" no longer lands after
+"Zimmer" in the adult pickers, and Start Over in the Add
+Adult sheet no longer keeps the last person's Wood Badge choice or error.
+
+**The SignUpGenius key survives a refused save.** Saving a key deleted the old
+one first, so a locked keychain or a denied prompt lost a key that worked.
+It is updated in place now. An import that finishes after another event was
+opened is dropped, and a second import started during the first returns at once.
+The app is signed ad hoc, so after you update, macOS asks once for access to the
+key in your keychain; click **Always Allow**.
+
+**The app opens on a Mac that did not build it.** It links a Swift library that
+was found only through the Xcode that built the app, so a Mac without that
+Xcode could stop at launch with "Library not loaded". The library is inside the
+app now, and CI checks the bundle. macOS's prompts for the Documents, Downloads,
+and removable volume folders say why Eagle Boards asks.
+
+**License notices are in the app**, at Contents/Resources/THIRD-PARTY-NOTICES.txt:
+this project's LICENSE and NOTICE, then those of every package in
+`Package.resolved`.
+
+**Help says where the data goes.** Its Your data section, a SignUpGenius
+section with the key steps, and an If something goes wrong section join the
+README's, and the welcome screen points at Your data. The README now says how
+to download and open the app.
+
 ## 2026.09.28
 
 **Fill the Rest** (SPEC.md D-12), beside Suggest a Board in the inspector and

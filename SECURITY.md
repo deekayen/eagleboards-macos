@@ -10,6 +10,8 @@ before your first commit.
 | Youth names, units, emails | the data folder's dated `YYYY-MM-DD/` folders, exported reports | Personal information about minors |
 | Adult names, emails, phones, board history | `adults.csv`, `Master_AdultHistory.csv` | Personal information, cumulative across years |
 | SignUpGenius API key | the macOS keychain of the Mac running the app | Grants API access to the district's sign-ups |
+| A youth's full name in an overdue notification | the screen and Notification Center | Shows on a projector or a shared screen, and can stay in Notification Center when Eagle Boards is behind another app (SPEC.md P-5) |
+| Copies of the data folder | iCloud Drive when Documents is synced, backups, USB drives, exported CSVs | Each copy needs its own protection, and deleting an event's dated folder leaves the copies |
 
 Eagle Boards no longer asks for, imports, or keeps a youth's birthdate or phone
 number (SPEC.md D-7, D-8). Folders from earlier events may still hold them:
@@ -84,6 +86,9 @@ venue network for the length of one event.
 - Never load the real adult history into anything you are going to
   screenshot.
 - Exported reports hold names and contact details. Keep them private.
+- The data files take no quoting, so change them only through the app. A
+  spreadsheet that saves one again can add quotes, which `CSVFile.parse`
+  reads as part of a value, or a comma, which it splits into extra columns.
 
 ## Reporting a vulnerability
 

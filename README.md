@@ -5,8 +5,9 @@ of review event. Youth and adults sign themselves in on a tablet at the door,
 using its web browser. You sit at the Mac, put each youth with a board and a
 room, and record the result when they come out.
 
-It runs on one Mac at the event. It needs no internet, only a Wi-Fi network
-that the tablet and the Mac are both on.
+It runs on one Mac at the event. Check-in needs no internet, only a Wi-Fi
+network that the tablet and the Mac are both on. Only the SignUpGenius import
+uses the internet (see [SignUpGenius](#signupgenius)).
 
 This is the native Mac version of the Java
 [Eagle Board Scheduler](https://github.com/deekayen/eagleboards-java). It reads and
@@ -34,24 +35,41 @@ made-up event whose cast is famous Eagle Scouts; nothing in them is real.
 
 You need three things:
 
-1. **A Mac with Apple silicon** (M1 or later) running macOS 14 Sonoma or
-   later, with Eagle Boards on it. Intel Macs are not supported.
+1. **A Mac with Apple silicon** (M1 or later) running macOS 15 Sequoia or
+   later, with Eagle Boards on it. Intel Macs are not supported, and neither
+   is macOS 14, which cannot be tested any more.
 2. **A tablet or laptop for the door**, with a web browser, on the same Wi-Fi.
 3. **Your room list**: which rooms you have, and whether each is used for
    project proposal reviews or for final boards.
 
+### Getting the app
+
+1. Open the [Releases page](https://github.com/deekayen/eagleboards-macos/releases)
+   and, under the newest release's **Assets**, click
+   `Eagle-Boards-<version>.zip` (for example `Eagle-Boards-2026.09.28.zip`).
+2. Open the zip in your Downloads folder. It unpacks to **Eagle Boards**.
+3. Drag **Eagle Boards** to your **Applications** folder, and open it from
+   there.
+
 ### Opening it the first time
 
-Eagle Boards is signed on the Mac that built it but is not notarized by Apple,
-so on any other Mac, macOS stops it the first time. Opening it takes two steps:
+Eagle Boards is signed ad hoc, with no Apple developer account behind the
+signature, so macOS cannot say who made it. It is not notarized by Apple
+either, so on any other Mac macOS stops it the first time. Opening it takes
+two steps:
 
 1. Open the app. macOS says it cannot verify Eagle Boards. Close that message.
 2. Open **System Settings › Privacy & Security**, scroll to the Security
    section, click **Open Anyway** beside Eagle Boards, and confirm with your
    password.
 
-On macOS 14, right-clicking the app and choosing **Open** also works; macOS 15
-and later dropped that. Each downloaded copy asks once.
+Each downloaded copy asks once.
+
+### Tested macOS versions
+
+As of 2026-11-03, GitHub's automated checks run the tests and launch the
+built app on macOS 15 and macOS 26, and launch the exact zip that is published
+on macOS 15. The maintainer runs Eagle Boards on macOS 27.
 
 ### Choosing the data folder
 
@@ -64,7 +82,7 @@ Eagle Boards says where it put it. If you meant another folder, **File › Choos
 Data Folder…** switches to it.
 
 That folder holds personal information, some of it about minors. Keep it
-private.
+private. [Your data](#your-data) says what is kept and where it goes.
 
 ## Starting up
 
@@ -175,13 +193,13 @@ To pick every board yourself, set **Settings › General › When you select a
 waiting youth** to **Start with an empty board**. Selecting a youth then picks
 only a free room.
 
-Press **Seat Board…** (or **⌘↩**, or double-click the youth). You can also drag
+Click **Seat Board…** (or press **⌘↩**, or double-click the youth). You can also drag
 a waiting youth onto a free room card. The sheet lists anything that stops the board, such as
 too few members, no qualified chair, or someone already on another board. It
 also lists anything worth a second look, and each of those needs its own tick.
 While the sheet is open, the board stays as you are checking it, even if
 someone signs in. Choose the chair (the sheet starts with the board's chair from
-the inspector) and press **Seat Board**.
+the inspector) and click **Seat Board**.
 
 The members now have the room and the paperwork. The youth waits outside.
 
@@ -194,8 +212,8 @@ convening.
 
 ### 4. Start the review
 
-When the members have finished reading, select the youth and press **Start
-Review** (**⌘↩** again). On a board of review, the confirmation names whom to
+When the members have finished reading, select the youth and click **Start
+Review** (or press **⌘↩** again). On a board of review, the confirmation names whom to
 fetch to introduce the youth to the board, and where they are, even on another
 board: the adult linked to them, or if no one is, their leader, never a
 parent. A project review has no introduction, so it starts at once, with no
@@ -210,12 +228,12 @@ youth's unit first. To unlink them, right-click them there or choose them from
 
 ### 5. Complete
 
-If someone has to leave mid-board, select the youth and press **Change
+If someone has to leave mid-board, select the youth and click **Change
 Members…** in the inspector. It adds or removes members, or hands the chair to
 another member qualified to chair, under the same rules as seating. The room's
 timer keeps running; it does not restart.
 
-When the board has finished, press **Complete…** (**⌘↩**), choose the result,
+When the board has finished, click **Complete…** (or press **⌘↩**), choose the result,
 and add any notes. The room and the members are free for the next board.
 
 ![Animation of completing Arthur Eldred's board.](docs/images/complete-board.gif)
@@ -260,7 +278,7 @@ window. Click a column heading to sort a page by it, or choose
 | **Youth** (⌘4) | Every youth who signed in, in sign-in order. Double-click one, or choose **Board › Show on Event Page**, to see them on the Event page. |
 | **Pre-Registered** (⌘5) | The youth who signed up on SignUpGenius for today. |
 | **Adult History CSV** (⌘6) | Every adult who has ever signed in, across events, read-only, searched by name, email, or unit. **Last Event** has a check for those signed in today; double-click someone, or choose **Adult › Sign In for Today**, to sign them in. |
-| **Rooms** (⌘7) | What each room is used for today, and whose board is in it. Double-click a room, or choose **Show on Event Page** from its right-click menu, to see its card on the Event page. Right-click a room, or select it and choose from the **Room** menu, to **Rename…**, **Move Board to Another Room…**, or set **Used For**. **Add Room…** at the foot adds one, and **Delete** removes a free one; **Edit › Undo** puts it back. |
+| **Rooms** (⌘7) | What each room is used for today, and whose board is in it. Double-click a room, or choose **Show on Event Page** from its right-click menu, to see its card on the Event page. Right-click a room, or select it and choose from the **Room** menu, to **Rename…**, **Move Board to Another Room…**, or set **Used For**. **Add Room…** at the foot adds one. **Room › Remove Room…**, or **Remove Room…** on its right-click menu, removes a free one after asking first, naming the room; **Edit › Undo** puts it back. |
 | **Approved Proposals** (⌘8) | Every project proposal approved at an earlier event in the data folder, however long ago, for a youth who comes without the signed page: who, their unit, when, the chair, and the other members. Read only. |
 
 A command works only on a page that shows what it acts on. The inspector and
@@ -300,7 +318,9 @@ shows the style chosen there; to change it, click **Open System Settings**.
 Put the district's SignUpGenius API key in **Settings › SignUpGenius**.
 Eagle Boards keeps it in your macOS keychain. When today's event opens, it imports
 the sign-up: youth become pre-registrations and adults join the history. Use
-**File › Import Sign-Ups from SignUpGenius** to do it again.
+**File › Import Sign-Ups from SignUpGenius** to do it again. The import needs
+the internet, and is the only thing in Eagle Boards that does; check-in works
+without it.
 
 The app is signed ad hoc, so after you install a new version macOS asks once
 for access to the key in your keychain. Click **Always Allow**.
@@ -321,6 +341,64 @@ notification keep going with the scheduler window closed. If you close the
 scheduler or the sign-in code, **Window › Scheduler** or **Window › Sign-In
 Code** brings it back, and so does the Dock icon's menu (Control-click the
 icon). Choosing a page from the **View** menu also brings back the scheduler.
+
+## Your data
+
+Eagle Boards keeps everything in the data folder you chose, as plain CSV files
+that the Java Eagle Board Scheduler reads too. Each event has a dated folder
+(`2026-11-03`, for example) holding that day's youth, pre-registrations,
+adults, and rooms. `Master_AdultHistory.csv` beside those folders keeps every
+adult who has signed in, across events.
+
+- What is stored: for a youth, the name, unit, email, unit leader's name, and
+  the board's room, members, result, and notes. For an adult, the name, email,
+  phone number, unit, board roles, and board history. A youth's birthdate and
+  phone number are never asked for or shown, and one already in a file from an
+  earlier event stays there, never shown or exported. The SignUpGenius key is in your macOS
+  keychain, not in the data folder.
+- Where it lives: **Use Documents › Eagle Boards** puts the folder inside
+  Documents. When Desktop & Documents Folders is on in iCloud Drive, macOS
+  stores Documents in iCloud and makes it available on your other devices. To
+  keep the data off iCloud, choose another folder with **Choose…** under Data
+  folder in **Settings › General**, or **File › Choose Data Folder…**. Choosing
+  a folder does not move the files in the old one, so copy them across first
+  if you want them.
+- What leaves the Mac: the SignUpGenius import sends your key to
+  `api.signupgenius.com` and brings the sign-up's names, emails, units, adults' phone numbers, and unit leaders' names
+  back. The sign-in pages travel between the tablet and the Mac over the
+  venue's network as plain HTTP, so what a person types there is not
+  encrypted on the way; use a network you trust, and quit Eagle Boards when the
+  event ends. Eagle Boards itself sends nothing for analytics, crash
+  reports, or updates.
+- Notifications: a notice that a room is overdue shows the youth's full name
+  on screen, and when Eagle Boards is behind another app it can stay in
+  Notification Center. If the Mac's screen is projected or shared, turn
+  notifications for Eagle Boards off in **System Settings › Notifications**;
+  the room cards still show the alarm clock.
+- Editing: change the files only through Eagle Boards. The files take no
+  quoting, so a spreadsheet that saves one again can add quotes that Eagle
+  Boards reads as part of a value, or a comma that it reads as a column
+  break, and a row comes out with its columns shifted. The next save writes
+  it that way. For a
+  spreadsheet, use **File › Export Board Results…** or **File › Export
+  List…**, which write new files. An export holds names and, for adults,
+  contact details, so keep it private.
+- One program at a time: open the data folder in Eagle Boards or the Java
+  Eagle Board Scheduler, not both. Nothing locks it, and each save rewrites a
+  whole file, so the program that saves last wins.
+- Deleting an event: quit Eagle Boards, move that event's dated folder to the
+  Trash in Finder, and empty the Trash. The adult history is a separate file
+  and keeps its adults, and the Approved Proposals page forgets what that
+  folder held. A backup keeps its own copy, and iCloud holds a deleted
+  file in Recently Deleted for 30 days.
+- Backups and drives: a USB drive or backup holding these files needs its own
+  encryption, because the files are plain text. FileVault, in **System Settings
+  › Privacy & Security**, encrypts the Mac's startup disk. A Mac with Apple
+  silicon already encrypts its storage, and FileVault adds a login password to
+  reading it. If you lose both the password and the recovery key, the files are
+  lost for good.
+- How long to keep them: follow your council's or district's guidance on
+  retention.
 
 ## If something goes wrong
 

@@ -85,7 +85,9 @@ struct WelcomeView: View {
                         .font(.headline)
                     Text(
                         "Each event gets its own dated folder inside, and a history of every adult who has signed in is kept across events. "
-                            + "It holds personal information, some of it about minors, so choose a private place."
+                            + "It holds personal information, some of it about minors, so choose a private place. "
+                            + "Help › Eagle Boards Help, under Your data, says what is kept there and where it goes, "
+                            + "including that iCloud copies Documents when Desktop & Documents Folders is on."
                     )
                     .font(.callout)
                     .foregroundStyle(.secondary)

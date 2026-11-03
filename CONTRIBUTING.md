@@ -41,8 +41,11 @@ one thread that ever changes the data.
 
 ## Build, run, verify
 
-Needs a Mac with Apple silicon, macOS 14 or later, and Xcode (or its command
-line tools) with Swift 6.
+Needs a Mac with Apple silicon, macOS 15 or later, and Xcode (or its command
+line tools) with Swift 6. As of 2026-11-03 CI runs the tests and launches the
+built app on macOS 15 and 26, and the maintainer runs Eagle Boards on macOS 27. macOS 14
+is unsupported: GitHub retired its runner on 2026-11-02 and nothing here can
+test it.
 
 ```bash
 swift build
@@ -208,13 +211,72 @@ below. Run things locally to debug what CI found, or to iterate.
 ## Releases
 
 Versions are CalVer: the release date, e.g. `2026.09.22`. Pushing a tag
-`v2026.09.22` runs `release.yml`, which builds the app, checks it
-carries no data or key, and attaches `Eagle-Boards-2026.09.22.zip` to a
-GitHub release.
+`v2026.09.22` runs `release.yml` in three jobs. The build job, on
+`macos-latest`, refuses a tag that is not a `vYYYY.MM.DD` date, a version with
+no `## 2026.09.22` section in `CHANGELOG.md`, and a commit with no passing
+Build run. It then runs the tests, builds the app, checks it, and zips it as
+`Eagle-Boards-2026.09.22.zip` with a `SHA256SUMS` file. The verify job, on
+`macos-15`, unzips that exact file and runs `scripts/check-app.sh` on it, which
+checks the bundle and launches it. The publish job creates the release as a
+draft and makes it public. The release notes are the changelog section
+(`scripts/release-notes.sh`) and a first-launch paragraph. A failure in any job
+leaves nothing public; a draft left by a run that failed after creating it
+has to be deleted on the Releases page before the run is repeated. A second
+release on one date has no defined name yet.
 
 The app is signed ad hoc, so on another Mac Gatekeeper stops it the first
 time. It opens once someone clicks **Open Anyway** in System Settings ›
-Privacy & Security after trying it. Right-click > **Open** does the same on
-macOS 14, but macOS 15 and later dropped it, so the release notes give Open
-Anyway. Signing with a Developer ID identity
+Privacy & Security after trying it. The right-click > **Open** route no
+longer exists on macOS 15 and later, the versions this app supports, so the
+release notes give Open Anyway. Signing with a Developer ID identity
 (`SIGNING_IDENTITY=... scripts/build-app.sh`) and notarizing removes that.
+
+### Before tagging
+
+1. The Build workflow is green on the exact commit to tag (rule 1). The
+   release workflow looks for that run and stops without it.
+2. `## Unreleased` in `CHANGELOG.md` is renamed to the tag's date.
+3. Run `swift package update`, read the `Package.resolved` diff and the
+   release notes of `hummingbird` and `swift-nio` (the two packages that parse
+   requests from the venue network), then run `swift test`.
+4. In `eagleboards-shared`, run `scripts/check-drift.sh` and expect every line
+   to read "same". Add a parity row to `SPEC.md`, and a line to the Stale list
+   in `WEBSITE.md`, for anything that exists only on the Mac or changes what
+   an operator sees (that repository's `CLAUDE.md` says both change in the
+   same commit as the behavior). A new minimum macOS is covered by
+   `WEBSITE.md`, and the Mac row in that repository's `README.md` states the
+   minimum too, so change it in the same step. Check
+   that the website's Mac page names the version about to ship.
+5. Run `git log --format='%h %G?' <last tag>..HEAD` and note any commit marked
+   `N`, which is unsigned. Do not rewrite history for it.
+6. Build the zip as the workflow does (`VERSION=<date> scripts/build-app.sh`,
+   then `ditto -c -k --keepParent "build/Eagle Boards.app"
+   Eagle-Boards-<date>.zip`) and try it on a Mac that has never had Xcode:
+   first launch, **Open Anyway**, and the keychain prompt for the
+   SignUpGenius key. Launch it from where it was unpacked, quit, and launch it
+   a second time.
+7. Install it over the previous version, with the macOS firewall on and a copy
+   of a synthetic data folder, and confirm a phone still reaches the sign-in
+   page. Each ad hoc build has a new code identity, so this is where a
+   changed firewall prompt would show.
+
+### After publishing
+
+1. Open the published zip, downloaded through a browser, on a Mac that has
+   never had Xcode and repeat step 6. The release workflow downloads nothing
+   through a browser, and only a browser download carries the quarantine mark
+   that sends Gatekeeper down the Open Anyway path.
+2. Add a line to the release notes saying which macOS version the zip was
+   tried on, using the commands in step 2 of Rollback.
+
+### Rollback
+
+1. Mark the previous release Latest: `gh release edit <previous tag> --latest`.
+2. Add a line to the bad release's notes naming the version to use. Read the
+   notes with `gh release view <tag> --json body --jq .body`, add the line,
+   and save them with `gh release edit <tag> --notes-file <file>`.
+3. Fix forward with a new date tag. Never move or reuse a tag.
+4. Before telling anyone to reinstall an older zip, read `CHANGELOG.md` for a
+   change in the shape of the data files between the two versions (rule 4;
+   `FileFormatTests` pins it), since the older app may not read what the newer
+   one wrote.

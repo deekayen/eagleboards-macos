@@ -13,7 +13,7 @@ Boards does; this repo does not decide shared behavior on its own.
 
 The native Mac version of the Java Eagle Board Scheduler
 (`deekayen/eagleboards-java`), an Eagle Scout board of review check-in and room
-scheduler. Swift 6, SwiftUI, macOS 14+, Apple silicon only; there is no
+scheduler. Swift 6, SwiftUI, macOS 15+, Apple silicon only; there is no
 Intel build, by the owner's decision. The sign-in stations still register by
 web page, served by an embedded Hummingbird server; every operator screen is
 a native window. See `PROVENANCE.md`.
@@ -40,7 +40,15 @@ a native window. See `PROVENANCE.md`.
   older than the one here (Xcode 26.6 as of 2026-10-25). Code that builds
   locally can fail there: its `CommandsBuilder` takes at most ten items in a
   block, so `EagleBoardsCommands` groups its menus with `Group`. Check an API
-  newer than macOS 14 against that SDK before relying on it.
+  newer than macOS 15 against that SDK before relying on it. The `macos-15`
+  job builds with the newest Xcode 26 installed on that image (26.3 as of
+  2026-11-03), which is older still, so check a new API against both.
+- **Claim only a macOS version that can be tested.** The minimum is macOS 15.
+  CI runs the tests, then launches the built app, on macOS 15 (`macos-15`)
+  and macOS 26 (`macos-latest`). It launches the unzipped release zip
+  on macOS 15 only. The maintainer's Mac runs macOS 27. Never write that
+  another version is supported (macOS 14 included) unless CI or the
+  maintainer's Mac can run it.
 
 ## Standing rules
 
