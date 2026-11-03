@@ -13,8 +13,12 @@ permissions:
 jobs:
   build:
     runs-on: macos-latest
+    env:
+      VERSION: 0.0.${{ github.run_number }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Toolchain
         run: |
@@ -42,6 +46,18 @@ jobs:
         run: |
           if git ls-files | grep -Ei '\.(csv|xls|xlsx|xlsm|ods|jar)$|Master_AdultHistory|Board_Results|LOGIN_INFO|(^|/)20[0-9]{2}-[0-9]{2}-[0-9]{2}/|(^|/)config\.properties$|(^|/)\.env$'; then
             echo "::error::data files or secrets are tracked"
+            exit 1
+          fi
+
+      - name: No SignUpGenius key in the tree
+        # The regex is read out of scripts/hooks/pre-commit, so the hook and
+        # this step cannot drift apart. It looks at the current tree only; the
+        # hook is what stops a key at commit time.
+        run: |
+          pattern=$(sed -n "s/.*git diff --cached -G'\(.*\)' --name-only.*/\1/p" scripts/hooks/pre-commit)
+          [ -n "$pattern" ] || { echo "::error::could not read the key pattern from scripts/hooks/pre-commit"; exit 1; }
+          if git grep -nE "$pattern"; then
+            echo "::error::a tracked file contains what looks like a SignUpGenius key"
             exit 1
           fi
 
@@ -93,66 +109,59 @@ jobs:
           # Only enables the live SignUpGenius check; absent on forks and
           # Dependabot runs, where that one test is skipped.
           SUG_KEY: ${{ secrets.SUG_KEY }}
-        run: swift test
+        # --force-resolved-versions fails when Package.resolved no longer
+        # satisfies Package.swift, where a plain run would rewrite it and go on.
+        run: swift test --force-resolved-versions
 
       - name: Build the app
-        run: VERSION="0.0.${{ github.run_number }}" scripts/build-app.sh
+        run: scripts/build-app.sh
 
-      - name: Check the bundle
+      - name: Check the app
+        # The bundle checks and the launch smoke test, in scripts/check-app.sh
+        # so release.yml runs the same ones on the zip it ships.
+        run: EXPECT_VERSION="$VERSION" scripts/check-app.sh "build/Eagle Boards.app"
+
+  macos15:
+    # Backs the claim that the app runs on macOS 15, its minimum. As of
+    # 2026-11-03 macos-latest is macOS 26, and GitHub retired its macOS 14
+    # image on 2026-11-02, so macOS 15 is the oldest release CI can test. This
+    # job runs the tests and launches the built app there, with Xcode 26 as
+    # the build job uses. It repeats none of the repository guards, and skips
+    # the live SignUpGenius test because it has no SUG_KEY.
+    runs-on: macos-15
+    env:
+      VERSION: 0.0.${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Select Xcode 26
+        # The image's default Xcode is 16.4; Xcode 26.x is installed beside it
+        # as /Applications/Xcode_26.N.app. Take the newest that is not a beta.
         run: |
-          app="build/Eagle Boards.app"
-          archs=$(lipo -archs "$app/Contents/MacOS/Eagle Boards")
-          echo "architectures: $archs"
-          # Apple silicon only; Intel Macs are not supported.
-          [ "$archs" = "arm64" ] || { echo "::error::expected arm64 only"; exit 1; }
-          plutil -lint "$app/Contents/Info.plist"
-          codesign --verify --deep --strict --verbose=1 "$app"
-          # The smoke test below runs on the machine that built the app, so a
-          # library found only through that machine's Xcode would pass it and
-          # fail on every other Mac. Nothing may load from outside the bundle.
-          exe="$app/Contents/MacOS/Eagle Boards"
-          if otool -l "$exe" | awk '/cmd LC_RPATH/ {getline; getline; print $2}' | grep -E '^/(Applications|Library|Users)/'; then
-            echo "::error::the binary keeps an rpath into the build machine"
+          case "$(sw_vers -productVersion)" in
+            15.*) ;;
+            *) echo "::error::expected macOS 15, found $(sw_vers -productVersion)"; exit 1 ;;
+          esac
+          xcode=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | grep -vi beta | sort -V | tail -1 || true)
+          if [ -z "$xcode" ]; then
+            echo "::error::no Xcode 26 under /Applications on this runner image; see the image's installed software list"
             exit 1
           fi
-          for lib in $(otool -L "$exe" | awk '/@rpath\// {print $1}'); do
-            [ -f "$app/Contents/Frameworks/${lib#@rpath/}" ] \
-              || { echo "::error::$lib is loaded through @rpath but is not in Contents/Frameworks"; exit 1; }
-          done
-          # The icon unpacks, with every size macOS asks for.
-          iconutil -c iconset "$app/Contents/Resources/AppIcon.icns" -o "$RUNNER_TEMP/AppIcon.iconset"
-          [ "$(ls "$RUNNER_TEMP/AppIcon.iconset" | grep -c '\.png$')" = 10 ] \
-            || { echo "::error::AppIcon.icns is missing sizes"; exit 1; }
-          for page in index.html youth_register.html adult_register.html checkin.css checkin.js; do
-            find "$app/Contents/Resources/EagleBoards_CheckInServer.bundle" -name "$page" | grep -q . \
-              || { echo "::error::$page missing from the bundle"; exit 1; }
-          done
-          if find "$app" -iname '*.csv' -o -iname '*.properties' | grep .; then
-            echo "::error::the app carries data files"
-            exit 1
-          fi
+          echo "DEVELOPER_DIR=$xcode/Contents/Developer" >> "$GITHUB_ENV"
+          echo "using $xcode on macOS $(sw_vers -productVersion)"
 
-      - name: Smoke test the built app
-        # Launch the real app on an empty scratch folder, sign someone in the
-        # way a tablet would, and read the result back off disk.
+      - name: Toolchain
         run: |
-          app="build/Eagle Boards.app"
-          data=$(mktemp -d)
-          EAGLEBOARDS_DATA_FOLDER="$data" EAGLEBOARDS_PORT=18123 "$app/Contents/MacOS/Eagle Boards" > app.log 2>&1 &
-          pid=$!
-          for attempt in $(seq 1 60); do
-            curl -sf -o /dev/null http://127.0.0.1:18123/ && break
-            sleep 1
-          done
-          status() { curl -s -o /dev/null -w '%{http_code}' "$@"; }
-          fail() { echo "::error::$1"; cat app.log; kill $pid; exit 1; }
-          [ "$(status http://127.0.0.1:18123/)" = 200 ] || fail "sign-in page not served"
-          [ "$(status http://127.0.0.1:18123/admin)" = 404 ] || fail "/admin must not exist"
-          [ "$(status http://127.0.0.1:18123/adult-history-cells)" = 404 ] || fail "record endpoints must not exist"
-          [ "$(status --data 'First=Casey&Last=Smoketest&UnitType=Troop&Unit=1&BoardType=Final&Email=NONE' http://127.0.0.1:18123/register-youth)" = 200 ] \
-            || fail "registration refused"
-          event=$(date +%Y-%m-%d)
-          grep -q 'SCOUT:Smoketest:Casey:1' "$data/$event/scouts.csv" || fail "registration not written to disk"
-          head -1 "$data/$event/scouts.csv" | grep -q '^Type,ID,RegNum,Last,First,' || fail "scouts.csv header changed"
-          kill $pid
-          echo "smoke test passed"
+          xcodebuild -version
+          swift --version
+
+      - name: Test
+        run: swift test --force-resolved-versions
+
+      - name: Build the app
+        run: scripts/build-app.sh
+
+      - name: Check the app
+        run: EXPECT_VERSION="$VERSION" scripts/check-app.sh "build/Eagle Boards.app"

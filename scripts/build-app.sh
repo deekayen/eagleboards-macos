@@ -2,31 +2,45 @@
 # ------------------------------------------------------------------------
 # build-app.sh -- build "Eagle Boards.app" from the Swift package.
 #
-#   scripts/build-app.sh                  # release build
+#   scripts/build-app.sh                  # release build, version 0.0.0
 #   VERSION=2026.09.22 scripts/build-app.sh
 #   SIGNING_IDENTITY="Developer ID Application: ..." scripts/build-app.sh
+#   SCRATCH_PATH=/some/folder scripts/build-app.sh   # SwiftPM's --scratch-path
+#
+# VERSION is the version written into Info.plist. The release workflow and
+# the build workflow pass it; a local build without it is 0.0.0, so it is
+# never mistaken for a release.
 #
 # Output: build/Eagle Boards.app, for Apple silicon only. Intel Macs are not
-# supported.
+# supported. The app needs macOS 15 or later (Package.swift and
+# LSMinimumSystemVersion).
+#
+# Contents/Resources/THIRD-PARTY-NOTICES.txt holds this repository's LICENSE
+# and NOTICE, then the LICENSE and NOTICE text of every package in
+# Package.resolved, read from the checkouts SwiftPM made under the scratch
+# path (.build by default), each under a heading with the package's identity
+# and resolved version. The script stops if a resolved package has no checkout
+# or no LICENSE, LICENSE.txt, or LICENSE.md.
 #
 # Without SIGNING_IDENTITY the app is signed ad hoc. That runs on the Mac that
 # built it; on another Mac, Gatekeeper stops it the first time, until it is
 # allowed with Open Anyway in System Settings > Privacy & Security (right-click
-# > Open also works on macOS 14, not on 15 or later). A Developer ID identity
-# (and notarization) removes that step.
+# > Open does not work on macOS 15 or later). A Developer ID identity (and
+# notarization) removes that step.
 #
 # Needs Xcode, or its command line tools, with Swift 6.
 # ------------------------------------------------------------------------
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-VERSION="${VERSION:-$(date +%Y.%m.%d)}"
+VERSION="${VERSION:-0.0.0}"
+SCRATCH_PATH="${SCRATCH_PATH:-.build}"
 BUNDLE_ID="net.deekayen.EagleBoards"
 APP="build/Eagle Boards.app"
 
 echo "== building $VERSION for Apple silicon"
-swift build -c release --arch arm64
-bin_dir=$(swift build -c release --arch arm64 --show-bin-path)
+swift build -c release --arch arm64 --scratch-path "$SCRATCH_PATH"
+bin_dir=$(swift build -c release --arch arm64 --scratch-path "$SCRATCH_PATH" --show-bin-path)
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
@@ -67,6 +81,60 @@ fi
 # The sign-in pages. CheckInAssets looks here before anywhere else.
 cp -R "$bin_dir/EagleBoards_CheckInServer.bundle" "$APP/Contents/Resources/"
 
+# Licenses. Apache License 2.0 section 4 asks that a redistribution carry a
+# copy of the License and the NOTICE attributions, so the dependencies' text
+# goes in the bundle. This repository's own LICENSE and NOTICE come first.
+notices="$APP/Contents/Resources/THIRD-PARTY-NOTICES.txt"
+checkouts="$SCRATCH_PATH/checkouts"
+append_file() {
+    # heading, then the file's text, then a blank line
+    printf '%s\n\n' "$1" >> "$notices"
+    cat "$2" >> "$notices"
+    printf '\n\n' >> "$notices"
+}
+: > "$notices"
+append_file "Eagle Boards (LICENSE)" LICENSE
+append_file "Eagle Boards (NOTICE)" NOTICE
+pin=0
+while identity=$(plutil -extract "pins.$pin.identity" raw -o - Package.resolved 2>/dev/null); do
+    resolved=$(plutil -extract "pins.$pin.state.version" raw -o - Package.resolved 2>/dev/null \
+        || plutil -extract "pins.$pin.state.revision" raw -o - Package.resolved)
+    pin=$((pin + 1))
+    # SwiftPM names a checkout after the repository; the identity is that
+    # name in lower case.
+    dir=""
+    for candidate in "$checkouts"/*/; do
+        name=$(basename "$candidate" | tr '[:upper:]' '[:lower:]')
+        [ "$name" = "$identity" ] && { dir="$candidate"; break; }
+    done
+    if [ -z "$dir" ]; then
+        echo "error: no checkout for $identity under $checkouts" >&2
+        exit 1
+    fi
+    found_license=""
+    for file in LICENSE LICENSE.txt LICENSE.md; do
+        [ -f "$dir/$file" ] || continue
+        append_file "$identity $resolved (LICENSE)" "$dir/$file"
+        found_license=1
+        break
+    done
+    if [ -z "$found_license" ]; then
+        echo "error: $identity has no LICENSE, LICENSE.txt, or LICENSE.md in $dir" >&2
+        exit 1
+    fi
+    for file in NOTICE NOTICE.txt; do
+        [ -f "$dir/$file" ] || continue
+        append_file "$identity $resolved (NOTICE)" "$dir/$file"
+        break
+    done
+done
+if [ "$pin" -eq 0 ]; then
+    echo "error: Package.resolved lists no packages" >&2
+    exit 1
+fi
+[ -s "$notices" ] || { echo "error: $notices is empty" >&2; exit 1; }
+echo "== wrote THIRD-PARTY-NOTICES.txt for $pin packages"
+
 # Drawn from Artwork/EagleBoards.svg by scripts/make-icon.sh.
 cp Artwork/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
@@ -88,7 +156,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleShortVersionString</key>   <string>$VERSION</string>
     <key>CFBundleVersion</key>              <string>$VERSION</string>
     <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
-    <key>LSMinimumSystemVersion</key>       <string>14.0</string>
+    <key>LSMinimumSystemVersion</key>       <string>15.0</string>
     <key>LSApplicationCategoryType</key>    <string>public.app-category.productivity</string>
     <key>NSHighResolutionCapable</key>      <true/>
     <key>NSHumanReadableCopyright</key>     <string>Copyright 2026 David Norman. Apache License 2.0.</string>
