@@ -3,6 +3,10 @@ import Security
 
 /// The SignUpGenius API key, kept in the login keychain rather than in a
 /// preferences file or next to the event data.
+///
+/// The item lives in the file-based login keychain and is protected by its
+/// access list. The data protection keychain is not used because it needs a
+/// provisioning profile, and `kSecAttrAccessible` only applies there.
 enum SignUpGeniusKeychain {
     private static let service = "Eagle Boards SignUpGenius API key"
     private static let account = "default"
@@ -56,7 +60,6 @@ enum SignUpGeniusKeychain {
         guard status == errSecItemNotFound else { return status == errSecSuccess }
         var item = query
         item[kSecValueData as String] = data
-        item[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlocked
         return SecItemAdd(item as CFDictionary, nil) == errSecSuccess
     }
 }
