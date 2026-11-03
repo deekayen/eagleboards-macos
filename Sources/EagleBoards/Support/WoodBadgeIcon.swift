@@ -63,10 +63,17 @@ struct WoodBadgeIcon: View {
 
     /// A pentagon's corners, point up, clockwise from the top.
     private static func corners(center: CGPoint, radius: Double) -> [CGPoint] {
-        (0..<5).map { index in
-            let angle = -Double.pi / 2 + Double(index) * 2 * Double.pi / 5
-            return CGPoint(x: center.x + radius * cos(angle), y: center.y + radius * sin(angle))
+        let step = 2 * Double.pi / 5
+        var points: [CGPoint] = []
+        for index in 0..<5 {
+            // Typed one step at a time: the Xcode 26.3 compiler gives up on
+            // the whole expression at once, with Double and CGFloat mixed.
+            let angle: Double = -Double.pi / 2 + Double(index) * step
+            let x: CGFloat = center.x + CGFloat(radius * cos(angle))
+            let y: CGFloat = center.y + CGFloat(radius * sin(angle))
+            points.append(CGPoint(x: x, y: y))
         }
+        return points
     }
 
     private static func point(from start: CGPoint, toward end: CGPoint, by distance: Double) -> CGPoint {
