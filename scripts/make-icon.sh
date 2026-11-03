@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # ------------------------------------------------------------------------
-# make-icon.sh -- rebuild Artwork/AppIcon.icns from Artwork/EagleBoards.svg.
+# make-icon.sh: rebuild Artwork/AppIcon.icns from Artwork/EagleBoards.svg.
 #
 #   scripts/make-icon.sh
 #
 # EagleBoards.svg is the cast eagle from the Eagle Scout medal, the same
 # drawing as the Windows version's icon; keep the two in step. Its metal
 # finish is an SVG lighting filter, which macOS's own SVG support ignores, so
-# this renders it with librsvg (brew install librsvg) and commits the .icns:
-# building the app needs no drawing tools. Run this after changing the SVG.
+# this renders it with librsvg (brew install librsvg) and commits the .icns,
+# so building the app needs no drawing tools. Run this after changing the SVG.
 #
 # Mac icons sit on a rounded tile, so the eagle goes on the olive tile with
 # the tan border, the palette of the sign-in pages.
@@ -29,7 +29,7 @@ trap 'rm -rf "$work"' EXIT
 small='.fine{display:none}.bold{display:inline}.relief{filter:url(#cast-small)}'
 
 # compose STYLE OUT: the tile, then the eagle as a nested <svg> on it. Line 1
-# of EagleBoards.svg is its opening <svg> tag, which gains a position, a size
+# of EagleBoards.svg is its opening <svg> tag, which gains a position, a size,
 # and the stylesheet.
 compose() {
     {

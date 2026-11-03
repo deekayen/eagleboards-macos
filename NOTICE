@@ -10,7 +10,7 @@ ORIGINAL WORK
 
 The Eagle Board Scheduler was reconstructed from a pre-existing application
 received only as a compiled JAR. This product carries over that
-application's data-file format, board rules and sign-in pages, and is a
+application's data-file format, board rules, and sign-in pages, and is a
 derivative of the original author's work.
 
 See PROVENANCE.md.

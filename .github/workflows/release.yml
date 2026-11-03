@@ -8,7 +8,7 @@
 # public. A draft left behind by a run that failed after creating it must be
 # deleted on the Releases page before the run is repeated.
 #
-# One path stays untested here: a zip downloaded through a browser carries a
+# One path stays untested here: a zip downloaded through a browser gets a
 # quarantine mark, and Gatekeeper's Open Anyway path runs only for that. These
 # jobs never download through a browser. Open the published zip once on a Mac
 # that did not build it.
@@ -80,7 +80,7 @@ jobs:
         run: |
           app="build/Eagle Boards.app"
           if find "$app" -iname '*.csv' -o -iname '*.properties' -o -iname '*.xls*' | grep .; then
-            echo "::error::the app carries data files"
+            echo "::error::the app contains data files"
             exit 1
           fi
           if [ -n "$SUG_KEY" ] && grep -rqF "$SUG_KEY" "$app"; then
@@ -166,7 +166,7 @@ jobs:
         run: |
           assets=$(gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets | length')
           if [ "$assets" != 1 ]; then
-            echo "::error::the draft for $GITHUB_REF_NAME holds $assets files, expected the one zip"
+            echo "::error::the draft for $GITHUB_REF_NAME has $assets files, expected the one zip"
             exit 1
           fi
           gh release edit "$GITHUB_REF_NAME" --draft=false

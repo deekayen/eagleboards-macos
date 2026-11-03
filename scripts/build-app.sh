@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ------------------------------------------------------------------------
-# build-app.sh -- build "Eagle Boards.app" from the Swift package.
+# build-app.sh: build "Eagle Boards.app" from the Swift package.
 #
 #   scripts/build-app.sh                  # release build, version 0.0.0
 #   VERSION=2026.09.22 scripts/build-app.sh
@@ -15,7 +15,7 @@
 # supported. The app needs macOS 15 or later (Package.swift and
 # LSMinimumSystemVersion).
 #
-# Contents/Resources/THIRD-PARTY-NOTICES.txt holds this repository's LICENSE
+# Contents/Resources/THIRD-PARTY-NOTICES.txt contains this repository's LICENSE
 # and NOTICE, then the LICENSE and NOTICE text of every package in
 # Package.resolved, read from the checkouts SwiftPM made under the scratch
 # path (.build by default), each under a heading with the package's identity
@@ -81,7 +81,7 @@ fi
 # The sign-in pages. CheckInAssets looks here before anywhere else.
 cp -R "$bin_dir/EagleBoards_CheckInServer.bundle" "$APP/Contents/Resources/"
 
-# Licenses. Apache License 2.0 section 4 asks that a redistribution carry a
+# Licenses. Apache License 2.0 section 4 asks that a redistribution include a
 # copy of the License and the NOTICE attributions, so the dependencies' text
 # goes in the bundle. This repository's own LICENSE and NOTICE come first.
 notices="$APP/Contents/Resources/THIRD-PARTY-NOTICES.txt"

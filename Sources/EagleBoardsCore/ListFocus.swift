@@ -1,7 +1,7 @@
 /// Where the keyboard focus goes when the row holding it leaves a list: the
 /// inspector's board and free adults, and Change Members' two lists, whose
 /// rows go as adults are added, taken off, or proposed afresh. Windows' Event
-/// page does the same (RestoreFocus). It is here rather than in the views so
+/// page does the same (RestoreFocus). It is here, not in the views, so
 /// it can be tested.
 public enum ListFocus {
     /// The row to focus once the list goes from `old` to `new`, if `focused`

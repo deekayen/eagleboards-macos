@@ -157,7 +157,7 @@ final class AppModel {
         SignInListening(choice: signInNetwork, among: networks, kinds: networkKinds)
     }
 
-    /// A network came, went or changed its address. A station serving one
+    /// A network came, went, or changed its address. A station serving one
     /// network moves with it: onto the chosen one when it is back, or onto
     /// the default while it is gone. Joining the venue's Wi-Fi after the
     /// event is open puts the station on it.
@@ -327,7 +327,7 @@ final class AppModel {
         sorts[page] = sort
     }
 
-    /// Picked on the Event, Results or Youth page, and kept when the page is
+    /// Picked on the Event, Results, or Youth page, and kept when the page is
     /// left. A board command acts on it only through `boardYouth`, so never
     /// from a page that does not show the board.
     var selectedYouthID: Scout.ID?
@@ -1169,7 +1169,7 @@ final class AppModel {
     // MARK: - SignUpGenius
 
     var isImporting = false
-    /// Checked once at launch and after each save, rather than on every
+    /// Checked once at launch and after each save, not on every
     /// redraw: reading the keychain can put up a prompt.
     private(set) var hasSignUpGeniusKey = false
     /// False when launched on a scratch folder: the keychain's key is for
@@ -1287,7 +1287,7 @@ final class AppModel {
             Arrivals.sentence(youth: youth.map(\.shownFullName), adults: adults.map(\.shownFullName)), priority: .low)
     }
 
-    /// Save a cell changed on the Results, Youth or Pre-Registered page. A
+    /// Save a cell changed on the Results, Youth, or Pre-Registered page. A
     /// changed cell is saved as it is left and stays off the Undo stack
     /// (SPEC.md P-6), which is kept for the Event page's steps.
     @discardableResult

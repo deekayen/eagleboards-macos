@@ -207,7 +207,7 @@ struct SignInTests {
         #expect(reopened.adultHistory.count == 3, "the same history record, not a new one")
     }
 
-    // SPEC.md P-6: an adult's name, unit, contact and roles are one set of
+    // SPEC.md P-6: an adult's name, unit, contact, and roles are one set of
     // facts in the event's adults and the read-only adult history; an edit on
     // the Adults page reaches the history, and Wood Badge stays with the event.
     @Test func anEditOnTheAdultsPageReachesTheHistory() throws {

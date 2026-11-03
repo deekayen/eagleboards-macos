@@ -27,7 +27,7 @@ extension [CheckInAddress] {
 }
 
 /// Calls `onChange` on the main queue whenever an interface's IPv4 address
-/// comes, goes or changes, so the sign-in station can follow the network it
+/// comes, goes, or changes, so the sign-in station can follow the network it
 /// serves. It is made once, by the app's model, and lives as long as the app.
 @MainActor
 final class NetworkWatcher {

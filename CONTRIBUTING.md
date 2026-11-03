@@ -43,8 +43,8 @@ one thread that ever changes the data.
 
 Needs a Mac with Apple silicon, macOS 15 or later, and Xcode (or its command
 line tools) with Swift 6. As of 2026-11-03 CI runs the tests and launches the
-built app on macOS 15 and 26, and the maintainer runs Eagle Boards on macOS 27. macOS 14
-is unsupported: GitHub retired its runner on 2026-11-02 and nothing here can
+built app on macOS 15 and 26; the maintainer runs Eagle Boards on macOS 27. macOS 14
+is unsupported: GitHub retired its runner on 2026-11-02, and nothing here can
 test it.
 
 ```bash
@@ -196,7 +196,7 @@ below. Run things locally to debug what CI found, or to iterate.
     leaves its page and is never acted on from a page that cannot show it:
     board commands go through `AppModel.boardYouth`, room commands through
     `selectedRoom`, and adult commands through `selectedAdults`, so a key, a
-    double-click or a drop that reaches the model from another page does
+    double-click, or a drop that reaches the model from another page does
     nothing. A new page answers every question in `SchedulerPage`, and a new
     command asks one of them.
 
@@ -218,7 +218,7 @@ Build run. It then runs the tests, builds the app, checks it, and zips it as
 `Eagle-Boards-2026.09.22.zip` with a `SHA256SUMS` file. The verify job, on
 `macos-15`, unzips that exact file and runs `scripts/check-app.sh` on it, which
 checks the bundle and launches it. The publish job creates the release as a
-draft and makes it public. The release notes are the changelog section
+draft and makes it public. Each release's notes are the changelog section
 (`scripts/release-notes.sh`) and a first-launch paragraph. A failure in any job
 leaves nothing public; a draft left by a run that failed after creating it
 has to be deleted on the Releases page before the run is repeated. A second
@@ -264,7 +264,7 @@ release notes give Open Anyway. Signing with a Developer ID identity
 
 1. Open the published zip, downloaded through a browser, on a Mac that has
    never had Xcode and repeat step 6. The release workflow downloads nothing
-   through a browser, and only a browser download carries the quarantine mark
+   through a browser, and only a browser download gets the quarantine mark
    that sends Gatekeeper down the Open Anyway path.
 2. Add a line to the release notes saying which macOS version the zip was
    tried on, using the commands in step 2 of Rollback.

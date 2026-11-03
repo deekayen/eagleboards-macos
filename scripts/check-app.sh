@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ------------------------------------------------------------------------
-# check-app.sh -- check a built "Eagle Boards.app", then launch it.
+# check-app.sh: check a built "Eagle Boards.app", then launch it.
 #
 #   scripts/check-app.sh "build/Eagle Boards.app"
 #   scripts/check-app.sh "build/Eagle Boards.app" 18124   # another port
@@ -21,14 +21,14 @@
 # runs on one Mac never share one. EXPECT_VERSION, when set, must equal the
 # bundle's CFBundleShortVersionString.
 #
-# One thing this cannot test: a zip downloaded through a browser carries a
+# One thing this cannot test: a zip downloaded through a browser gets a
 # quarantine mark, and Gatekeeper's Open Anyway path only runs for that. CI's
 # copy has none. Open the published zip once on a Mac that did not build it.
 # ------------------------------------------------------------------------
 set -euo pipefail
 
 # What Info.plist must say; build-app.sh writes it. Change both together, and
-# the macOS claim in README.md, CONTRIBUTING.md and the release notes with them.
+# the macOS claim in README.md, CONTRIBUTING.md, and the release notes with them.
 min_macos="15.0"
 
 app="${1:?usage: scripts/check-app.sh <path to Eagle Boards.app> [port]}"
@@ -112,7 +112,7 @@ done
     || fail "Contents/Resources/THIRD-PARTY-NOTICES.txt is missing or empty"
 
 if find "$app" -iname '*.csv' -o -iname '*.properties' -o -iname '*.xls*' | grep .; then
-    fail "the app carries data files"
+    fail "the app contains data files"
 fi
 echo "bundle checks passed"
 

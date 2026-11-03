@@ -2,7 +2,7 @@ import EagleBoardsCore
 import Foundation
 import Testing
 
-/// Numbers, units and dates in the words the screen shows and VoiceOver
+/// Numbers, units, and dates in the words the screen shows and VoiceOver
 /// reads, as Windows' `Display` writes them (c0b18db).
 @Suite("Counts, minutes and ordinals")
 struct CountTests {

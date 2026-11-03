@@ -319,7 +319,7 @@ struct CheckInServerTests {
             #expect(String(decoding: data, as: UTF8.self).contains("Please sign in"), "on \(host)")
         }
         // Pinned, it is not on this Mac's other networks. A request to a VPN's
-        // own address can hang rather than be refused, so take the port there
+        // own address can hang, not be refused, so take the port there
         // instead: a plain bind fails while anything listens on 0.0.0.0.
         #expect(!Self.canBind(pinned, port), "the check sees an address in use")
         if let other = SignInNetwork.current().first(where: { $0.ipv4 != pinned })?.ipv4 {

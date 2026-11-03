@@ -5,8 +5,8 @@ import SwiftUI
 ///
 /// Problems that make the board impossible are listed together, so a board
 /// with several issues does not have to be fixed one alert at a time. Things
-/// that are legal but unusual -- a same-unit member, a fourth member, a room
-/// of the other kind -- each need their own tick before Seat Board is enabled.
+/// that are legal but unusual (a same-unit member, a fourth member, a room
+/// of the other kind) each need their own tick before Seat Board is enabled.
 /// The chair can only be someone qualified to chair this kind of board.
 struct SeatBoardSheet: View {
     @Environment(AppModel.self) private var model

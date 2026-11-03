@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # ------------------------------------------------------------------------
-# release-notes.sh -- print the notes for a release to standard output.
+# release-notes.sh: print the notes for a release to standard output.
 #
 #   scripts/release-notes.sh v2026.11.05 > release-notes.md
 #
 # The notes are the body of that version's section in CHANGELOG.md, whose
-# heading is "## 2026.11.05": the maintainer renames "## Unreleased" to the
+# heading is "## 2026.11.05"; the maintainer renames "## Unreleased" to the
 # release date by hand before tagging. A version with no heading, or an empty
 # one, fails, so a tag cannot publish without a changelog entry. A paragraph
 # for first launch follows the section. release.yml runs this; it checks the
@@ -43,5 +43,5 @@ section=$(printf '%s\n' "$section" | sed '/./,$!d')
 
 printf '%s\n\n' "$section"
 cat <<NOTES
-For Macs with Apple silicon running macOS 15 or later. Intel Macs and macOS 14 are not supported. Signed ad hoc, not notarized, so macOS stops the app the first time: open it, close the warning, then click **Open Anyway** in System Settings › Privacy & Security and confirm. After an update, macOS also asks again for access to the SignUpGenius key in your keychain: click **Always Allow**. Earlier releases are in the [changelog](https://github.com/$repo/blob/$tag/CHANGELOG.md).
+For Macs with Apple silicon running macOS 15 or later. Intel Macs and macOS 14 are not supported. Signed ad hoc, not notarized, so macOS stops the app the first time: open it, close the warning, then click **Open Anyway** in System Settings › Privacy & Security and confirm. After an update, macOS also asks again for access to the SignUpGenius key in your keychain; click **Always Allow**. Earlier releases are in the [changelog](https://github.com/$repo/blob/$tag/CHANGELOG.md).
 NOTES

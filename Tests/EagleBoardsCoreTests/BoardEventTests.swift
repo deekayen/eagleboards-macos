@@ -10,13 +10,13 @@ import Testing
 ///       3 can chair a Final board, 3 a Project review, one of them both.
 ///
 /// So the event is capped at five concurrent boards no matter how many rooms
-/// are free -- the constraint the scheduler actually has to survive. The rule
+/// are free: the constraint the scheduler actually has to survive. The rule
 /// tests pin down the rules as pure functions; this pins down what the event
 /// does with them: boards convening and starting, adults committed to
 /// one room and released when the review finishes, boards postponed and reset,
 /// and the rules holding even for requests that skip the Seat Board sheet.
 ///
-/// Add a case here when you change how a board is seated, run or torn down.
+/// Add a case here when you change how a board is seated, run, or torn down.
 @MainActor
 @Suite("A board event")
 struct BoardEventTests {
@@ -646,7 +646,7 @@ struct BoardEventTests {
 
     /// The members are read by ID, so a board that cannot be (an adult no
     /// longer in the file, or a file with names and no IDs) keeps its stored
-    /// names rather than losing one.
+    /// names instead of losing one.
     @Test func aBoardWhoseMembersCannotBeFoundByIDKeepsItsNames() {
         let ann = Adult(fields: ["Type": "ADULT", "ID": "ADULT:Lee:Ann:12", "First": "Ann", "Last": "Lee"])
         var youth = Scout.blank(at: Date())
@@ -696,7 +696,7 @@ struct BoardEventTests {
         try event.startReview(scoutID: projectYouth(1))
         try event.resetBoard(scoutID: projectYouth(1))
 
-        // Explicit rather than greedy: assert the outcome expected, not
+        // Explicit, not greedy: assert the outcome expected, not
         // whatever the scheduler managed on the day.
         try runBoard(finalYouth(3))
         try runBoard(projectYouth(2))
@@ -770,7 +770,7 @@ struct BoardEventTests {
 
     // Java section 9. Unknown ids and occupied rooms. (Missing parameters and
     // duplicated ids are the Java HTTP API's problem: here members are an
-    // array, de-duplicated before they are counted -- see
+    // array, de-duplicated before they are counted; see
     // compositionRulesHoldWithoutTheSeatBoardSheet.)
     @Test func requestsTheSeatBoardSheetWouldNeverMake() throws {
         refused("an unknown room") { try seat("999", finalYouth(1), chair: chairOfEither, member(1), member(2)) }
@@ -1106,7 +1106,7 @@ struct BoardEventTests {
     }
 
     // Java section 18. A result corrected on the Results page, whose Result
-    // menu offers BoardResult.allCases. The pages show the status, chair and
+    // menu offers BoardResult.allCases. The pages show the status, chair, and
     // members read-only (SPEC.md P-6); moving a result to the right youth,
     // with its board, is checked here on the record, as the data files and
     // /youth-update still take it.
@@ -1170,7 +1170,7 @@ struct BoardEventTests {
     }
 
     // Java section 25 (SPEC.md P-6). A table corrects a status, but a board is
-    // seated, started, reset and completed only through the Event page's
+    // seated, started, reset, and completed only through the Event page's
     // steps, which give it a room and members and take them back.
     @Test func aTableCannotSeatStartOrEndABoard() throws {
         refused("a waiting youth is not seated from a table") { try editYouth(finalYouth(1)) { $0.status = .seated } }
@@ -1248,7 +1248,7 @@ struct BoardEventTests {
     }
 
     // Java section 27. Add Adult, for someone who won't use the tablet, signs
-    // them in as the tablet does; filled in from the adult history it carries
+    // them in as the tablet does; filled in from the adult history it keeps
     // that record's ID, so a name corrected in the sheet is the same adult.
     @Test func anAdultSignedInByHandFromTheHistory() throws {
         try event.registerAdult([
@@ -1487,7 +1487,7 @@ struct BoardEventTests {
     // tests do not link: CheckInServerTests signs the same youth and adult in
     // over HTTP and reads the lookups back
     // (aYouthsPhoneNumberIsNotKeptButAnAdultsStillFillsTheirForm,
-    // lookupsFillTheFormAndNothingMore). The Java grid, CSV, filter and
+    // lookupsFillTheFormAndNothingMore). The Java grid, CSV, filter, and
     // autofill reads (the -cells endpoints, /youth-autofill) cannot arise:
     // this server has none, and operatorPagesAndRecordsAreNotReachable
     // asserts each is a 404. Their counterparts here are the lists exported

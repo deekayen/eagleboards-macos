@@ -1,7 +1,7 @@
 import EagleBoardsCore
 import SwiftUI
 
-// The pages for the rest of the tables the event keeps, like Results, Adults
+// The pages for the rest of the tables the event keeps, like Results, Adults,
 // and Youth (SPEC.md P-6). Together they replace the records window. A changed
 // cell is saved as it is left and stays off the Undo stack; a deleted record
 // is asked about first. The Adult History CSV is read-only.
@@ -101,7 +101,7 @@ struct PreRegisteredPage: View {
 
 /// Every adult who has ever signed in, across events: the adult history the
 /// sign-in form fills itself in from, read-only (SPEC.md P-6), and searched by
-/// name, email or unit. A sign-in writes it, and a change on the Adults page
+/// name, email, or unit. A sign-in writes it, and a change on the Adults page
 /// reaches the same adult here. Last Event has a check for those signed in
 /// today; double-click someone, or choose Sign In for Today here or in the
 /// Adult menu, to put them on the event's list without the tablet. The

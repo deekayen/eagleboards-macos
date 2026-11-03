@@ -1,6 +1,6 @@
 import Foundation
 
-/// Holds the Mac awake while the sign-in station serves, and lets go on every
+/// Keeps the Mac awake while the sign-in station serves, and lets go on every
 /// way the station can end, a failed start included. `begin` and `end` are
 /// the calls that start and finish the system's activity; `processActivity`
 /// supplies the real ones, and a test supplies counters.

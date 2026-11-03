@@ -115,7 +115,7 @@ public enum CSVFile {
     }
 
     /// Files written by the Java app on Windows may be in the Windows code page
-    /// rather than UTF-8; accept either.
+    /// instead of UTF-8; accept either.
     ///
     /// - Throws: The file system's error when the file cannot be read.
     static func readText(at url: URL) throws -> String {
@@ -296,7 +296,7 @@ public enum Reports {
     }
 
     /// An export as it is saved for a spreadsheet: after a byte-order mark,
-    /// so Excel reads an accented name as UTF-8 (Windows' exports carry one
+    /// so Excel reads an accented name as UTF-8 (Windows' exports start with one
     /// for the same reason). The data files never do: they stay in the Java
     /// app's dialect (`CSVFile.write`).
     public static func forSpreadsheet(_ text: String) -> String {

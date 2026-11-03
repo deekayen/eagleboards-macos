@@ -125,7 +125,7 @@ struct RoomsGrid: View {
     private static let spacing = 10.0
 
     /// An arrow key on a card: focus, and with it the selection, moves to
-    /// the card beside, above or below it.
+    /// the card beside, above, or below it.
     private func move(
         _ direction: MoveCommandDirection, from roomID: Room.ID, in rooms: [Room], scroller: ScrollViewProxy
     ) {

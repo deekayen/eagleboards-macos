@@ -16,25 +16,25 @@ none of the Java app's code was translated line by line. What it carries over
 is behavior and interface:
 
 - **The data files.** Column names and order, record IDs, the comma dialect
-  (commas stored as `~`, line breaks as `+`), timestamp shapes and the folder
+  (commas stored as `~`, line breaks as `+`), timestamp shapes, and the folder
   layout are kept exactly, so the two programs can open each other's data.
 - **The board rules.** Board size, the binding chair designation, one board
   per adult, and the same-unit rule, with the Guide to Advancement references
   the Java project documented. The rule and auto-select cases are shared by
   the three versions (SPEC.md D-5): `SharedCaseTests` runs every file in
   `Tests/EagleBoardsCoreTests/Resources/cases/`, copies of
-  `eagleboards-shared/cases` pinned by `test-cases.lock`. The Java event
-  test's scenarios are carried over in `BoardEventTests`.
-- **The lifecycle.** Registered, Seated, InProgress, Completed or Postponed,
+  `eagleboards-shared/cases` pinned by `test-cases.lock`. `BoardEventTests`
+  mirrors the Java event test's scenarios.
+- **The lifecycle.** Registered, Seated, InProgress, Completed, or Postponed,
   including the legacy `Verified` status.
 - **The sign-in pages.** `Sources/CheckInServer/Resources/CheckIn` began as the
-  Java app's `index.html`, `youth_register.html` and `adult_register.html` and
-  the public-page rules of its stylesheet. The five files are now copies of
+  Java app's `index.html`, `youth_register.html`, and `adult_register.html`,
+  plus the public-page rules of its stylesheet. The five files are now copies of
   `eagleboards-shared/checkin`, pinned by `checkin-pages.lock` (SPEC.md D-18),
   and all three versions serve them unchanged. They call the endpoints that
   D-2 and D-18 define, which each version implements.
 
-The scheduler, record and settings screens, which were web pages in the Java
+The scheduler, record, and settings screens, which were web pages in the Java
 app, are new SwiftUI windows.
 
 ## Third-party code

@@ -4,14 +4,14 @@ import SwiftUI
 /// The operator's screen for the event. The View menu chooses the page
 /// (SPEC.md P-1, P-6): Event, with every youth in one list beside the rooms,
 /// so a room's timer is never out of sight while working the queue (O-3); or
-/// a page for one of the event's tables -- Results, Adults, Youth,
-/// Pre-Registered and Rooms, edited in place, and the read-only Adult History
-/// CSV. There is no sidebar and no
+/// a page for one of the event's tables (Results, Adults, Youth,
+/// Pre-Registered, and Rooms, edited in place, and the read-only Adult History
+/// CSV). There is no sidebar and no
 /// separate records window, so the page has the window's whole width. The
 /// Event page alone has the inspector, which follows the selected youth: the
 /// board being drawn up for them, or how it went. A command works only on a
 /// page that shows what it acts on (`SchedulerPage`), so the other pages have no
-/// inspector, no next-step button and no board commands, and the Room menu
+/// inspector, no next-step button, and no board commands, and the Room menu
 /// works on the Event and Rooms pages only.
 ///
 /// Nothing here polls. The event is observed directly, so a youth who
@@ -113,7 +113,7 @@ struct SchedulerView: View {
             .onChange(of: undoManager) { model.undoManager = undoManager }
     }
 
-    /// On the Event page, every youth beside the rooms -- both always on
+    /// On the Event page, every youth beside the rooms, both always on
     /// screen together (O-3). As on Windows, the youth list is a narrow
     /// column and the room cards take the rest of the width, so every room's
     /// board and timer is in view; the divider between them widens the list.

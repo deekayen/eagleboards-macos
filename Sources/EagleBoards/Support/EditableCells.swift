@@ -89,7 +89,7 @@ struct EditableChoice<Label: View>: View {
                     ))
             }
         } label: {
-            // The chevron says the value is a menu, not just text.
+            // The chevron says the value is a menu, not plain text.
             HStack(spacing: 3) {
                 label()
                 Image(systemName: "chevron.up.chevron.down")
@@ -122,7 +122,7 @@ extension EditableChoice where Label == Text {
     }
 }
 
-/// The choices the record pages offer, labelled as the rest of the app says them.
+/// The choices the record pages offer, labeled as the rest of the app says them.
 enum RecordChoices {
     static let youthUnitTypes = UnitType.youthChoices.map { ($0.rawValue, $0.rawValue) }
     static let adultUnitTypes = UnitType.allCases.map { ($0.rawValue, $0.rawValue) }

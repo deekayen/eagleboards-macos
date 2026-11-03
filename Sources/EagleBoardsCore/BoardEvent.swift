@@ -76,7 +76,7 @@ public final class BoardEvent {
         config = try PropertiesFile.read(from: folder.configURL)
 
         // Leave a complete, readable folder behind even if nothing happens
-        // at this event -- the Java app created every file at startup too.
+        // at this event; the Java app created every file at startup too.
         for table in Table.allCases where CSVFile.isMissing(at: url(of: table)) {
             try save(table)
         }
@@ -436,7 +436,7 @@ public final class BoardEvent {
     /// Change who sits on a board that is already Seated or InProgress: the
     /// same composition checks as `seatBoard`, the room stays the one the
     /// board already holds, and a member taken off is freed. The room timer
-    /// is left running -- this corrects the board already convening or in
+    /// is left running: this corrects the board already convening or in
     /// review, not a new step in its lifecycle.
     ///
     /// - Parameters:
@@ -707,8 +707,8 @@ public final class BoardEvent {
         try save(.youth, .rooms, .adults)
     }
 
-    /// Put a youth's board back the way it was before a step -- what Undo
-    /// does after Seat Board, Start Review, Complete, Postpone or Reset. The
+    /// Put a youth's board back the way it was before a step: what Undo
+    /// does after Seat Board, Start Review, Complete, Postpone, or Reset. The
     /// board columns and the timer come back from `earlier`; anything else on
     /// the record (a leader corrected since) is left as it is now. The room
     /// and the members are taken back, or released, to match.
@@ -863,7 +863,7 @@ public final class BoardEvent {
         return newRoom.id
     }
 
-    /// Put back a room that was removed, with its own ID, name and use: what
+    /// Put back a room that was removed, with its own ID, name, and use: what
     /// Undo of Remove Room and Redo of Add Room do. Refused when another room
     /// has that ID or that name since.
     ///
@@ -1189,14 +1189,14 @@ public final class BoardEvent {
 
     /// Replace one of the event's adults as edited on the Adults page.
     ///
-    /// An adult's name, unit, contact and roles (`Adult.signInColumns`) are
+    /// An adult's name, unit, contact, and roles (`Adult.signInColumns`) are
     /// one set of facts in the event's adults and the adult history, as a
-    /// sign-in carries them between the two tables (SPEC.md P-6): the change
+    /// sign-in copies them between the two tables (SPEC.md P-6): the change
     /// is made to the same adult in the history too, so someone promoted to
     /// Chair today is a chair the next time they sign in. Wood Badge, whom
-    /// they introduce and their room belong to this event alone. The
+    /// they introduce, and their room belong to this event alone. The
     /// operator cannot edit the history directly: only a sign-in writes it, and
-    /// this call writes just the `signInColumns` into it.
+    /// this call writes only the `signInColumns` into it.
     ///
     /// - Parameter edited: the adult's record with the changes made. Its `id`
     ///   picks the record it replaces.
@@ -1251,7 +1251,7 @@ public final class BoardEvent {
         /// adult history as Members for both board types.
         public var addedAdults = 0
         /// Adults whose email matched exactly one history record. Counted
-        /// whether or not the entry carried a phone number to update.
+        /// whether or not the entry had a phone number to update.
         public var updatedAdults = 0
         /// Adults left alone because their email matched more than one history
         /// record.
@@ -1298,11 +1298,11 @@ public final class BoardEvent {
     /// Merge SignUpGenius sign-ups into the adult history and the event's
     /// pre-registrations.
     ///
-    /// Only entries dated in `month` (`YYYY-MM`) are used -- by calendar month,
+    /// Only entries dated in `month` (`YYYY-MM`) are used, by calendar month,
     /// as the Java app did, so two board events in one month both import. An
     /// adult is matched to the history by email: one match gets their phone
     /// updated, none adds them as a Member for both board types, and more than
-    /// one is left alone rather than guessed at. A youth is pre-registered
+    /// one is left alone, not guessed at. A youth is pre-registered
     /// unless a pre-registration already has their email.
     ///
     /// - Parameters:

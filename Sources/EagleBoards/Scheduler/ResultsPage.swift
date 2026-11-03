@@ -2,7 +2,7 @@ import EagleBoardsCore
 import SwiftUI
 
 /// The boards table (SPEC.md P-6): every youth who has been seated or
-/// postponed, and how their board went. A result, its notes, a name or a unit
+/// postponed, and how their board went. A result, its notes, a name, or a unit
 /// is corrected in place; a changed cell is saved as it is left and stays off
 /// the Undo stack. The status, who sat on the board and the room are
 /// read-only: they change only through the Event page's steps, which take

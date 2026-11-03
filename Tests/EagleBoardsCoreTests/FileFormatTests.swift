@@ -3,8 +3,8 @@ import Foundation
 import Testing
 
 /// The data files must stay readable by the Java Eagle Board Scheduler and
-/// vice versa, so a district can move between the two -- or fall back to the
-/// Java app at the event -- without converting anything.
+/// vice versa, so a district can move between the two, or fall back to the
+/// Java app at the event, without converting anything.
 @Suite("Data files")
 struct FileFormatTests {
     /// The exact header lines the Java app writes.

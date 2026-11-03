@@ -41,7 +41,7 @@ enum SchedulerFocus: Hashable {
 /// is seated, say), the focus goes on to the next step's control, or to the
 /// youth's row in the Event page's list. The inspector is on that page alone,
 /// so the focus never has to find its way into another page's table. A step
-/// taken any other way, from the youth list, the toolbar, a menu or a click,
+/// taken any other way, from the youth list, the toolbar, a menu, or a click,
 /// leaves the focus where it is. With Keyboard navigation off no button takes
 /// the focus, so none of this runs.
 @MainActor

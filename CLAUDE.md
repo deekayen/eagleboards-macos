@@ -5,7 +5,7 @@ Guidance for anyone (human or AI) making changes here. Read
 rules. This file adds what an agent in particular needs.
 
 **Read `SPEC.md` in `deekayen/eagleboards-shared` before changing the
-operator screen, the check-in pages, the board rules or the data files.**
+operator screen, the check-in pages, the board rules, or the data files.**
 It is the source of truth for anything more than one version of Eagle
 Boards does; this repo does not decide shared behavior on its own.
 
@@ -65,7 +65,7 @@ a native window. See `PROVENANCE.md`.
   only with a test in `FileFormatTests` and a reason that survives the Java
   app reading the result.
 - **Add a test with every fix**, and a `BoardEventTests` case when a change
-  touches seating, running or tearing down a board. Scenarios added to the Java
+  touches seating, running, or tearing down a board. Scenarios added to the Java
   project's `test-board-event.sh` are mirrored there too (and in the Windows
   version); where one cannot arise here, the stand-in test says why.
 - **The check-in pages are shared** (SPEC.md D-18): the five files in
@@ -75,7 +75,7 @@ a native window. See `PROVENANCE.md`.
   the shared repo (WCAG 2.2 AA: its `check-contrast.js` and an axe scan),
   then copy all five and update the lock.
 - **No birthdate** (SPEC.md D-7, O-5): nothing asks for, keeps, pre-fills,
-  shows or exports one; `DOB` stays a column in the data files, empty for
+  shows, or exports one; `DOB` stays a column in the data files, empty for
   new youth, and one already on file is left alone.
 - **No youth phone number** (SPEC.md D-8): the same for a youth's `Phone`,
   which `Scout.signInColumns` and the SignUpGenius import no longer copy.
@@ -93,7 +93,7 @@ a native window. See `PROVENANCE.md`.
   `SharedCaseTests` runs every one through `BoardRules` and
   `BoardSuggestion`. **Never add or edit a case here**; CI fails if the
   copies differ from the pinned commit. Add it in the shared repo, copy the
-  `*.json` here and update the lock. `BoardRulesTests` keeps only what the
+  `*.json` here, and update the lock. `BoardRulesTests` keeps only what the
   Mac alone has (seating review, the suggestion's room, locate, timers).
   Just above that, volunteers who came for any board (`Adult.cameForAnyBoard`:
   not linked to a youth, or Wood Badge) go before a youth's own leaders.
@@ -108,14 +108,14 @@ a native window. See `PROVENANCE.md`.
   first. Link an Adult there links them after sign-in, and a row's context
   menu or Board › Unlink Introducer unlinks them (`BoardEvent.setSupporting`).
 - **The scheduler follows the Mac layout**: the Event page's youth list and
-  room cards with an inspector for the selected youth's board, and a table per
-  other page with no inspector, and no sidebar (SPEC.md P-1, P-6, as in the
+  room cards, with an inspector for the selected youth's board; a table per
+  other page, with no inspector; and no sidebar (SPEC.md P-1, P-6, as in the
   Java and Windows versions). The View
   menu chooses Event or a page per table (Results, Adults, Youth,
   Pre-Registered, Rooms, and the read-only Adult History CSV), edited in
   place with
   `EditableText` and `EditableChoice` through `AppModel.editYouth`,
-  `editAdult` and `editRoomType`. The View menu's eight pages, Approved
+  `editAdult`, and `editRoomType`. The View menu's eight pages, Approved
   Proposals last, take Command-1 to Command-8 where Windows has Ctrl+1 to 8
   (P-3), and the Window menu's items have no keys. A changed cell stays off
   the Undo stack,
@@ -125,7 +125,7 @@ a native window. See `PROVENANCE.md`.
   sitting board's status, whoever calls it. An
   adult's `signInColumns` edited on Adults reach the adult history
   (`updateAdult` copies them across); nothing edits the history directly. There is no records window. Help › Donate… is the Donate
-  link (D-17). Every action lives in the Board, Adult or Room menu (and the
+  link (D-17). Every action lives in the Board, Adult, or Room menu (and the
   matching context menu), not in buttons along a panel. Report outcomes as
   alerts titled with what failed, or show them in the inspector; no
   self-dismissing toasts.
@@ -135,14 +135,14 @@ a native window. See `PROVENANCE.md`.
   (SPEC.md O-2, amended 2026-10-24); a board step
   is undone with `BoardEvent.restoreBoard`.
 - **A command acts only on what the page shown has in view** (CONTRIBUTING.md
-  rule 13). The inspector, the toolbar's next-step button and the Board
+  rule 13). The inspector, the toolbar's next-step button, and the Board
   menu's steps are the Event page's alone; the Room menu is the Event and
   Rooms pages'; Adult › Mark Gone Home and Mark Back are the Adults page's.
   `SchedulerPage` answers it (`showsBoard`, `showsRooms`, `listsAdults`,
   `listsAdultHistory`, `listsYouth(with:)`), with `SchedulerPageTests`. A
   selection is kept across pages and never acted on from one that cannot show
   it: board commands go through `AppModel.boardYouth`, rooms through
-  `selectedRoom`, adults through `selectedAdults`, so a key, a double-click or
+  `selectedRoom`, adults through `selectedAdults`, so a key, a double-click, or
   a drop that reaches the model from another page does nothing. Menus keep
   every item, dimmed (`MenuCommand`; a submenu is a `SubmenuCommand`, since SwiftUI
   leaves a disabled `Menu` or `Picker` lit in the menu bar). `AppModel.showsInspector` is the
@@ -179,3 +179,22 @@ a native window. See `PROVENANCE.md`.
   select-for-click wording.
 - **No `var##` names**, even to match anything. CI fails on them.
 - **District-neutral branding**, settled: never add a district or council name.
+
+## Writing style
+
+Docs, comments, commit messages, and release notes follow the owner's
+technical writing rules. Not every workstation has the full guide or its
+Vale linter, so the rules that matter most here are:
+
+<!-- vale off -->
+- No em dashes, and no `--` standing in for one. Use a comma, parentheses,
+  a colon, or a new sentence.
+- Oxford commas in every list of three or more.
+- A colon introduces a list or an explanation, never a second independent
+  clause. No sentence starts with "But."
+- No sales or corporate words (robust, seamless, leverage, utilize,
+  comprehensive, streamline) and no minimizers (simply, just, easily).
+- No `-ing` tail that restates the sentence ("..., ensuring X"), no
+  "serves as" or "acts as" for "is," and no "rather than" by reflex.
+- US spelling. Name who acts. Vary sentence length and openings.
+<!-- vale on -->

@@ -170,7 +170,7 @@ public enum SearchSpeech {
 /// A room going from on time to running long or overdue, said once, as the
 /// card's tint would be seen in passing.
 public enum RoomTimerSpeech {
-    /// Each sitting board's timer, by youth, status and the time of its last
+    /// Each sitting board's timer, by youth, status, and the time of its last
     /// step, so a board seated again starts afresh.
     public typealias States = [String: RoomTimer.State]
 

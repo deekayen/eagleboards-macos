@@ -17,7 +17,7 @@ struct ChangeMembersSheet: View {
     @State private var search = ""
     @State private var problem: String?
     /// Find an adult and the + and − buttons, the inspector's cases. While
-    /// Find an adult has the cursor, Return adds the first match rather than
+    /// Find an adult has the cursor, Return adds the first match instead of
     /// pressing Save Changes.
     @FocusState private var focus: SchedulerFocus?
 

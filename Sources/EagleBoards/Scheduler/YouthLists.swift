@@ -137,7 +137,7 @@ private struct YouthRow: View {
             }
             Spacer(minLength: 0)
             // The status pill and timer keep their size in a narrow list; the
-            // name gives way instead, rather than the pill wrapping to two lines.
+            // name gives way instead of the pill wrapping to two lines.
             trailing(minutes)
                 .fixedSize()
         }

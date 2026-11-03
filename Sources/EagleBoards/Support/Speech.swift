@@ -58,7 +58,7 @@ private struct SearchCountSpeech: ViewModifier {
 }
 
 /// A read-only table cell's text, read "Blank" when it is empty, as Windows
-/// names such a cell, rather than passed over in silence.
+/// names such a cell, instead of passed over in silence.
 struct CellText: View {
     let value: String
 

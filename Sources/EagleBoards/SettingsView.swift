@@ -219,7 +219,7 @@ private struct TimerSettings: View {
         notificationStyle = await model.attention.notificationStyle()
     }
 
-    /// Said rather than prevented: a Running long stepper bounded by Overdue
+    /// Said, not prevented: a Running long stepper bounded by Overdue
     /// would still be left past it whenever Overdue is lowered.
     @ViewBuilder
     private func runningLongNote(_ yellow: KeyPath<Config, Int>, _ red: KeyPath<Config, Int>, _ event: BoardEvent)

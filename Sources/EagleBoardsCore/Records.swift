@@ -3,7 +3,7 @@ import Foundation
 /// One row of one of the data files.
 ///
 /// A record is its column values, keyed by the column names the files use.
-/// Keeping them in a dictionary rather than as stored properties makes the
+/// Keeping them in a dictionary instead of as stored properties makes the
 /// file format the single source of truth: what is on disk is what is in
 /// memory, and the typed properties below are only readable names for it.
 public protocol EventRecord: Identifiable, Hashable, Sendable where ID == String {
@@ -49,7 +49,7 @@ extension EventRecord {
         return record
     }
 
-    /// Copy the named columns from `source`, skipping empty values -- a form
+    /// Copy the named columns from `source`, skipping empty values, so a form
     /// that leaves a field blank does not wipe what was already on file.
     public mutating func update(from source: Self, columns names: [String]) {
         for name in names where !source[name].isEmpty {
@@ -111,7 +111,7 @@ extension PersonRecord {
     public var shownFullName: String { fullName.shownValue }
 
     /// `Troop1776` shortened to `T1776` for narrow columns. Unit types with no
-    /// number keep the whole word, so District, Council and Community stay
+    /// number keep the whole word, so District, Council, and Community stay
     /// tellable apart.
     public var unitLabel: String { UnitLabel.short(unitName) }
 
@@ -377,7 +377,7 @@ public struct Adult: PersonRecord {
     public static let columns = [
         "Type", "ID", "Last", "First", "Email", "Phone", "UnitType", "Unit", "UnitName",
         "ProjectReview", "FinalBoard", "RegTime", "Room", "Flags", "Sel", "BoardHistory",
-        // Per event, set at sign-in and never carried into the adult history.
+        // Per event, set at sign-in and never copied into the adult history.
         // Appended, as in the Java version, so older files still line up.
         "WoodBadge", "Supporting",
     ]
@@ -387,7 +387,7 @@ public struct Adult: PersonRecord {
         "First", "Last", "Unit", "UnitType", "Email", "Phone", "ProjectReview", "FinalBoard",
     ]
 
-    /// Take another record's name, unit, contact and roles, cleared ones
+    /// Take another record's name, unit, contact, and roles, cleared ones
     /// too: what the event's adults and the adult history share (SPEC.md P-6).
     public mutating func copyFacts(from other: Adult) {
         for column in Self.signInColumns {
@@ -604,7 +604,7 @@ public struct Config: EventRecord {
         set { self["RefreshTimeSecs"] = String(max(1, newValue)) }
     }
     /// How long a board may convene before the room card shows overdue. One
-    /// limit, never just running long: past it the youth is being kept waiting.
+    /// limit, with no running long first: past it the youth is being kept waiting.
     public var conveneRedMinutes: Int {
         get { minutes("ConveneRedMins") }
         set { setMinutes("ConveneRedMins", newValue) }

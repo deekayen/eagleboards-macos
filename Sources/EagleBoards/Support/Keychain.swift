@@ -1,7 +1,7 @@
 import Foundation
 import Security
 
-/// The SignUpGenius API key, kept in the login keychain rather than in a
+/// The SignUpGenius API key, kept in the login keychain, not in a
 /// preferences file or next to the event data.
 ///
 /// The item lives in the file-based login keychain and is protected by its

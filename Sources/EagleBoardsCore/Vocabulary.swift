@@ -140,9 +140,9 @@ public enum BoardResult: String, CaseIterable, Sendable, Identifiable {
     }
 }
 
-/// Unit types offered on the sign-in forms. District, Council and Community
-/// are roles rather than numbered units, so they are offered to adults only
-/// and carry no unit number.
+/// Unit types offered on the sign-in forms. District, Council, and Community
+/// are roles, not numbered units, so they are offered to adults only
+/// and have no unit number.
 public enum UnitType: String, CaseIterable, Sendable, Identifiable {
     case troop = "Troop"
     case post = "Post"

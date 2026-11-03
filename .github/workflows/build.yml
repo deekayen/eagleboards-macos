@@ -26,7 +26,7 @@ jobs:
           swift --version
 
       - name: No decompiled variable names
-        # Names say what a variable is for. var1, var10 and friends came from
+        # Names say what a variable is for. var1, var10, and friends came from
         # a decompiler in the Java project and are not allowed back.
         run: |
           if grep -rnE '\bvar[0-9]+\b' Sources Tests scripts; then
@@ -81,7 +81,7 @@ jobs:
       - name: Rule and auto-select cases match eagleboards-shared (SPEC.md D-5)
         # The cases are written once, in eagleboards-shared/cases, and every
         # version runs all of them (SharedCaseTests). test-cases.lock pins the
-        # commit; a case edited, added or dropped here instead of there fails
+        # commit; a case edited, added, or dropped here instead of there fails
         # the build. The whole folder is fetched, so a case added there and
         # not copied here is caught too.
         run: |
@@ -92,7 +92,7 @@ jobs:
             || { echo "FAIL: could not fetch eagleboards-shared@$SHA"; exit 1; }
           tar -xzf shared-cases.tar.gz -C shared-cases --strip-components=1
           if ! diff <(cd shared-cases/cases && ls *.json) <(cd "$ours" && ls *.json); then
-            echo "FAIL: $ours does not hold the same files as eagleboards-shared@$SHA/cases."
+            echo "FAIL: $ours does not have the same files as eagleboards-shared@$SHA/cases."
             exit 1
           fi
           for f in shared-cases/cases/*.json; do

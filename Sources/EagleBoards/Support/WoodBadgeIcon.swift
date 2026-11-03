@@ -4,7 +4,7 @@ import SwiftUI
 /// Marks an adult who is counting today toward a Wood Badge ticket item: a
 /// pentagon banded in the course's five colors around a white face and a
 /// black center, after the course's emblem pared down to read at text size.
-/// The face is white, as the emblem's is, so the navy, green and black stay
+/// The face is white, as the emblem's is, so the navy, green, and black stay
 /// visible in dark mode.
 struct WoodBadgeIcon: View {
     @ScaledMetric(relativeTo: .body) private var size: CGFloat = 16
@@ -35,7 +35,7 @@ struct WoodBadgeIcon: View {
             context.fill(face, with: .color(.white))
 
             // Each band is cut square to the corner, with a slit between
-            // neighbours as on the emblem.
+            // neighbors as on the emblem.
             let gap = outerRadius * 0.06
             for (index, color) in Self.sideColors.enumerated() {
                 let next = (index + 1) % 5

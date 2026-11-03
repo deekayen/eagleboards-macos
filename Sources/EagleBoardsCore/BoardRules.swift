@@ -3,8 +3,8 @@ import Foundation
 /// Who may sit on a board, as pure functions so they can be tested headless.
 ///
 /// These are enforced twice, on purpose. `SeatingReview` walks the operator
-/// through them before a board is seated -- explaining each problem and, where
-/// the rule allows, asking for confirmation -- and `BoardEvent.seatBoard`
+/// through them before a board is seated (explaining each problem and, where
+/// the rule allows, asking for confirmation), and `BoardEvent.seatBoard`
 /// refuses the hard ones again no matter how the request arrived. A board
 /// seated past a rule is only discovered later, from the record of a review
 /// that should not have happened. Both layers must agree.
@@ -31,7 +31,7 @@ public enum BoardRules {
     public enum SizeVerdict: Equatable, Sendable {
         /// Below the minimum: refused.
         case tooFew
-        /// Above six: refused. Not overridable -- it is a national ceiling.
+        /// Above six: refused. Not overridable; it is a national ceiling.
         case tooMany
         /// Legal, but more than the working size, so worth confirming.
         case overPreferred
@@ -212,7 +212,7 @@ public enum BoardRules {
 }
 
 /// Everything the operator needs to decide before a board is seated, worked
-/// out in one pass so the Seat Board sheet can show it all at once rather than
+/// out in one pass so the Seat Board sheet can show it all at once instead of
 /// one alert at a time.
 public struct SeatingReview: Sendable {
     /// Problems that stop the board being seated. Nothing overrides these.
@@ -313,7 +313,7 @@ public struct SeatingReview: Sendable {
 
 extension SeatingReview {
     /// A youth with no board type, and where to set one, in the words the
-    /// Board Type column's menu offers rather than the file's Final or Project.
+    /// Board Type column's menu offers, not the file's Final or Project.
     public static func noBoardType(_ scoutName: String) -> String {
         "\(scoutName) has no board type. Set Final Board or Proposal Review in the Board Type column of the Youth page."
     }
@@ -499,7 +499,7 @@ public struct BoardSuggestion: Sendable, Equatable {
     /// Times are the records' `yyyy-MM-dd_HH:mm±hhmm` stamps, which sort as
     /// text within one event. The member list is comma-joined and read
     /// back from the files with '~'; an ID whose name had a comma also holds a
-    /// '~', so each whole ID is looked for between separators rather than
+    /// '~', so each whole ID is looked for between separators instead of
     /// splitting the list. The same helper is freeSinceTimes in the Java
     /// version and SchedulerLogic.FreeSinceTimes in the Windows version.
     public static func freeSinceTimes(adults: [Adult], scouts: [Scout]) -> [String: String] {
@@ -640,7 +640,7 @@ public struct BoardSuggestion: Sendable, Equatable {
     }
 
     /// Fill the Rest (SPEC.md D-12): keep the adults the operator chose and
-    /// complete the board around them -- a chair if none of `picked` may chair
+    /// complete the board around them: a chair if none of `picked` may chair
     /// this kind of board, then members up to the working size, in the
     /// suggestion's order of preference. Unlike the suggestion it does not
     /// weigh whole boards: the operator has already decided who the board is

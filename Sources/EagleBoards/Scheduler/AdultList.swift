@@ -5,7 +5,7 @@ import SwiftUI
 /// Select several with Command or Shift to mark them gone home or back
 /// together. Their details are edited in place, and it is here that someone is
 /// promoted to Chair; a changed cell is saved as it is left and stays off the
-/// Undo stack, and a change to their name, unit, contact or roles reaches the
+/// Undo stack, and a change to their name, unit, contact, or roles reaches the
 /// adult history too. Their room is read-only: it changes only through the
 /// Event page's steps. The page has no inspector and no board in view, so
 /// nothing here puts an adult on a board; that is done on the Event page.

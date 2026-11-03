@@ -3,11 +3,11 @@
 // Three targets, layered so the rules can be tested without a window or a
 // socket:
 //
-//   EagleBoardsCore   records, the CSV files, the board rules and every
+//   EagleBoardsCore   records, the CSV files, the board rules, and every
 //                     lifecycle step. No UI, no server.
 //   CheckInServer     the small web server the sign-in tablets talk to. It
 //                     serves the sign-in pages and nothing an operator uses.
-//   EagleBoards       the SwiftUI app: scheduler, records and settings.
+//   EagleBoards       the SwiftUI app: scheduler, records, and settings.
 
 import PackageDescription
 

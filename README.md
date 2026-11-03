@@ -68,8 +68,8 @@ Each downloaded copy asks once.
 ### Tested macOS versions
 
 As of 2026-11-03, GitHub's automated checks run the tests and launch the
-built app on macOS 15 and macOS 26, and launch the exact zip that is published
-on macOS 15. The maintainer runs Eagle Boards on macOS 27.
+built app on macOS 15 and macOS 26. They launch the published zip itself on
+macOS 15. The maintainer runs Eagle Boards on macOS 27.
 
 ### Choosing the data folder
 
@@ -263,8 +263,8 @@ their values are changed in place: click a name, unit, or note to type in it,
 or click a value with up and down arrows beside it to choose from a menu. A
 change is saved when you press Return or leave the cell. It is not on
 **Edit › Undo**, which is for the Event page's steps; change the cell back
-instead. Who sits on a board and which room someone is in are never typed in:
-they change on the Event page. Nor is a youth's status: it is read-only on
+instead. Who sits on a board and which room someone is in are never typed in;
+they change on the Event page. Nor is a youth's status; it is read-only on
 every page, and changes only through the Event page's steps (**Seat Board**,
 **Start Review**, **Complete…**, **Postpone**, **Reset Board**, and **Undo**),
 which take and free a room and its members. There is no separate records
@@ -381,7 +381,7 @@ adult who has signed in, across events.
   break, and a row comes out with its columns shifted. The next save writes
   it that way. For a
   spreadsheet, use **File › Export Board Results…** or **File › Export
-  List…**, which write new files. An export holds names and, for adults,
+  List…**, which write new files. An export contains names and, for adults,
   contact details, so keep it private.
 - One program at a time: open the data folder in Eagle Boards or the Java
   Eagle Board Scheduler, not both. Nothing locks it, and each save rewrites a

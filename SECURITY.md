@@ -14,8 +14,9 @@ before your first commit.
 | Copies of the data folder | iCloud Drive when Documents is synced, backups, USB drives, exported CSVs | Each copy needs its own protection, and deleting an event's dated folder leaves the copies |
 
 Eagle Boards no longer asks for, imports, or keeps a youth's birthdate or phone
-number (SPEC.md D-7, D-8). Folders from earlier events may still hold them:
-they are left in place, and never shown, sent to a tablet, or exported.
+number (SPEC.md D-7, D-8). Folders from earlier events may still hold them;
+Eagle Boards leaves them in place and never shows them, sends them to a
+tablet, or exports them.
 
 The data folder is chosen by the operator and lives outside this repository.
 Nothing in the repository or in a built app contains participant data or a key.
@@ -70,11 +71,11 @@ venue network for the length of one event.
   operator chooses another in **Settings › General › Network**, which lists
   each interface with its address when the Mac is on more than one. With no
   Wi-Fi address, the default is the first other network, Ethernet (`en*`)
-  before a VPN or a bridge. The choice is saved by BSD name (`en0`), not by
-  address, and resolved to that interface's address when the station starts
-  and again when the address changes. A chosen network with no address
-  leaves the station on the default, and the sign-in status says so until it
-  is fixed. **Every Network** listens on `0.0.0.0`, which takes in any VPN,
+  before a VPN or a bridge. Eagle Boards saves the choice by BSD name
+  (`en0`), not by address, and resolves it to that interface's address when
+  the station starts and again when the address changes. A chosen network
+  with no address leaves the station on the default, and the sign-in status
+  says so until it is fixed. **Every Network** listens on `0.0.0.0`, which takes in any VPN,
   virtual machine's bridge, or phone hotspot link the Mac is on.
 - Run it on the venue network, never on a public interface or a port-forward,
   and quit it when the event ends.
@@ -85,7 +86,7 @@ venue network for the length of one event.
   folders; `EAGLEBOARDS_DATA_FOLDER` points the app at a scratch folder.
 - Never load the real adult history into anything you are going to
   screenshot.
-- Exported reports hold names and contact details. Keep them private.
+- Exported reports contain names and contact details. Keep them private.
 - The data files take no quoting, so change them only through the app. A
   spreadsheet that saves one again can add quotes, which `CSVFile.parse`
   reads as part of a value, or a comma, which it splits into extra columns.

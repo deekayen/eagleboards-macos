@@ -3,8 +3,8 @@ import Foundation
 import Testing
 
 // The composition rules as pure functions, where only the Mac has them. The
-// rules all three versions share -- same-unit members, the national floor,
-// board sizes, the suggestion, fill the rest and the Supporting link -- are
+// rules all three versions share (same-unit members, the national floor,
+// board sizes, the suggestion, fill the rest, and the Supporting link) are
 // the shared cases (SharedCaseTests). These cover the pieces the Mac app
 // adds: the one-pass seating review, the suggestion's room, locating leaders
 // and parents, the room timers, the next step, who can join a board, and

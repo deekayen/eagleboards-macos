@@ -1,6 +1,6 @@
 /// The arithmetic behind the arrow keys on the Event page's room cards, which
-/// an adaptive grid lays out in rows as wide as the window allows. It is here
-/// rather than in the view so it can be tested.
+/// an adaptive grid lays out in rows as wide as the window allows. It is here,
+/// not in the view, so it can be tested.
 public enum CardGrid {
     public enum Move: Sendable {
         case left, right, up, down

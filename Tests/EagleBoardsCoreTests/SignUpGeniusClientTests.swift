@@ -177,7 +177,7 @@ struct SignUpGeniusLiveTests {
             let signup = try await client.findActiveSignup(today: Timestamp.dayStamp(for: Date()))
             _ = try await client.filledSlots(signupID: signup.id)
         } catch let refusal as EventError where refusal.message.contains("no active Eagle board sign-up") {
-            // The key works and the list parsed; there is simply no board event today.
+            // The key works and the list parsed; there is no board event today.
         }
     }
 }

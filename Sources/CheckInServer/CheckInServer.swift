@@ -32,7 +32,7 @@ public enum CheckInServer {
         }
 
         // The adult form's list of youth they will introduce (SPEC.md D-23): RSVPs and the event's
-        // walk-ins not yet finished. ID, name and unit only.
+        // walk-ins not yet finished. ID, name, and unit only.
         router.get("/api/scout-choices") { _, _ in
             let choices = await ScoutChoices(event: event)
             return try jsonResponse(choices.scouts)

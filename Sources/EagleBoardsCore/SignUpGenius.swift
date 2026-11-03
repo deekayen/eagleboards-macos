@@ -69,7 +69,7 @@ public struct SignUpGeniusClient: Sendable {
         for signup in candidates {
             let title = Self.text(signup["title"])
             let lowercasedTitle = title.lowercased()
-            // Compared on the date alone: the API's strings carry a time too, and
+            // Compared on the date alone: the API's strings include a time too, and
             // "2026-09-22" sorts before "2026-09-22 18:00", which would miss a
             // sign-up on its first day.
             let startDay = String(Self.text(signup["startdatestring"]).prefix(10))
@@ -88,7 +88,7 @@ public struct SignUpGeniusClient: Sendable {
     /// - Parameter signupID: The sign-up's ID, as `findActiveSignup(today:)`
     ///   returns it in `Signup.id`.
     /// - Returns: One entry per filled slot, in the order SignUpGenius reports
-    ///   them. The array is empty when the report holds no slots.
+    ///   them. The array is empty when the report has no slots.
     /// - Throws: An `EventError`, worded for the operator, when SignUpGenius
     ///   can't be reached, refuses the request (a 401 or 403 means the API key
     ///   was not accepted), or sends a reply that isn't a JSON object.
@@ -167,7 +167,7 @@ public enum NameCleanup {
     }
 
     /// `770-555-1234` from ten digits (or eleven with a leading 1), `555-1234`
-    /// from seven. Anything else is kept as typed rather than guessed at.
+    /// from seven. Anything else is kept as typed, not guessed at.
     public static func phone(_ raw: String) -> String {
         var digits = Array(raw.filter { $0.isASCII && $0.isNumber })
         if digits.count == 11 && digits.first == "1" {
