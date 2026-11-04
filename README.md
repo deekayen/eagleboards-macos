@@ -265,9 +265,9 @@ change is saved when you press Return or leave the cell. It is not on
 **Edit › Undo**, which is for the Event page's steps; change the cell back
 instead. Who sits on a board and which room someone is in are never typed in;
 they change on the Event page. Nor is a youth's status; it is read-only on
-every page, and changes only through the Event page's steps (**Seat Board**,
+every page. It changes only through the Event page's steps (**Seat Board**,
 **Start Review**, **Complete…**, **Postpone**, **Reset Board**, and **Undo**),
-which take and free a room and its members. There is no separate records
+which take or free a room and its members. There is no separate records
 window. Click a column heading to sort a page by it, or choose
 **View › Sort By**; **Return** in the search goes to the first row found.
 
@@ -283,8 +283,8 @@ window. Click a column heading to sort a page by it, or choose
 
 A command works only on a page that shows what it acts on. The inspector and
 the **Board** menu's steps, **Locate Leader and Parents** among them, are on the
-Event page alone. The **Room** menu works on the Event and Rooms pages, and
-**Adult › Mark Gone Home** and **Mark Back** on the Adults page. Everywhere else
+Event page alone. The **Room** menu works on the Event and Rooms pages.
+**Adult › Mark Gone Home** and **Mark Back** work on the Adults page. Everywhere else
 those items are dimmed, except **Board › Show on Event Page**, which takes a
 youth on Results or Youth to where their board is. **Edit › Undo** and
 **Edit › Redo** work from any page. They go to the page that shows what
@@ -354,8 +354,8 @@ adult who has signed in, across events.
   the board's room, members, result, and notes. For an adult, the name, email,
   phone number, unit, board roles, and board history. A youth's birthdate and
   phone number are never asked for or shown, and one already in a file from an
-  earlier event stays there, never shown or exported. The SignUpGenius key is in your macOS
-  keychain, not in the data folder.
+  earlier event stays there, never shown or exported. The SignUpGenius key is
+  in your macOS keychain, not in the data folder.
 - Where it lives: **Use Documents › Eagle Boards** puts the folder inside
   Documents. When Desktop & Documents Folders is on in iCloud Drive, macOS
   stores Documents in iCloud and makes it available on your other devices. To
@@ -364,12 +364,12 @@ adult who has signed in, across events.
   a folder does not move the files in the old one, so copy them across first
   if you want them.
 - What leaves the Mac: the SignUpGenius import sends your key to
-  `api.signupgenius.com` and brings the sign-up's names, emails, units, adults' phone numbers, and unit leaders' names
-  back. The sign-in pages travel between the tablet and the Mac over the
-  venue's network as plain HTTP, so what a person types there is not
-  encrypted on the way; use a network you trust, and quit Eagle Boards when the
-  event ends. Eagle Boards itself sends nothing for analytics, crash
-  reports, or updates.
+  `api.signupgenius.com` and brings the sign-up's names, emails, units,
+  adults' phone numbers, and unit leaders' names back. The sign-in pages
+  travel between the tablet and the Mac over the venue's network as plain
+  HTTP, so what a person types there is not encrypted on the way; use a
+  network you trust, and quit Eagle Boards when the event ends. Eagle Boards
+  itself sends nothing for analytics, crash reports, or updates.
 - Notifications: a notice that a room is overdue shows the youth's full name
   on screen, and when Eagle Boards is behind another app it can stay in
   Notification Center. If the Mac's screen is projected or shared, turn
@@ -379,10 +379,9 @@ adult who has signed in, across events.
   quoting, so a spreadsheet that saves one again can add quotes that Eagle
   Boards reads as part of a value, or a comma that it reads as a column
   break, and a row comes out with its columns shifted. The next save writes
-  it that way. For a
-  spreadsheet, use **File › Export Board Results…** or **File › Export
-  List…**, which write new files. An export contains names and, for adults,
-  contact details, so keep it private.
+  it that way. For a spreadsheet, use **File › Export Board Results…** or
+  **File › Export List…**, which write new files. An export contains names
+  and, for adults, contact details, so keep it private.
 - One program at a time: open the data folder in Eagle Boards or the Java
   Eagle Board Scheduler, not both. Nothing locks it, and each save rewrites a
   whole file, so the program that saves last wins.
