@@ -86,7 +86,11 @@ a native window. See `PROVENANCE.md`.
   (`SchedulerLogic.AutoSelect`) versions. Change all three together.
   **Fill the Rest** (`BoardSuggestion.fill`, SPEC.md D-12) keeps the
   operator's picks and adds a chair and members around them, as Java's
-  `fillBoard` and Windows' `SchedulerLogic.FillBoard` do.
+  `fillBoard` and Windows' `SchedulerLogic.FillBoard` do. After saving
+  chairs and flexible adults, volunteers who came for any board
+  (`Adult.cameForAnyBoard`: not linked to a youth, or Wood Badge) go before
+  a youth's own leaders. The last tie-break is who has waited longest to
+  volunteer since last free (`BoardSuggestion.freeSinceTimes`).
 - **The rule and auto-select cases are shared** (SPEC.md D-5): the files in
   `Tests/EagleBoardsCoreTests/Resources/cases/` are copies of
   `eagleboards-shared/cases`, pinned by `test-cases.lock`, and
@@ -95,10 +99,6 @@ a native window. See `PROVENANCE.md`.
   copies differ from the pinned commit. Add it in the shared repo, copy the
   `*.json` here, and update the lock. `BoardRulesTests` keeps only what the
   Mac alone has (seating review, the suggestion's room, locate, timers).
-  Just above that, volunteers who came for any board (`Adult.cameForAnyBoard`:
-  not linked to a youth, or Wood Badge) go before a youth's own leaders.
-  The last tie-break is who has waited longest to volunteer since last free
-  (`BoardSuggestion.freeSinceTimes`), after saving chairs and flexible adults.
 - **Adult sign-in answers.** "No thanks" to a board type is stored as the
   role `Unavailable` (Seat Board refuses it). `WoodBadge` and `Supporting`
   (youth IDs, `|`-separated) are appended to the adult record, per event,
