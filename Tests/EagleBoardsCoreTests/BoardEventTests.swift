@@ -1043,6 +1043,31 @@ struct BoardEventTests {
         #expect(reopened.adult(id: junior)?.room == "")
     }
 
+    /// Java section 14 again, with a combining accent after the comma, which Swift
+    /// joins to it in one `Character`. The ID the event holds is the one the
+    /// files do, so the same person is found again after a restart.
+    @Test func aNameWithACommaAndACombiningAccentInIt() throws {
+        let form = [
+            "Last": "Whitmore,\u{0301}Jr.", "First": "Lysander", "Email": "a31@example.org",
+            "UnitType": "Troop", "Unit": "2031", "ProjectReview": "Member", "FinalBoard": "Member",
+        ]
+        try event.registerAdult(form)
+        let junior = "ADULT:Whitmore~\u{0301}Jr.:Lysander:2031"
+        #expect(event.adult(id: junior) != nil, "their id carries no comma")
+        try seat("101", finalYouth(7), chair: chairOfEither, member(1), junior)
+
+        let reopened = try BoardEvent(folder: scratch.dataFolder, date: "2026-09-22")
+        #expect(reopened.adult(id: junior)?.room == "101", "and are the same person after a restart")
+        try reopened.registerAdult(form)
+        #expect(
+            reopened.adults.filter { $0.first == "Lysander" }.count == 1, "signing in again does not make a second one")
+        #expect(
+            reopened.adultHistory.filter { $0.first == "Lysander" }.count == 1, "nor a second one in the history")
+        try reopened.startReview(scoutID: finalYouth(7))
+        try reopened.completeBoard(scoutID: finalYouth(7), result: .approved, notes: "")
+        #expect(reopened.adult(id: junior)?.room == "")
+    }
+
     // Java section 15 (two operators seating the same chair at once) has no
     // counterpart: BoardEvent is @MainActor, so every change runs one at a time.
 

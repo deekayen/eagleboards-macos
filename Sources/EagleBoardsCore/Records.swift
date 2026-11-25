@@ -133,9 +133,12 @@ extension PersonRecord {
     /// No commas in an ID. The data files turn ',' into '~', so "Whitmore, Jr."
     /// came back from disk under a different ID than they signed in with, and
     /// signing in again after a restart made them a second person. '~' is what
-    /// the files already hold, and what the Java app now uses too.
+    /// the files already hold, and what the Java app now uses too. Replaced by
+    /// scalar, as `CSVFile.flatten` does: `replacingOccurrences` leaves a comma
+    /// that a combining accent after it joins in one `Character`.
     public static func personID(last: String, first: String, unit: String) -> String {
-        "\(recordType):\(last):\(first):\(unit)".replacingOccurrences(of: ",", with: "~")
+        let id = "\(recordType):\(last):\(first):\(unit)"
+        return String(String.UnicodeScalarView(id.unicodeScalars.map { $0 == "," ? "~" : $0 }))
     }
 
     public mutating func refreshDerivedFields() {

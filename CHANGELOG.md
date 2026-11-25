@@ -74,6 +74,10 @@ was read as part of the comma before it. When the event was reopened, a youth
 lost their status and board type and an adult their roles, in the adult history
 too. The comma ends the column now, whatever follows it.
 
+**A comma with a combining accent after it no longer makes a second person.**
+Someone with one inside their name got a different ID when the event was
+reopened, so signing in again added them twice, in the adult history too.
+
 **A data folder that cannot be read stops the open.** A file that existed but
 could not be read, or a link pointing at an unmounted drive, was treated as
 missing, and opening the event started a new, empty adult history over it.
