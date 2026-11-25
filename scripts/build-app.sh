@@ -12,7 +12,7 @@
 # never mistaken for a release.
 #
 # Output: build/Eagle Boards.app, for Apple silicon only. Intel Macs are not
-# supported. The app needs macOS 15 or later (Package.swift and
+# supported. The app needs macOS 26 or later (Package.swift and
 # LSMinimumSystemVersion).
 #
 # Contents/Resources/THIRD-PARTY-NOTICES.txt contains this repository's LICENSE
@@ -25,8 +25,8 @@
 # Without SIGNING_IDENTITY the app is signed ad hoc. That runs on the Mac that
 # built it; on another Mac, Gatekeeper stops it the first time, until it is
 # allowed with Open Anyway in System Settings > Privacy & Security (right-click
-# > Open does not work on macOS 15 or later). A Developer ID identity (and
-# notarization) removes that step.
+# > Open does not work on the macOS versions the app supports). A Developer ID
+# identity (and notarization) removes that step.
 #
 # Needs Xcode, or its command line tools, with Swift 6.
 # ------------------------------------------------------------------------
@@ -156,7 +156,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleShortVersionString</key>   <string>$VERSION</string>
     <key>CFBundleVersion</key>              <string>$VERSION</string>
     <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
-    <key>LSMinimumSystemVersion</key>       <string>15.0</string>
+    <key>LSMinimumSystemVersion</key>       <string>26.0</string>
     <key>LSApplicationCategoryType</key>    <string>public.app-category.productivity</string>
     <key>NSHighResolutionCapable</key>      <true/>
     <key>NSHumanReadableCopyright</key>     <string>Copyright 2026 David Norman. Apache License 2.0.</string>

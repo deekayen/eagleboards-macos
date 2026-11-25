@@ -12,13 +12,22 @@ permissions:
 
 jobs:
   build:
-    runs-on: macos-latest
+    # The oldest macOS the app claims, on Apple silicon. Named, because GitHub
+    # moves macos-latest to a newer macOS; macos-26-intel is the Intel one.
+    runs-on: macos-26
     env:
       VERSION: 0.0.${{ github.run_number }}
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+
+      - name: macOS 26 on Apple silicon
+        run: |
+          case "$(uname -m) $(sw_vers -productVersion)" in
+            "arm64 26."*) ;;
+            *) echo "::error::expected arm64 and macOS 26, found $(uname -m) and $(sw_vers -productVersion)"; exit 1 ;;
+          esac
 
       - name: Toolchain
         run: |
@@ -119,49 +128,4 @@ jobs:
       - name: Check the app
         # The bundle checks and the launch smoke test, in scripts/check-app.sh
         # so release.yml runs the same ones on the zip it ships.
-        run: EXPECT_VERSION="$VERSION" scripts/check-app.sh "build/Eagle Boards.app"
-
-  macos15:
-    # Backs the claim that the app runs on macOS 15, its minimum. As of
-    # 2026-11-03 macos-latest is macOS 26, and GitHub retired its macOS 14
-    # image on 2026-11-02, so macOS 15 is the oldest release CI can test. This
-    # job runs the tests and launches the built app there, with Xcode 26 as
-    # the build job uses. It repeats none of the repository guards, and skips
-    # the live SignUpGenius test because it has no SUG_KEY.
-    runs-on: macos-15
-    env:
-      VERSION: 0.0.${{ github.run_number }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-
-      - name: Select Xcode 26
-        # The image's default Xcode is 16.4; Xcode 26.x is installed beside it
-        # as /Applications/Xcode_26.N.app. Take the newest that is not a beta.
-        run: |
-          case "$(sw_vers -productVersion)" in
-            15.*) ;;
-            *) echo "::error::expected macOS 15, found $(sw_vers -productVersion)"; exit 1 ;;
-          esac
-          xcode=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | grep -vi beta | sort -V | tail -1 || true)
-          if [ -z "$xcode" ]; then
-            echo "::error::no Xcode 26 under /Applications on this runner image; see the image's installed software list"
-            exit 1
-          fi
-          echo "DEVELOPER_DIR=$xcode/Contents/Developer" >> "$GITHUB_ENV"
-          echo "using $xcode on macOS $(sw_vers -productVersion)"
-
-      - name: Toolchain
-        run: |
-          xcodebuild -version
-          swift --version
-
-      - name: Test
-        run: swift test --force-resolved-versions
-
-      - name: Build the app
-        run: scripts/build-app.sh
-
-      - name: Check the app
         run: EXPECT_VERSION="$VERSION" scripts/check-app.sh "build/Eagle Boards.app"

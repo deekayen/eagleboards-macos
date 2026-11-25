@@ -4,12 +4,11 @@ Versions are CalVer: the release date.
 
 ## Unreleased
 
-**Eagle Boards needs macOS 15 or later** (this changes the requirement from
-macOS 14, which is no longer supported). GitHub retired its macOS 14 runner on
-2026-11-02, and the maintainer's Mac runs a newer macOS, so macOS 14 cannot be
-tested. On macOS 15 and macOS 26 the automated checks run the tests and
-launch the built app; on macOS 15 they also launch the published zip itself.
-The maintainer runs the app on macOS 27.
+**Eagle Boards needs macOS 26 or later** (this changes the requirement from
+macOS 14). On macOS 14 and macOS 15, 2026.09.28 is the last version that opens.
+The automated checks run the tests, launch the built app, and launch the
+published zip itself on macOS 26, on Apple silicon. The maintainer runs the app
+on macOS 27.
 
 **The pages are on Command-1 to Command-8**, the keys Windows gives them with
 Ctrl, in place of Option-Command-1 to 8. Option-Command-8 was also the macOS
@@ -96,8 +95,9 @@ key in your keychain; click **Always Allow**.
 
 **The app opens on a Mac that did not build it.** It links a Swift library that
 was found only through the Xcode that built the app, so a Mac without that
-Xcode could stop at launch with "Library not loaded". The library is inside the
-app now, and CI checks the bundle. macOS's prompts for the Documents, Downloads,
+Xcode could stop at launch with "Library not loaded". macOS 26 supplies what
+that library did, so the app no longer needs it, and CI checks the bundle for a
+missing library. macOS's prompts for the Documents, Downloads,
 and removable volume folders say why Eagle Boards asks.
 
 **License notices are in the app**, at Contents/Resources/THIRD-PARTY-NOTICES.txt:

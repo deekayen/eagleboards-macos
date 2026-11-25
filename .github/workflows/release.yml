@@ -2,9 +2,9 @@
 #
 # Before tagging, rename "## Unreleased" in CHANGELOG.md to "## 2026.11.05" and
 # wait for the Build workflow to pass on the commit being tagged. Three jobs
-# follow: build and package on macos-latest; unzip the file that would ship and
-# check it on macos-15, the oldest macOS the app claims; then create the GitHub
-# release as a draft and make it public. A failure in any job leaves nothing
+# follow: build and package on macos-26, the oldest macOS the app claims; unzip
+# the file that would ship and check it on another macos-26 runner; then create
+# the GitHub release as a draft and make it public. A failure in any job leaves nothing
 # public. A draft left behind by a run that failed after creating it must be
 # deleted on the Releases page before the run is repeated.
 #
@@ -23,7 +23,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-26
     permissions:
       contents: read
       # gh run list, in "Build passed on this commit".
@@ -108,7 +108,7 @@ jobs:
     # claims: unzip it the way a user does, then run the bundle checks and the
     # launch on that copy.
     needs: build
-    runs-on: macos-15
+    runs-on: macos-26
     permissions:
       contents: read
     steps:
@@ -123,9 +123,9 @@ jobs:
 
       - name: Unzip and check the shipped file
         run: |
-          case "$(sw_vers -productVersion)" in
-            15.*) ;;
-            *) echo "::error::expected macOS 15, found $(sw_vers -productVersion)"; exit 1 ;;
+          case "$(uname -m) $(sw_vers -productVersion)" in
+            "arm64 26."*) ;;
+            *) echo "::error::expected arm64 and macOS 26, found $(uname -m) and $(sw_vers -productVersion)"; exit 1 ;;
           esac
           version="${GITHUB_REF_NAME#v}"
           (cd release && shasum -a 256 -c SHA256SUMS)

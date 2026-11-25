@@ -41,11 +41,10 @@ one thread that ever changes the data.
 
 ## Build, run, verify
 
-Needs a Mac with Apple silicon, macOS 15 or later, and Xcode (or its command
-line tools) with Swift 6. As of 2026-11-03 CI runs the tests and launches the
-built app on macOS 15 and 26; the maintainer runs Eagle Boards on macOS 27. macOS 14
-is unsupported: GitHub retired its runner on 2026-11-02, and nothing here can
-test it.
+Needs a Mac with Apple silicon, macOS 26 or later, and Xcode (or its command
+line tools) with Swift 6. As of 2026-11-25 CI runs the tests and launches the
+built app on macOS 26, on Apple silicon; the maintainer runs Eagle Boards on
+macOS 27. macOS 15 and earlier are unsupported.
 
 ```bash
 swift build
@@ -212,11 +211,11 @@ below. Run things locally to debug what CI found, or to iterate.
 
 Versions are CalVer: the release date, e.g. `2026.09.22`. Pushing a tag
 `v2026.09.22` runs `release.yml` in three jobs. The build job, on
-`macos-latest`, refuses a tag that is not a `vYYYY.MM.DD` date, a version with
+`macos-26`, refuses a tag that is not a `vYYYY.MM.DD` date, a version with
 no `## 2026.09.22` section in `CHANGELOG.md`, and a commit with no passing
 Build run. It then runs the tests, builds the app, checks it, and zips it as
 `Eagle-Boards-2026.09.22.zip` with a `SHA256SUMS` file. The verify job, on
-`macos-15`, unzips that exact file and runs `scripts/check-app.sh` on it, which
+another `macos-26` runner, unzips that exact file and runs `scripts/check-app.sh` on it, which
 checks the bundle and launches it. The publish job creates the release as a
 draft and makes it public. Each release's notes are the changelog section
 (`scripts/release-notes.sh`) and a first-launch paragraph. A failure in any job
@@ -226,9 +225,9 @@ release on one date has no defined name yet.
 
 The app is signed ad hoc, so on another Mac Gatekeeper stops it the first
 time. It opens once someone clicks **Open Anyway** in System Settings ›
-Privacy & Security after trying it. The right-click > **Open** route no
-longer exists on macOS 15 and later, the versions this app supports, so the
-release notes give Open Anyway. Signing with a Developer ID identity
+Privacy & Security after trying it. The right-click > **Open** route does
+not exist on the macOS versions this app supports, so the release notes give
+Open Anyway. Signing with a Developer ID identity
 (`SIGNING_IDENTITY=... scripts/build-app.sh`) and notarizing removes that.
 
 ### Before tagging

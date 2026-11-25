@@ -43,5 +43,5 @@ section=$(printf '%s\n' "$section" | sed '/./,$!d')
 
 printf '%s\n\n' "$section"
 cat <<NOTES
-For Macs with Apple silicon running macOS 15 or later. Intel Macs and macOS 14 are not supported. Signed ad hoc, not notarized, so macOS stops the app the first time: open it, close the warning, then click **Open Anyway** in System Settings › Privacy & Security and confirm. After an update, macOS also asks again for access to the SignUpGenius key in your keychain; click **Always Allow**. Earlier releases are in the [changelog](https://github.com/$repo/blob/$tag/CHANGELOG.md).
+For Macs with Apple silicon running macOS 26 or later. Intel Macs and earlier versions of macOS are not supported. Signed ad hoc, not notarized, so macOS stops the app the first time: open it, close the warning, then click **Open Anyway** in System Settings › Privacy & Security and confirm. After an update, macOS also asks again for access to the SignUpGenius key in your keychain; click **Always Allow**. Earlier releases are in the [changelog](https://github.com/$repo/blob/$tag/CHANGELOG.md).
 NOTES

@@ -29,7 +29,7 @@ set -euo pipefail
 
 # What Info.plist must say; build-app.sh writes it. Change both together, and
 # the macOS claim in README.md, CONTRIBUTING.md, and the release notes with them.
-min_macos="15.0"
+min_macos="26.0"
 
 app="${1:?usage: scripts/check-app.sh <path to Eagle Boards.app> [port]}"
 port="${2:-${CHECK_APP_PORT:-18123}}"

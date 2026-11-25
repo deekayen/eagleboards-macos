@@ -35,9 +35,9 @@ made-up event whose cast is famous Eagle Scouts; nothing in them is real.
 
 You need three things:
 
-1. **A Mac with Apple silicon** (M1 or later) running macOS 15 Sequoia or
+1. **A Mac with Apple silicon** (M1 or later) running macOS 26 Tahoe or
    later, with Eagle Boards on it. Intel Macs are not supported, and neither
-   is macOS 14, which cannot be tested any more.
+   is macOS 15 or earlier.
 2. **A tablet or laptop for the door**, with a web browser, on the same Wi-Fi.
 3. **Your room list**: which rooms you have, and whether each is used for
    project proposal reviews or for final boards.
@@ -67,9 +67,9 @@ Each downloaded copy asks once.
 
 ### Tested macOS versions
 
-As of 2026-11-03, GitHub's automated checks run the tests and launch the
-built app on macOS 15 and macOS 26. They launch the published zip itself on
-macOS 15. The maintainer runs Eagle Boards on macOS 27.
+As of 2026-11-25, GitHub's automated checks run the tests, launch the built
+app, and launch the published zip itself on macOS 26, on Apple silicon. The
+maintainer runs Eagle Boards on macOS 27.
 
 ### Choosing the data folder
 
