@@ -90,6 +90,97 @@ struct FileFormatTests {
         #expect(reread.first?.last == "Doe")
     }
 
+    /// Swift joins some scalars to the comma beside them in one `Character`:
+    /// a combining accent, a joiner, or an emoji skin tone to the comma before
+    /// it, and U+0600 to the comma after it. The comma still ends the column,
+    /// as it does in the Java and Windows versions.
+    @Test(arguments: ["\u{0301}Jan", "\u{200D}Jan", "\u{FE0F}Jan", "\u{1F3FB}Jan", "Jan\u{0600}"])
+    func aNameThatJoinsTheCommaBesideItStaysInItsColumn(first: String) throws {
+        var youth = Scout.blank(at: Date())
+        youth.last = "Doe"
+        youth.first = first
+        youth.unitType = "Troop"
+        youth.unit = "1776"
+        youth["BoardType"] = BoardType.finalBoard.rawValue
+        youth.status = .registered
+        youth.assignIDIfNeeded()
+        youth.refreshDerivedFields()
+        let reread = try #require(CSVFile.parse(Scout.self, text: CSVFile.render([youth])).first)
+        #expect(Scout.columns.filter { !sameScalars(reread[$0], youth[$0]) } == [])
+    }
+
+    /// The history is permanent, so columns that moved in it would be wrong
+    /// at every event after this one.
+    @MainActor
+    @Test func aSignInThatJoinsTheCommaBesideItSurvivesAReopen() throws {
+        let scratch = try ScratchFolder()
+        let event = try BoardEvent(folder: scratch.dataFolder, date: "2026-11-25")
+        try event.registerYouth([
+            "Last": "Doe", "First": "\u{0301}Jan", "UnitType": "Troop", "Unit": "1776", "BoardType": "Final",
+        ])
+        try event.registerAdult([
+            "Last": "Able", "First": "\u{0301}Ann", "UnitType": "Troop", "Unit": "2001",
+            "ProjectReview": "Member", "FinalBoard": "Chair",
+        ])
+
+        let reopened = try BoardEvent(folder: scratch.dataFolder, date: "2026-11-25")
+        let youth = try #require(reopened.scouts.first)
+        #expect(youth.status == .registered)
+        #expect(youth.boardType == .finalBoard)
+        #expect(youth.unitName == "Troop1776")
+        #expect(reopened.adults.first?.canChair(.finalBoard) == true)
+        #expect(reopened.adultHistory.first?.canChair(.finalBoard) == true)
+    }
+
+    /// Whatever is typed, each value comes back in its own column, changed only
+    /// as `flatten` changes it. Half the scalars come from all of Unicode and
+    /// half from those that have to do with commas, line breaks, and joining.
+    /// The seeds are fixed, so a failure repeats, and it names its seed.
+    @Test(arguments: UInt64(0)..<20)
+    func anyTextStaysInItsColumn(seed: UInt64) throws {
+        var random = SeededRandom(seed: seed)
+        let special: [Unicode.Scalar] = [
+            ",", "~", "+", "|", ":", "\"", " ", "\n", "\r", "\u{000B}", "\u{000C}", "\u{0085}", "\u{2028}", "\u{2029}",
+            "\u{0301}", "\u{0600}", "\u{200B}", "\u{200D}", "\u{FE0F}", "\u{FEFF}", "\u{1F3FB}", "\u{1F469}",
+        ]
+        func text() -> String {
+            var scalars = String.UnicodeScalarView()
+            for _ in 0..<Int.random(in: 0...6, using: &random) {
+                if Bool.random(using: &random) {
+                    scalars.append(special.randomElement(using: &random)!)
+                } else if let scalar = Unicode.Scalar(UInt32.random(in: 1...0x10FFFF, using: &random)) {
+                    scalars.append(scalar)
+                }
+            }
+            return String(scalars)
+        }
+        let replaced: [Unicode.Scalar: Unicode.Scalar] = [
+            ",": "~", "\n": "+", "\r": "+", "\u{000B}": "+", "\u{000C}": "+", "\u{0085}": "+", "\u{2028}": "+",
+            "\u{2029}": "+",
+        ]
+
+        for _ in 0..<200 {
+            var youth = Scout.blank(at: Date(timeIntervalSince1970: 1_790_118_300))
+            youth["ID"] = "SCOUT:Doe:Jan:1776"
+            for column in ["Last", "First", "Email", "Unit", "Leader", "Notes"] {
+                youth[column] = text()
+            }
+            youth.refreshDerivedFields()
+            let reread = CSVFile.parse(Scout.self, text: CSVFile.render([youth]))
+            let moved = Scout.columns.filter { column in
+                let expected = youth[column].unicodeScalars.map { replaced[$0] ?? $0 }
+                return reread.count != 1 || Array(reread[0][column].unicodeScalars) != expected
+            }
+            try #require(moved == [], "seed \(seed): \(youth.fields.mapValues(\.debugDescription))")
+        }
+    }
+
+    /// Scalar by scalar, because `==` on two strings takes different scalars
+    /// that look alike as equal, and the files are compared byte for byte.
+    private func sameScalars(_ first: String, _ second: String) -> Bool {
+        first.unicodeScalars.elementsEqual(second.unicodeScalars)
+    }
+
     @Test func aFileThatExistsButCannotBeReadIsNotTakenForANewEvent() throws {
         let scratch = try ScratchFolder()
         let file = scratch.url.appending(path: "scouts.csv")

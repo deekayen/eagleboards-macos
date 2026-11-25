@@ -68,6 +68,12 @@ A name sent from the tablet holding a line-break character other than Return
 and Line Feed (U+000B, U+000C, U+0085, U+2028, U+2029) read back as two or three
 people, in the adult history too. Each is stored as `+` now.
 
+**A name that starts with a combining accent no longer moves the columns after
+it.** Such an accent, a joiner, or an emoji skin tone at the start of a value
+was read as part of the comma before it. When the event was reopened, a youth
+lost their status and board type and an adult their roles, in the adult history
+too. The comma ends the column now, whatever follows it.
+
 **A data folder that cannot be read stops the open.** A file that existed but
 could not be read, or a link pointing at an unmounted drive, was treated as
 missing, and opening the event started a new, empty adult history over it.

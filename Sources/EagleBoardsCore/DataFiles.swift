@@ -60,7 +60,10 @@ public enum CSVFile {
 
         return lines.dropFirst().compactMap { line -> Record? in
             guard !line.allSatisfy(\.isWhitespace) else { return nil }
-            let values = line.split(separator: ",", omittingEmptySubsequences: false)
+            // By scalar, as `flatten` writes: a combining accent at the start
+            // of a value joins the comma before it in one `Character`, which
+            // is not ",", and every later value would move over a column.
+            let values = line.unicodeScalars.split(separator: ",", omittingEmptySubsequences: false)
             var fields: [String: String] = [:]
             for (column, value) in zip(header, values) where knownColumns.contains(column) {
                 fields[column] = String(value)
